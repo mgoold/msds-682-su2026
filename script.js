@@ -16,6 +16,8 @@ const pages = {
         <div class="meta-row"><strong>Instructor</strong><span>Jeremy W. Gu · <a href="mailto:wgu9@usfca.edu">wgu9@usfca.edu</a></span></div>
         <div class="meta-row"><strong>Course assistant</strong><span>Annie Chiu · <a href="mailto:ychiu14@usfca.edu">ychiu14@usfca.edu</a></span></div>
         <div class="meta-row"><strong>Meeting pattern</strong><span>Mon Zoom · Thu in person, 101 Howard Classroom 529 · 5:30–7:20pm PDT</span></div>
+        <div class="meta-row"><strong>Canvas link</strong><span>To be provided at the first class.</span></div>
+        <div class="meta-row"><strong>Zoom link</strong><span>Please see the calendar invite.</span></div>
         <div class="meta-row"><strong>Submissions</strong><span>Canvas is the official submission platform; GitHub is used for code management and collaboration.</span></div>
       </div>
 
@@ -172,7 +174,7 @@ const pages = {
   "/assignments": {
     title: "Assignments",
     body: `
-      <p class="lede">There are two individual assignments and one final project. Canvas is the official submission platform; homework, projects, and final project materials must be submitted as ZIP files on Canvas.</p>
+      <p class="lede">There are two individual assignments and one final project. Canvas is the official submission platform; the Canvas link will be provided at the first class. Homework, projects, and final project materials must be submitted as ZIP files on Canvas.</p>
       <div class="assignment-list">
         <article class="assignment-card">
           <h3>Assignment 1</h3>
@@ -193,6 +195,7 @@ const pages = {
 
       <h3>Submission and collaboration</h3>
       <ul>
+        <li>Canvas link: to be provided at the first class.</li>
         <li>Late submissions are not accepted unless prior approval has been granted by the instructor.</li>
         <li>GitHub is used for code management, collaboration, and portfolio development.</li>
         <li>AI tools, coding agents, open-source resources, and online references are permitted with clear attribution and explanation.</li>
@@ -306,6 +309,7 @@ function handoutsListBody() {
     const href = h.kind === "pdf" ? h.file : `#/handouts/${h.slug}`;
     const target = h.kind === "pdf" ? ' target="_blank" rel="noopener"' : "";
     const badge = h.kind === "pdf" ? "PDF" : "Markdown";
+    const action = h.kind === "pdf" ? "Download PDF" : "Open handout";
     return `
       <article class="handout-card">
         <div class="handout-card-head">
@@ -314,6 +318,7 @@ function handoutsListBody() {
         </div>
         <p>${escapeHtml(h.summary)}</p>
         <p class="handout-meta">${escapeHtml(h.date)}</p>
+        <p class="handout-actions"><a class="download-link" href="${href}"${target}>${action}</a></p>
       </article>`;
   }).join("");
 

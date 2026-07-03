@@ -379,6 +379,31 @@ tbody tr:hover {
   font-size: 0.84rem;
 }
 
+.handout-actions {
+  margin-top: 14px;
+}
+
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--usf-green);
+  border-radius: 999px;
+  background: var(--usf-green);
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: inset 0 -3px 0 var(--usf-gold);
+}
+
+.download-link:hover {
+  border-color: var(--usf-green-dark);
+  background: var(--usf-green-dark);
+  color: #ffffff;
+}
+
 .back-link {
   margin: 0 0 22px;
   font-size: 0.9rem;
