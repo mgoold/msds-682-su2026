@@ -2,11 +2,10 @@
 
 Course website for **MSDS 682-01 (30398), Data Stream Processing** at the University of San Francisco.
 
-A lightweight static site — no framework, no build step — inspired by minimal
-academic course pages. Sections:
+A lightweight static course site with no framework and no build step. Sections:
 
-- **Home** — overview, logistics, learning goals
-- **Schedule** — week-by-week plan
+- **Home** — overview and logistics
+- **Schedule** — class meetings and major due dates
 - **Assignments** — assignment briefs
 - **Handouts** — Markdown notes (with highlighted code) and PDF handouts
 - **Syllabus** — policies and expectations
@@ -47,8 +46,8 @@ Markdown handouts render in the page with syntax-highlighted code blocks
 python3 -m http.server 8000
 ```
 
-Open `http://localhost:8000`. Serving over HTTP is required — Markdown handouts
-are fetched at runtime and will not load from a `file://` path.
+Open the local server URL printed by the command. Serving over HTTP is required:
+Markdown handouts are fetched at runtime and will not load from a `file://` path.
 
 ## Publishing
 
