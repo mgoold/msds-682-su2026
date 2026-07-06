@@ -4,3 +4,4 @@
 *.png
 .local-guards/
 tmp/
+outputs/

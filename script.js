@@ -267,6 +267,14 @@ const pages = {
 // code blocks; PDF handouts (kind: "pdf") open the file directly.
 const handouts = [
   {
+    slug: "demo01",
+    title: "Demo 01: Environment Setup",
+    kind: "md",
+    file: "handouts/demo01.md",
+    date: "Jul 2026",
+    summary: "Step-by-step first local run: create a Python environment, install packages, run the environment check, and inspect the JSON artifact."
+  },
+  {
     slug: "syllabus",
     title: "Final Syllabus",
     kind: "pdf",
