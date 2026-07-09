@@ -200,34 +200,41 @@ Download the complete runnable script:
 | Show nonzero production metrics | No messages are written in Demo 01 |
 | Prove topic ordering | Ordering matters after messages are produced into partitions |
 
-## Relation to Later Producer Examples
+## Relation to Producer and Consumer Examples
 
 Conceptually, producer demos come after this topic-creation demo: first create a destination topic, then produce messages into a topic.
 
-In the current 2026 local-first demo package, later producer examples use local JSONL-backed topics such as:
-
-```text
-msds682.demo.orders
-msds682.demo.couriers
-```
-
-Those local demos are intentionally runnable without Confluent credentials. They teach producer behavior, batching, offsets, validation, and FastAPI workflows without requiring a cloud Kafka cluster.
-
-So the relationship is:
-
-| Demo | Topic/storage used | Purpose |
-|---|---|---|
-| Demo 01 | Confluent topic `msds682.demo01.trip-events.v1` | Show real Kafka admin topic creation |
-| Later local producer demos | Local JSONL topics like `msds682.demo.orders` | Teach producer/message behavior without cloud dependencies |
-| Future Confluent producer extension | Could write to `msds682.demo01.trip-events.v1` or another agreed topic | Connect producer code to the real Kafka cluster |
-
-If you want a producer to use the exact topic created in Demo 01, the producer must explicitly produce to:
+The Lec 2 topic creation demo, producer demo, and consumer-offset demo now use the same topic name and same ridesharing background:
 
 ```text
 msds682.demo01.trip-events.v1
 ```
 
-Kafka does not automatically connect producer examples to a topic just because it exists.
+The local producer/consumer demos are still runnable without Confluent credentials because they use the course's local JSONL transport. The topic name is the same as the Confluent topic, but the storage backend is local unless the script explicitly uses the Confluent client.
+
+The sequence is:
+
+| Demo | Topic/storage used | Purpose |
+|---|---|---|
+| Demo 01 topic creation | Confluent topic `msds682.demo01.trip-events.v1` | Create the empty Kafka topic |
+| Demo 02 producer benchmark | Local topic named `msds682.demo01.trip-events.v1` | Produce trip lifecycle event messages |
+| Demo 03 consumer offsets | Local topic named `msds682.demo01.trip-events.v1` | Replay trip events from offsets |
+| Future Confluent producer extension | Confluent topic `msds682.demo01.trip-events.v1` | Write the same style of messages to the real Kafka cluster |
+
+Example message values used by producer/consumer demos look like:
+
+```json
+{
+  "trip_id": "trip_981",
+  "event_type": "driver_matched",
+  "rider_id": "rider-981",
+  "driver_id": "driver-003",
+  "zone": "north",
+  "event_time": "2026-07-04T10:01:00Z"
+}
+```
+
+Kafka does not automatically connect producer examples to a topic just because it exists. The producer code must explicitly use the topic name `msds682.demo01.trip-events.v1`.
 
 ## Step 1: Create a Working Folder
 
