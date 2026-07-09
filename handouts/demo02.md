@@ -193,15 +193,16 @@ This is the message value. Kafka itself would store bytes; our local demo stores
 | Demo | What it does | Topic name |
 |---|---|---|
 | Demo 01 | Creates the empty Confluent topic | `msds682.demo01.trip-events.v1` |
-| Demo 02 | Produces trip event messages locally | `msds682.demo01.trip-events.v1` |
-| Demo 03 | Consumes/replays trip event messages locally | `msds682.demo01.trip-events.v1` |
+| Demo 02 | Produces trip event messages locally first, then to Confluent | `msds682.demo01.trip-events.v1` |
+| Demo 03 | Consumes/replays trip event messages from the same topic thread | `msds682.demo01.trip-events.v1` |
 
 The topic name is shared on purpose. The storage backend is different:
 
 | Storage | Used by | Meaning |
 |---|---|---|
 | Confluent Kafka | Demo 01 topic creation | Real cloud topic exists |
-| Local JSONL file | Demo 02 and Demo 03 | Local append-only log for reproducible class runs |
+| Confluent Kafka | Demo 02B/02C/02D producer scripts | Real messages are appended to the cloud topic |
+| Local JSONL file | Demo 02 warm-up and local replay checks | Local append-only log for reproducible class runs |
 
 ## High-Value Details to Notice
 
@@ -221,31 +222,160 @@ The topic name is shared on purpose. The storage backend is different:
 
 ## Producer Configuration in This Demo
 
-Producer configuration means: what topic to write to, what the key/value look like, how messages are serialized, and how sends are grouped.
+Producer configuration has two layers:
+
+1. Connection config: how Python connects to Confluent Cloud.
+2. Per-message producer choices: which topic/key/value/callback to use.
+
+**Core point: `topic`, `key`, and `value` are producer choices, not secrets. Confluent credentials stay in `.env`.**
+
+Connection config from `.env`:
+
+```python
+producer_config = {
+    # Confluent Cloud Kafka cluster endpoint.
+    "bootstrap.servers": os.getenv("BOOTSTRAP_SERVERS"),
+    # Encrypted SASL connection to Confluent Cloud.
+    "security.protocol": "SASL_SSL",
+    # API-key/API-secret authentication.
+    "sasl.mechanisms": "PLAIN",
+    # Kafka API key.
+    "sasl.username": os.getenv("SASL_USERNAME"),
+    # Kafka API secret.
+    "sasl.password": os.getenv("SASL_PASSWORD"),
+}
+```
+
+What each config field does:
+
+| Config field | Meaning |
+|---|---|
+| `bootstrap.servers` | Kafka broker endpoint from Confluent Cloud |
+| `security.protocol` | Uses encrypted/authenticated connection; for this class: `SASL_SSL` |
+| `sasl.mechanisms` | Auth mechanism; for API key/secret: `PLAIN`; librdkafka also accepts `sasl.mechanism` as an alias |
+| `sasl.username` | Kafka API key |
+| `sasl.password` | Kafka API secret |
+
+Per-message choices in the producer call:
+
+```python
+producer.produce(
+    topic=TOPIC_NAME,
+    key=event_key(event),
+    value=serialize_event(event),
+    callback=tracker.callback,
+)
+```
 
 | Config item | In this demo | Why it matters |
 |---|---|---|
 | Topic | `msds682.demo01.trip-events.v1` | Same topic thread as Demo 01 and Demo 03 |
 | Key | `trip_id` in Confluent scripts | Same trip lifecycle goes to the same partition while partition count is stable |
-| Value | `TripEvent` converted to JSON-like dict | This is the message payload |
+| Value | `TripEvent` serialized to UTF-8 JSON bytes | This is the message payload Kafka stores |
 | Serialization | `TripEvent -> JSON string -> UTF-8 bytes` | Kafka stores bytes |
 | Producer mode | Async by default in Confluent scripts | Higher-throughput producer pattern |
-| Batch size | `--batch-size` | Controls how many events are grouped before `produce_many(...)` |
 | Delivery report | `callback=tracker.callback` | Records success/failure without printing secrets |
 
-Real Kafka producer configuration would add connection settings from `.env`:
+That config is required for the Confluent producer scripts. It is not required for the local warm-up script.
 
-```python
-producer_config = {
-    "bootstrap.servers": os.getenv("BOOTSTRAP_SERVERS"),
-    "security.protocol": "SASL_SSL",
-    "sasl.mechanisms": "PLAIN",
-    "sasl.username": os.getenv("SASL_USERNAME"),
-    "sasl.password": os.getenv("SASL_PASSWORD"),
-}
+## Batch Means Two Different Things Here
+
+**Important: `--batch-size` in the local warm-up is not Kafka's real `batch.size` producer config.**
+
+| Term | Meaning in this course demo |
+|---|---|
+| Local `--batch-size` | How many fake trip events the JSONL warm-up holds before writing them together |
+| Kafka internal batching | What `confluent-kafka`/librdkafka does after `produce(...)` queues messages |
+| Real Kafka `linger.ms` / `queue.buffering.max.ms` | How long the client may wait so more messages can accumulate into a batch |
+| Real Kafka `batch.num.messages` | Max number of messages in one internal batch |
+| Real Kafka `batch.size` | Max byte size of one internal batch |
+
+We do not tune Kafka's production batching settings in Demo 02. That is intentional. For Lec 2, students only need the producer flow: configure client, choose topic/key/value, serialize, call `produce(...)`, serve callback, `flush()` before exit.
+
+## Poll, Flush, And Callback
+
+Direct rules:
+
+| Code | Meaning |
+|---|---|
+| `producer.produce(...)` | Queues a message asynchronously and returns quickly |
+| `callback=tracker.callback` | Registers the delivery report handler |
+| `producer.poll(0)` | Gives the client a chance to run callbacks without blocking |
+| `producer.flush()` | Waits for queued/in-flight messages before the script exits |
+
+**Do not call `flush()` after every message in normal producer code.** Demo 02C does that only to show a sync-style teaching simplification.
+
+## Async Producer Is Not Python asyncio
+
+In this handout, async means:
+
+```text
+produce(...) queues the message now; delivery result arrives later by callback.
 ```
 
-That config is required for the Confluent producer scripts. It is not required for the local warm-up script.
+It does not mean:
+
+```text
+async def ...
+await ...
+asyncio.run(...)
+```
+
+The current Confluent Python client also has AsyncIO APIs. We are not using them in Lec 2 because this demo is about Kafka producer fundamentals, not Python `asyncio`.
+
+## Serialization And Pydantic
+
+Kafka stores message keys and values as bytes. A Python object cannot be stored directly.
+
+Demo 02D uses this path:
+
+```text
+TripEvent Pydantic model
+-> model_dump_json(exclude_none=True)
+-> JSON string
+-> encode("utf-8")
+-> bytes sent to Kafka
+```
+
+Code:
+
+```python
+def serialize_event(event: TripEvent) -> bytes:
+    # Kafka values are bytes. Pydantic v2 model_dump_json gives a JSON string.
+    return event.model_dump_json(exclude_none=True).encode("utf-8")
+```
+
+What Pydantic gives us here:
+
+| Benefit | Meaning |
+|---|---|
+| Validation before produce | Bad sample data fails before it reaches Kafka |
+| Consistent fields | Every trip event follows the same local Python model |
+| Clean JSON output | `exclude_none=True` avoids writing unused fields like `driver_id: null` |
+| Readable demo payload | Students can inspect JSON in Confluent and local JSONL |
+
+**Pydantic is not Schema Registry.** It validates inside this Python demo. Cross-language schema governance would use Avro/JSON Schema/Protobuf plus Schema Registry later.
+
+## What To Expect In Confluent Cloud
+
+After Demo 01:
+
+| Confluent UI area | Expected result |
+|---|---|
+| Topics page | Topic `msds682.demo01.trip-events.v1` exists |
+| Partitions column | `3` partitions |
+| Messages | No messages yet, unless a producer has already run |
+
+After Demo 02B/02C/02D:
+
+| Confluent UI area | Expected result |
+|---|---|
+| Topic name | Still `msds682.demo01.trip-events.v1` |
+| Messages viewer | Trip event messages may appear when searching/consuming from the topic |
+| Key | UTF-8 bytes for `trip_id`, for example `trip_981` |
+| Value | UTF-8 JSON bytes, displayed as a JSON trip event if the UI decodes it |
+| Partition/offset | Kafka assigns the partition from the key and returns partition/offset in delivery reports |
+| Metrics | Production counters may lag; the script's delivered count is the immediate proof |
 
 ## Sync vs Async Producer
 
@@ -257,7 +387,7 @@ Direct meaning:
 |---|---|
 | Async producer | `produce(...)` queues the message and returns quickly; delivery result arrives later by callback/poll/flush |
 | Sync-style producer | Code waits after each send or handles one message at a time; simpler to explain, usually slower |
-| Batch producer | Code groups multiple messages before sending/flushing; closer to how high-throughput producers work |
+| Batch producer | Conceptually groups multiple messages; real Kafka batching is handled inside the client |
 
 In the local warm-up:
 
@@ -519,7 +649,7 @@ The CSV records:
 |---|---|
 | `strategy` | Producer style being tested |
 | `message_count` | Number of messages attempted |
-| `batch_size` | Batch size used by the batched strategy |
+| `batch_size` | Local warm-up grouping size; not Kafka producer `batch.size` |
 | `elapsed_seconds` | Local wall-clock time |
 | `throughput_msg_per_sec` | Messages per second in this local run |
 
@@ -535,7 +665,8 @@ Do not over-interpret the absolute speed. The point is to compare patterns, not 
 | No output files | Running from a different folder than expected | Check current directory with `pwd` |
 | Chart file missing | `matplotlib` was not installed correctly | Reinstall `matplotlib` in the active environment |
 | Topic file looks duplicated | You reused the same run folder and reran after editing | Use a new `--run-id` |
-| Confused why Confluent metrics do not change | This demo is local JSONL, not cloud Kafka | Use Demo 01 only to check Confluent topic existence |
+| Confused why Confluent metrics do not change after local warm-up | `demo02_producer_benchmark.py` is local JSONL only | Run `demo02b`, `demo02c`, or `demo02d` to send real cloud messages |
+| Messages not visible immediately in Confluent UI | UI search window or metrics lag | Trust the script delivery report first, then search the topic messages |
 
 ## What Students Need to Master
 
@@ -548,5 +679,6 @@ Keep this short:
 5. Delivery success/failure comes from callback/poll/flush.
 6. `sync_style` means "wait after each message" and is a teaching simplification.
 7. Use `trip_id` as key when you want one trip lifecycle to stay ordered in one partition.
+8. Local `--batch-size` is not Kafka's production `batch.size` setting.
 
 Do not over-focus on performance numbers. The point is the producer flow.

@@ -55,10 +55,15 @@ def load_dotenv_for_demo() -> None:
 def load_producer_config() -> dict[str, str]:
     load_dotenv_for_demo()
     return {
+        # Confluent Cloud Kafka cluster endpoint.
         "bootstrap.servers": os.getenv("BOOTSTRAP_SERVERS", ""),
+        # Confluent Cloud requires encrypted SASL authentication.
         "security.protocol": os.getenv("SECURITY_PROTOCOL", "SASL_SSL"),
+        # PLAIN means API-key/API-secret authentication.
         "sasl.mechanisms": os.getenv("SASL_MECHANISMS", "PLAIN"),
+        # Kafka API key. Do not hard-code it in source code.
         "sasl.username": os.getenv("SASL_USERNAME", ""),
+        # Kafka API secret. Keep it in .env only.
         "sasl.password": os.getenv("SASL_PASSWORD", ""),
     }
 
