@@ -309,12 +309,13 @@ const handouts = [
   },
   {
     slug: "lec2-topic-vs-table",
-    title: "Lec 2: Kafka Topic vs Database Table",
+    title: "Lec 2 Lab Supplemental Materials",
     kind: "html",
     file: "handouts/lec2-topic-vs-table.html",
     date: "Jul 2026",
     wide: true,
-    summary: "One-page visual comparison of database tables and Kafka topics: records vs event messages, mutability, ordering, partitions, offsets, keys, values, and timestamps."
+    standalone: true,
+    summary: "Supplemental Lec 2 slide deck after Demo 02: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, and serialization."
   },
   {
     slug: "syllabus",
@@ -453,6 +454,15 @@ async function renderHandout(slug) {
   content.innerHTML = `${backLink}<div class="handout"><p class="lede">Loading…</p></div>`;
 
   try {
+    if (meta.standalone) {
+      content.innerHTML = `${backLink}<div class="standalone-handout-shell">` +
+        `<div class="standalone-handout-bar"><h2>${escapeHtml(meta.title)}</h2>` +
+        `<a href="${escapeHtml(meta.file)}" target="_blank" rel="noopener">Open full page</a></div>` +
+        `<iframe class="standalone-handout-frame" src="${escapeHtml(meta.file)}" title="${escapeHtml(meta.title)}"></iframe>` +
+        `</div>`;
+      return;
+    }
+
     const res = await fetch(meta.file, { cache: "no-cache" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const source = await res.text();

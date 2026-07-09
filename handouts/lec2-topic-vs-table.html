@@ -1,84 +1,2285 @@
-<section class="concept-slide" aria-label="Kafka topic and database table comparison">
-  <header class="concept-slide-header">
-    <p class="eyebrow">Lec 2 reference</p>
-    <h2>Kafka Topic vs Database Table</h2>
-    <p>A table describes records. A topic carries time-ordered event messages.</p>
-  </header>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lec 2 Lab Supplemental Materials</title>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #6f7480;
+      --line: #e6e6e2;
+      --accent: #3565f2;
+      --log-a: #262b36;
+      --log-b: #1a1e27;
+      --cell: #f7f8fa;
+      --panel: #ffffff;
+      --code-bg: #fafafa;
+      --code-line: #ececea;
+      --red: #e5484d;
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+    }
 
-  <div class="concept-compare">
-    <article class="concept-panel table-panel">
-      <h3>Database Table</h3>
-      <div class="mini-data-table" role="table" aria-label="Example orders table">
-        <div class="table-row table-head" role="row">
-          <span role="columnheader">order_id</span>
-          <span role="columnheader">user_id</span>
-          <span role="columnheader">amount</span>
-          <span role="columnheader">status</span>
-        </div>
-        <div class="table-row" role="row">
-          <span role="cell">1001</span>
-          <span role="cell">Alice</span>
-          <span role="cell">$24.50</span>
-          <span role="cell">paid</span>
-        </div>
-        <div class="table-row" role="row">
-          <span role="cell">1002</span>
-          <span role="cell">Bob</span>
-          <span role="cell">$18.00</span>
-          <span role="cell">pending</span>
-        </div>
-      </div>
-      <p class="concept-note"><strong>Think:</strong> rows with fields that can be queried and updated.</p>
-    </article>
+    * { box-sizing: border-box; }
 
-    <article class="concept-panel topic-panel">
-      <h3>Kafka Topic</h3>
-      <div class="partition-card">
-        <strong>orders.events.v1 / partition 0</strong>
-        <div class="event-row">
-          <span>offset 0</span>
-          <span>key=Alice | value=order_created</span>
-          <span>10:01</span>
-        </div>
-        <div class="event-row">
-          <span>offset 1</span>
-          <span>key=Alice | value=order_paid</span>
-          <span>10:03</span>
-        </div>
-      </div>
-      <div class="partition-card">
-        <strong>orders.events.v1 / partition 1</strong>
-        <div class="event-row">
-          <span>offset 0</span>
-          <span>key=Bob | value=order_created</span>
-          <span>10:02</span>
-        </div>
-      </div>
-      <div class="topic-parts">
-        <span><strong>Message</strong> event record</span>
-        <span><strong>Key</strong> partition identity</span>
-        <span><strong>Value</strong> payload</span>
-        <span><strong>Timestamp</strong> event/write time</span>
-      </div>
-    </article>
-  </div>
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    }
 
-  <div class="concept-takeaways" aria-label="Key differences">
-    <article>
-      <h3>Unit</h3>
-      <p>Table stores rows. Topic stores messages or events.</p>
-    </article>
-    <article>
-      <h3>Change</h3>
-      <p>Rows can update. Topic messages are immutable; changes arrive as new messages.</p>
-    </article>
-    <article>
-      <h3>Order</h3>
-      <p>Topic is temporal. Order is preserved within one partition.</p>
-    </article>
-    <article>
-      <h3>Read Pattern</h3>
-      <p>Database queries records. Consumers read events from offsets over time.</p>
-    </article>
-  </div>
-</section>
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      place-items: center;
+      padding: 3vh 3vw;
+      position: relative;
+    }
+
+    .frame {
+      width: min(1360px, 92vw);
+    }
+
+    .kicker {
+      font-size: clamp(11px, .8vw, 13px);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      margin: 0 0 8px;
+    }
+
+    .kicker b { color: var(--accent); font-weight: 700; }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(24px, 2.2vw, 38px);
+      letter-spacing: -0.015em;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0 0 2.4vh;
+      color: var(--muted);
+      font-size: clamp(14px, 1.05vw, 18px);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: clamp(18px, 2vw, 32px);
+      box-shadow: 0 6px 24px rgba(22, 24, 29, .04);
+    }
+
+    .caption {
+      margin: 2vh auto 0;
+      max-width: 1020px;
+      text-align: center;
+      color: var(--muted);
+      font-size: clamp(13px, 1vw, 16.5px);
+      line-height: 1.55;
+    }
+
+    .caption strong { color: var(--ink); }
+
+    .caption.highlight {
+      background: #eef1fe;
+      border: 1px solid #d6ddfb;
+      border-radius: 8px;
+      padding: 12px 18px;
+      color: var(--ink);
+    }
+
+    .pager {
+      position: absolute;
+      bottom: 14px;
+      left: 0; right: 0;
+      text-align: center;
+      color: #a5a8b0;
+      font-size: 11.5px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    code.inline {
+      font-family: var(--mono);
+      background: #eef1fe;
+      color: var(--accent);
+      border-radius: 5px;
+      padding: 1px 7px;
+      font-size: .9em;
+    }
+
+    /* ---------- Slide 1: append-only log ---------- */
+
+    .svg-wrap svg {
+      width: 100%;
+      height: auto;
+      max-height: 44vh;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* ---------- Slide 2: messages inside a topic ---------- */
+
+    .topic-name {
+      text-align: center;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: clamp(17px, 1.5vw, 26px);
+      margin: 0 0 2vh;
+    }
+
+    .topic-name .hash { color: var(--accent); }
+
+    .msg-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(10px, 1.1vw, 20px);
+    }
+
+    .log-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .log-strip {
+      grid-column: 1 / -1;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      border-radius: 14px;
+      padding: clamp(8px, .9vw, 14px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(10px, 1.1vw, 20px);
+      margin-bottom: clamp(12px, 1.6vh, 20px);
+    }
+
+    .slot {
+      display: grid;
+      place-items: center;
+    }
+
+    .slot .box {
+      width: clamp(44px, 3.8vw, 62px);
+      height: clamp(44px, 3.8vw, 62px);
+      background: var(--cell);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #3b4252;
+      font-family: var(--mono);
+      font-size: clamp(11px, .85vw, 14px);
+      font-weight: 700;
+    }
+
+    .connector {
+      width: 0;
+      border-left: 2px dashed #c3c6cd;
+      height: clamp(12px, 1.8vh, 22px);
+      margin: 0 auto clamp(8px, 1vh, 12px);
+    }
+
+    .msg-card {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--code-line);
+      border-radius: 10px;
+      padding: clamp(10px, 1vw, 18px);
+      font-family: var(--mono);
+      font-size: clamp(10.5px, .85vw, 14.5px);
+      line-height: 1.7;
+      color: #4a4f5a;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .msg-card .k { color: #6f7480; }
+    .msg-card .s { color: #0e7f66; }
+    .msg-card .n { color: #16181d; }
+    .msg-card .hi { color: var(--red); font-weight: 700; }
+
+    .msg-card.latest {
+      border-color: #f0c9c7;
+      background: #fdf9f8;
+    }
+
+    /* ---------- Message anatomy & message vs event ---------- */
+
+    .anat-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: clamp(16px, 1.8vw, 30px);
+      align-items: stretch;
+    }
+
+    .anat {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: clamp(14px, 1.6vw, 28px);
+    }
+
+    .frow {
+      display: grid;
+      grid-template-columns: clamp(70px, 6vw, 96px) 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .frow.tall { align-items: start; }
+    .frow.tall .flabel { padding-top: 8px; }
+
+    .flabel {
+      text-align: right;
+      font-weight: 700;
+      font-size: clamp(12px, .95vw, 15px);
+      color: var(--ink);
+    }
+
+    .fbox {
+      font-family: var(--mono);
+      font-size: clamp(10.5px, .85vw, 14px);
+      background: var(--code-bg);
+      border: 1px solid var(--code-line);
+      border-radius: 8px;
+      padding: clamp(7px, .6vw, 10px) clamp(9px, .8vw, 13px);
+      color: #4a4f5a;
+    }
+
+    .fbox.addr {
+      color: var(--accent);
+      font-weight: 700;
+      border-color: #c6d3fb;
+      background: #f5f8ff;
+    }
+
+    .fbox-pair {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 8px;
+    }
+
+    .term {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: clamp(12px, 1.1vw, 18px);
+      margin-bottom: 10px;
+    }
+
+    .term h5 {
+      margin: 0 0 6px;
+      font-size: clamp(11px, .85vw, 13px);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--accent);
+    }
+
+    .term h5 span { color: var(--muted); }
+
+    .term p {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(12px, .95vw, 15px);
+      line-height: 1.55;
+    }
+
+    .term p b { color: var(--ink); }
+
+    .evt-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 9px;
+    }
+
+    .chip2 {
+      font-family: var(--mono);
+      font-size: clamp(10.5px, .82vw, 13px);
+      background: #eef1fe;
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 4px 9px;
+    }
+
+    .term-note {
+      margin: 12px 2px 0;
+      color: var(--muted);
+      font-size: clamp(11.5px, .9vw, 14.5px);
+      line-height: 1.55;
+    }
+
+    .term-note b { color: var(--ink); }
+
+    /* ---------- Slide 3: topics organize your data ---------- */
+
+    .topics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: clamp(24px, 3vw, 64px);
+      row-gap: clamp(10px, 1.5vh, 18px);
+    }
+
+    .topic-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 190px) 1fr;
+      align-items: center;
+      gap: clamp(8px, 1vw, 18px);
+    }
+
+    .topic-row .name {
+      text-align: right;
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: clamp(11px, .9vw, 15px);
+      color: #3b4252;
+    }
+
+    .topic-row .bar {
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      border-radius: 9px;
+      height: clamp(32px, 3.4vh, 44px);
+      display: flex;
+      align-items: center;
+      gap: clamp(5px, .45vw, 8px);
+      padding: 0 clamp(6px, .5vw, 9px);
+    }
+
+    .topic-row .bar i {
+      width: clamp(19px, 1.7vw, 27px);
+      height: clamp(19px, 1.7vw, 27px);
+      background: var(--cell);
+      border-radius: 5px;
+      flex: none;
+    }
+
+    /* ---------- Slide 4: topic vs database table ---------- */
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(14px, 1.6vw, 28px);
+      margin-bottom: clamp(14px, 1.8vh, 22px);
+    }
+
+    .side {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: clamp(16px, 1.6vw, 28px);
+      box-shadow: 0 6px 24px rgba(22, 24, 29, .04);
+    }
+
+    .side h2 {
+      margin: 0 0 4px;
+      font-size: clamp(16px, 1.3vw, 22px);
+      letter-spacing: -0.01em;
+    }
+
+    .side .obj-name {
+      font-family: var(--mono);
+      font-size: clamp(12px, .95vw, 16px);
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0 0 14px;
+    }
+
+    .side .note {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: clamp(12px, .95vw, 15px);
+      line-height: 1.5;
+    }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: clamp(11px, .9vw, 15px);
+    }
+
+    .mini-table th, .mini-table td {
+      border: 1px solid var(--line);
+      padding: clamp(7px, .7vw, 12px) clamp(8px, .8vw, 14px);
+      text-align: left;
+      color: #3b4252;
+    }
+
+    .mini-table th {
+      background: #f3f4f2;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .92em;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .mini-table td.hi { color: var(--red); font-weight: 700; }
+
+    .mini-table.spaced { margin-top: 2vh; }
+
+    .producer-timeline {
+      margin-top: 2vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(12px, 1.4vw, 22px);
+    }
+
+    .timeline-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: clamp(10px, 1vw, 16px);
+      font-family: var(--mono);
+    }
+
+    .timeline-card h3 {
+      margin: 0 0 8px;
+      font-size: clamp(12px, .95vw, 15px);
+      color: var(--ink);
+    }
+
+    .timeline-track {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .timeline-step {
+      border-radius: 7px;
+      padding: 7px 6px;
+      text-align: center;
+      font-size: clamp(10px, .78vw, 12px);
+      color: #3b4252;
+      background: #eef1fe;
+      border: 1px solid #d6ddfb;
+      min-height: 32px;
+    }
+
+    .timeline-step.wait {
+      background: #fdf0ef;
+      border-color: #f0c9c7;
+      color: #a43136;
+      font-weight: 700;
+    }
+
+    .timeline-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(11px, .85vw, 13.5px);
+      line-height: 1.45;
+    }
+
+    .evt {
+      display: grid;
+      grid-template-columns: 72px 84px 1fr 58px;
+      gap: clamp(6px, .6vw, 12px);
+      align-items: center;
+      font-family: var(--mono);
+      font-size: clamp(11px, .9vw, 15px);
+      color: #3b4252;
+      background: var(--code-bg);
+      border: 1px solid var(--code-line);
+      border-radius: 8px;
+      padding: clamp(6px, .6vw, 10px) clamp(8px, .8vw, 14px);
+      margin-bottom: 6px;
+    }
+
+    .evt .off { color: var(--accent); font-weight: 700; }
+    .evt .t { color: #a5a8b0; text-align: right; }
+    .evt.new { border-color: #f0c9c7; background: #fdf9f8; }
+    .evt.new .st { color: var(--red); font-weight: 700; }
+
+    .takeaways {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(10px, 1.2vw, 20px);
+    }
+
+    .takeaway {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: clamp(12px, 1.2vw, 20px);
+    }
+
+    .takeaway h3 {
+      margin: 0 0 4px;
+      font-size: clamp(11px, .85vw, 13px);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--accent);
+    }
+
+    .takeaway p {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(12px, .95vw, 15px);
+      line-height: 1.5;
+    }
+
+    .takeaway p b { color: var(--ink); }
+
+    .takeaways.three {
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 2vh;
+    }
+
+    /* ---------- Time-order slides ---------- */
+
+    .card.mb { margin-bottom: clamp(14px, 1.8vh, 24px); }
+
+    .analogy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(12px, 1.3vw, 22px);
+    }
+
+    .analogy-grid .term { margin-bottom: 0; }
+
+    .order-strip {
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      border-radius: 14px;
+      padding: clamp(10px, 1vw, 16px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: clamp(10px, 1.1vw, 20px);
+    }
+
+    .ocell {
+      background: var(--cell);
+      border-radius: 8px;
+      padding: clamp(8px, .9vw, 14px) 6px;
+      text-align: center;
+      font-family: var(--mono);
+    }
+
+    .ocell .off {
+      display: block;
+      font-size: clamp(9.5px, .75vw, 12px);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #8a8f99;
+      margin-bottom: 4px;
+    }
+
+    .ocell .ts {
+      display: block;
+      font-size: clamp(13px, 1.1vw, 18px);
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .ocell.late { box-shadow: inset 0 0 0 2px var(--red); }
+    .ocell.late .ts { color: var(--red); }
+
+    .order-note {
+      margin: 12px 2px 0;
+      text-align: center;
+      font-size: clamp(12px, .95vw, 15px);
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .order-note b { color: var(--ink); }
+    .order-note .late-txt { color: var(--red); font-weight: 700; }
+
+    .takeaway h3.ok { color: #0e7f66; }
+    .takeaway h3.no { color: var(--red); }
+
+    .qa { margin-top: clamp(12px, 1.6vh, 20px); }
+
+    .qrow {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    .qrow:last-child { margin-bottom: 0; }
+
+    .qchip {
+      font-family: var(--mono);
+      font-weight: 700;
+      text-align: center;
+      border-radius: 8px;
+      padding: 4px 0;
+      font-size: clamp(12px, .9vw, 14px);
+    }
+
+    .qchip.q { background: #eef1fe; color: var(--accent); }
+    .qchip.a { background: #e7f3f0; color: #0e7f66; }
+
+    .qrow p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: clamp(12.5px, 1vw, 16px);
+      line-height: 1.55;
+    }
+
+    .qrow p b { color: var(--ink); }
+
+    .oneliner {
+      margin-top: clamp(12px, 1.8vh, 20px);
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      color: #f7f8fa;
+      border-radius: 12px;
+      padding: clamp(12px, 1.3vw, 18px) clamp(16px, 2vw, 28px);
+      text-align: center;
+      font-size: clamp(13.5px, 1.1vw, 18px);
+      font-weight: 600;
+    }
+
+    .oneliner .mono { font-family: var(--mono); color: #9db6f8; }
+
+    .oneliner .sub-line {
+      display: block;
+      margin-top: 6px;
+      font-size: .82em;
+      font-weight: 500;
+      color: #b9c1cf;
+    }
+
+    .gpanels {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(14px, 1.6vw, 28px);
+    }
+
+    .gpanel {
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: clamp(12px, 1.2vw, 20px);
+    }
+
+    .gpanel .viz {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: clamp(96px, 11vh, 132px);
+      margin-bottom: 10px;
+    }
+
+    .prow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .plabel {
+      font-family: var(--mono);
+      font-size: clamp(10px, .8vw, 13px);
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .mini-strip {
+      display: flex;
+      gap: 4px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: 5px;
+      border-radius: 8px;
+    }
+
+    .mini-strip i {
+      width: clamp(20px, 1.8vw, 28px);
+      height: clamp(20px, 1.8vw, 28px);
+      background: var(--cell);
+      border-radius: 5px;
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-style: normal;
+      font-size: clamp(9.5px, .75vw, 12px);
+      font-weight: 700;
+      color: #3b4252;
+    }
+
+    .qmark {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: clamp(16px, 1.4vw, 22px);
+      color: var(--red);
+      line-height: 1;
+    }
+
+    .flow {
+      font-family: var(--mono);
+      font-size: clamp(10px, .8vw, 13px);
+      color: var(--muted);
+    }
+
+    .keychips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .keychips span {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: clamp(10px, .8vw, 13px);
+      background: #eef1fe;
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 3px 9px;
+    }
+
+    .v {
+      margin: 0;
+      font-size: clamp(12px, .95vw, 15px);
+      color: var(--muted);
+    }
+
+    .v.ok { color: #0e7f66; font-weight: 600; }
+    .v.no { color: var(--red); font-weight: 600; }
+
+    .order-strip.cols2 { grid-template-columns: repeat(2, 1fr); }
+
+    .seg.hi { border-color: #f0c9c7; background: #fdf9f8; }
+    .seg.hi, .seg.hi .st { color: var(--red); }
+
+    .mini-table td.dim { color: var(--muted); }
+
+    .crow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .cchip {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: clamp(10px, .8vw, 13px);
+      background: #e7f3f0;
+      color: #0e7f66;
+      border-radius: 6px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+
+    .hpath.flowline { margin: 2.4vh 0 0; }
+
+    .nrow {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: clamp(10px, 1.2vw, 20px);
+      align-items: center;
+      padding: clamp(11px, 1.4vh, 16px) 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nrow:first-of-type { padding-top: 0; }
+    .nrow:last-of-type { border-bottom: 0; padding-bottom: 0; }
+
+    .nrow .rule b {
+      display: block;
+      font-size: clamp(13px, 1vw, 16.5px);
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .nrow .rule span {
+      color: var(--muted);
+      font-size: clamp(11.5px, .9vw, 14.5px);
+      line-height: 1.45;
+    }
+
+    .ncode {
+      font-family: var(--mono);
+      font-size: clamp(11px, .9vw, 14.5px);
+      background: var(--code-bg);
+      border: 1px solid var(--code-line);
+      border-radius: 8px;
+      padding: 8px 13px;
+      color: #3b4252;
+      justify-self: end;
+      text-align: right;
+    }
+
+    .ncode .bad {
+      color: #b3b6bd;
+      text-decoration: line-through;
+      margin-right: 10px;
+    }
+
+    .ncode .ok2 { color: var(--accent); font-weight: 700; }
+
+    .keymap {
+      margin-top: clamp(12px, 1.6vh, 18px);
+      padding-top: clamp(10px, 1.4vh, 14px);
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      text-align: center;
+      font-size: clamp(11.5px, .9vw, 14.5px);
+      color: var(--muted);
+    }
+
+    .keymap b {
+      font-family: var(--mono);
+      color: var(--accent);
+    }
+
+    /* ---------- Demo code-walk slides ---------- */
+
+    .codegrid {
+      display: grid;
+      grid-template-columns: 1.9fr .9fr;
+      gap: clamp(16px, 1.8vw, 30px);
+      align-items: start;
+    }
+
+    .codecard {
+      background: linear-gradient(180deg, #1e232e, #171b24);
+      border-radius: 14px;
+      padding: clamp(16px, 1.6vw, 26px);
+      overflow-x: auto;
+    }
+
+    .codecard pre {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: clamp(11px, .92vw, 14.5px);
+      line-height: 1.65;
+      color: #c9d0da;
+      white-space: pre;
+    }
+
+    .codecard .kw { color: #8fb0f7; }
+    .codecard .fn { color: #f7f8fa; font-weight: 700; }
+    .codecard .str { color: #8fd3b6; }
+    .codecard .cm { color: #6b7280; }
+    .codecard .num { color: #e2b878; }
+
+    .codecard.tight pre {
+      font-size: clamp(10px, .82vw, 13px);
+      line-height: 1.52;
+    }
+
+    .ann {
+      border-left: 3px solid var(--accent);
+      padding: 2px 0 2px 14px;
+      margin-bottom: clamp(12px, 2vh, 22px);
+    }
+
+    .ann:last-child { margin-bottom: 0; }
+
+    .ann b {
+      display: block;
+      font-size: clamp(13px, 1vw, 16.5px);
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+
+    .ann span {
+      display: block;
+      color: var(--muted);
+      font-size: clamp(12px, .95vw, 15px);
+      line-height: 1.55;
+    }
+
+    .ann.red { border-color: var(--red); }
+    .ann.red b { color: var(--red); }
+
+    .ann.accent b { color: var(--accent); }
+
+    /* ---------- Slide 5: brokers, replicas, segments ---------- */
+
+    .hpath {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: clamp(8px, .7vw, 12px);
+      margin: 0 0 3vh;
+      font-family: var(--mono);
+      font-size: clamp(11px, .85vw, 14px);
+    }
+
+    .hpath .crumb {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .hpath .sep { color: #c3c6cd; }
+
+    .hpath .rf {
+      margin-left: clamp(8px, 1vw, 20px);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: clamp(16px, 1.8vw, 30px);
+      align-items: stretch;
+      margin-bottom: clamp(12px, 1.8vh, 20px);
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: clamp(10.5px, .8vw, 12.5px);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: var(--muted);
+      font-weight: 700;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 12px;
+      margin-bottom: clamp(14px, 1.8vh, 22px);
+    }
+
+    .card-head .meta {
+      font-family: var(--mono);
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--accent);
+    }
+
+    .brokers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(10px, 1.1vw, 20px);
+    }
+
+    .broker {
+      background: #f5f5f3;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: clamp(10px, 1vw, 16px);
+    }
+
+    .broker h4 {
+      margin: 0 0 10px;
+      font-size: clamp(11px, .85vw, 13px);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--ink);
+    }
+
+    .part {
+      display: flex;
+      align-items: center;
+      gap: clamp(6px, .5vw, 9px);
+      font-family: var(--mono);
+      font-size: clamp(10.5px, .8vw, 13.5px);
+      border-radius: 8px;
+      padding: clamp(8px, .7vw, 11px) clamp(9px, .8vw, 13px);
+      margin-bottom: 8px;
+    }
+
+    .part .dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex: none;
+    }
+
+    .dot.pA0 { background: #3565f2; }
+    .dot.pA1 { background: #8b5cf6; }
+    .dot.pB0 { background: #0e7f66; }
+
+    .part .tag {
+      margin-left: auto;
+      font-size: .8em;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      opacity: .8;
+    }
+
+    .part.leader {
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      color: #f7f8fa;
+      font-weight: 600;
+    }
+
+    .part.replica {
+      background: var(--panel);
+      border: 1.5px dashed #b9bdc6;
+      color: var(--muted);
+    }
+
+    .part.ghost {
+      border: 1.5px dashed #d4d6da;
+      color: #b3b6bd;
+      background: transparent;
+      justify-content: center;
+    }
+
+    .legend {
+      display: flex;
+      gap: clamp(18px, 2vw, 36px);
+      justify-content: center;
+      margin: 2px 0 2.8vh;
+      font-size: clamp(11px, .85vw, 14px);
+      color: var(--muted);
+    }
+
+    .legend .chip {
+      display: inline-block;
+      width: 22px; height: 12px;
+      border-radius: 4px;
+      margin-right: 6px;
+      vertical-align: -1px;
+    }
+
+    .legend .chip.lead { background: linear-gradient(180deg, var(--log-a), var(--log-b)); }
+    .legend .chip.repl { background: var(--panel); border: 1.5px dashed #b9bdc6; }
+
+    .seg {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: clamp(10px, .8vw, 13px);
+      background: var(--code-bg);
+      border: 1px solid var(--code-line);
+      border-radius: 8px;
+      padding: clamp(7px, .6vw, 10px) clamp(9px, .8vw, 13px);
+      margin-bottom: 6px;
+      color: #4a4f5a;
+    }
+
+    .seg .st { font-size: .82em; color: #a5a8b0; text-transform: uppercase; letter-spacing: .06em; }
+    .seg.active { border-color: #c6d3fb; background: #f5f8ff; }
+    .seg.active, .seg.active .st { color: var(--accent); }
+
+    .seg-note {
+      margin: 10px 0 0;
+      font-size: clamp(11.5px, .9vw, 14.5px);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= Slide 1 · topic vs table ================= -->
+  <section class="slide" id="s0">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Topic vs. database table</h1>
+      <p class="subtitle">Same trip, two storage models: a table keeps the current state; a topic keeps the whole story.</p>
+
+      <div class="compare">
+        <article class="side">
+          <h2>Database table</h2>
+          <p class="obj-name">trips</p>
+          <table class="mini-table">
+            <tr><th>trip_id</th><th>status</th><th>fare</th><th>updated_at</th></tr>
+            <tr><td>981</td><td class="hi">completed</td><td>23.40</td><td class="hi">10:32</td></tr>
+            <tr><td>982</td><td>in_progress</td><td>—</td><td>10:31</td></tr>
+          </table>
+          <p class="note"><b>UPDATE overwrites the row in place.</b> Trip 981 was
+            <i>requested → matched → started</i> before it completed — that history is gone.</p>
+        </article>
+
+        <article class="side">
+          <h2>Kafka topic</h2>
+          <p class="obj-name">trip_events</p>
+          <div class="evt"><span class="off">offset 0</span><span>trip 981</span><span class="st">requested</span><span class="t">10:01</span></div>
+          <div class="evt"><span class="off">offset 1</span><span>trip 981</span><span class="st">matched</span><span class="t">10:02</span></div>
+          <div class="evt"><span class="off">offset 2</span><span>trip 981</span><span class="st">started</span><span class="t">10:05</span></div>
+          <div class="evt"><span class="off">offset 3</span><span>trip 982</span><span class="st">requested</span><span class="t">10:29</span></div>
+          <div class="evt new"><span class="off">offset 4</span><span>trip 981</span><span class="st">completed</span><span class="t">10:32</span></div>
+          <p class="note"><b>Every state change is appended as a new message.</b>
+            The full history is preserved and can be replayed by any consumer.</p>
+        </article>
+      </div>
+
+      <div class="takeaways">
+        <article class="takeaway">
+          <h3>Unit</h3>
+          <p>Table stores <b>rows</b>. Topic stores <b>messages</b> (events).</p>
+        </article>
+        <article class="takeaway">
+          <h3>Change</h3>
+          <p>Rows are <b>updated in place</b>. Messages are <b>immutable</b> — change = new message.</p>
+        </article>
+        <article class="takeaway">
+          <h3>Order</h3>
+          <p>Topic is <b>temporal</b>: appended at the end, ordered within a partition.</p>
+        </article>
+        <article class="takeaway">
+          <h3>Read pattern</h3>
+          <p>A query asks for <b>current state</b>. A consumer <b>replays events</b> from an offset.</p>
+        </article>
+      </div>
+    </div>
+    <div class="pager">1 / 19 · scroll</div>
+  </section>
+
+  <!-- ================= Slide 2 · append-only log ================= -->
+  <section class="slide" id="s1">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>A topic is an append-only log</h1>
+      <p class="subtitle">A ridesharing <code class="inline">trip_events</code> topic: one trip's lifecycle, appended in time order — never rewritten.</p>
+
+      <div class="card svg-wrap">
+        <svg viewBox="0 0 1240 540" role="img" aria-label="trip_events topic as an append-only log over time">
+          <defs>
+            <linearGradient id="logfill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#262b36"/>
+              <stop offset="1" stop-color="#1a1e27"/>
+            </linearGradient>
+          </defs>
+
+          <!-- TIME arrow -->
+          <rect x="230" y="48" width="820" height="32" rx="5" fill="#16181d"/>
+          <polygon points="1050,30 1050,98 1122,64" fill="#16181d"/>
+          <text x="640" y="71" text-anchor="middle" fill="#ffffff"
+                font-size="22" font-weight="700" letter-spacing="6">TIME</text>
+
+          <!-- log -->
+          <rect x="228" y="156" width="900" height="150" rx="26" fill="url(#logfill)"/>
+
+          <!-- message cells: same schema, different data -->
+          <g font-family="SF Mono, Menlo, Consolas, monospace" text-anchor="middle">
+            <rect x="252" y="176" width="112" height="110" rx="8" fill="#f7f8fa"/>
+            <text x="308" y="200" font-size="12" fill="#a5a8b0">key: trip_981</text>
+            <text x="308" y="228" font-size="14" font-weight="700" fill="#3b4252">trip_</text>
+            <text x="308" y="247" font-size="14" font-weight="700" fill="#3b4252">requested</text>
+            <text x="308" y="272" font-size="12" fill="#a5a8b0">rider: r9</text>
+
+            <rect x="384" y="176" width="112" height="110" rx="8" fill="#f7f8fa"/>
+            <text x="440" y="200" font-size="12" fill="#a5a8b0">key: trip_981</text>
+            <text x="440" y="228" font-size="14" font-weight="700" fill="#3b4252">driver_</text>
+            <text x="440" y="247" font-size="14" font-weight="700" fill="#3b4252">matched</text>
+            <text x="440" y="272" font-size="12" fill="#a5a8b0">driver: d88</text>
+
+            <rect x="516" y="176" width="112" height="110" rx="8" fill="#f7f8fa"/>
+            <text x="572" y="200" font-size="12" fill="#a5a8b0">key: trip_981</text>
+            <text x="572" y="228" font-size="14" font-weight="700" fill="#3b4252">trip_</text>
+            <text x="572" y="247" font-size="14" font-weight="700" fill="#3b4252">started</text>
+            <text x="572" y="272" font-size="12" fill="#a5a8b0">at 10:05</text>
+
+            <!-- next slot -->
+            <rect x="660" y="186" width="92" height="90" rx="8" fill="none"
+                  stroke="#5c6474" stroke-width="2" stroke-dasharray="6 6"/>
+          </g>
+
+          <!-- Topic label -->
+          <text x="36" y="216" font-size="23" font-weight="700" fill="#16181d">Topic</text>
+          <text x="36" y="246" font-size="16.5" font-family="SF Mono, Menlo, Consolas, monospace"
+                fill="#3565f2" font-weight="700">trip_events</text>
+          <line x1="150" y1="226" x2="220" y2="226" stroke="#9aa1ac" stroke-width="2"
+                stroke-dasharray="3 6" stroke-linecap="round"/>
+          <polygon points="228,226 215,220 215,232" fill="#9aa1ac"/>
+
+          <!-- Messages label + arrows -->
+          <g stroke="#9aa1ac" stroke-width="2" stroke-dasharray="3 6" stroke-linecap="round">
+            <line x1="366" y1="418" x2="310" y2="300" />
+            <line x1="392" y1="422" x2="440" y2="300" />
+            <line x1="419" y1="420" x2="565" y2="298" />
+          </g>
+          <polygon points="308,292 303,307 316,305" fill="#9aa1ac"/>
+          <polygon points="441,292 434,306 448,306" fill="#9aa1ac"/>
+          <polygon points="572,292 558,295 567,306" fill="#9aa1ac"/>
+          <text x="392" y="460" text-anchor="middle" font-size="23" font-weight="700" fill="#16181d">Messages = data + metadata</text>
+          <text x="392" y="486" text-anchor="middle" font-size="15" fill="#6f7480">one logical stream — fields may differ per event type</text>
+
+          <!-- next message label -->
+          <line x1="706" y1="410" x2="706" y2="286" stroke="#9aa1ac" stroke-width="2"
+                stroke-dasharray="3 6" stroke-linecap="round"/>
+          <polygon points="706,278 699,293 713,293" fill="#9aa1ac"/>
+          <text x="706" y="450" text-anchor="middle" font-size="23" font-weight="700" fill="#16181d">Next message will go here</text>
+          <text x="706" y="476" text-anchor="middle" font-size="15" fill="#6f7480">new events always append at the end</text>
+        </svg>
+      </div>
+
+      <p class="caption">
+        <strong>Key point:</strong> each message = <strong>value</strong> (business data) +
+        <strong>metadata</strong> (key, timestamp, headers from the producer; offset assigned by Kafka).
+        All three events share <code class="inline">key: trip_981</code>, so one trip's events land in the
+        same partition, in order.
+      </p>
+
+      <div class="takeaways three">
+        <article class="takeaway">
+          <h3>No enforced schema</h3>
+          <p>Kafka stores <b>bytes</b>. Messages in one topic do <b>not</b> need identical fields —
+            <i>trip_requested</i> and <i>driver_matched</i> carry different payloads.</p>
+        </article>
+        <article class="takeaway">
+          <h3>One logical stream</h3>
+          <p>What shares a topic is a <b>business decision</b>: everything in
+            <i>trip_events</i> is about trips. Payments and ratings get their own topics.</p>
+        </article>
+        <article class="takeaway">
+          <h3>Schema Registry note</h3>
+          <p>In our homework (Avro + Schema Registry), each topic's value maps to <b>one subject</b>
+            whose schema <b>evolves by version</b> — a team convention, not a Kafka rule.</p>
+        </article>
+      </div>
+    </div>
+    <div class="pager">2 / 19</div>
+  </section>
+
+  <!-- ================= Slide 2 ================= -->
+  <section class="slide" id="s2">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>What's inside a message?</h1>
+      <p class="subtitle">A driver location stream: each message is a JSON event with business fields and a timestamp.</p>
+
+      <div class="card">
+        <p class="topic-name"><span class="hash">#</span> driver_locations</p>
+
+        <div class="msg-grid">
+          <div class="log-strip">
+            <div class="slot"><div class="box">0</div></div>
+            <div class="slot"><div class="box">1</div></div>
+            <div class="slot"><div class="box">2</div></div>
+            <div class="slot"><div class="box">3</div></div>
+          </div>
+
+          <div class="log-col">
+            <div class="connector"></div>
+            <div class="msg-card">{
+  <span class="k">"driver_id"</span>: <span class="n">42</span>,
+  <span class="k">"city"</span>: <span class="s">"San Francisco"</span>,
+  <span class="k">"lat"</span>: <span class="n">37.7749</span>,
+  <span class="k">"lng"</span>: <span class="n">-122.4194</span>,
+  <span class="k">"ts"</span>: <span class="n">1736521921</span>
+}</div>
+          </div>
+
+          <div class="log-col">
+            <div class="connector"></div>
+            <div class="msg-card">{
+  <span class="k">"driver_id"</span>: <span class="n">51</span>,
+  <span class="k">"city"</span>: <span class="s">"Oakland"</span>,
+  <span class="k">"lat"</span>: <span class="n">37.8044</span>,
+  <span class="k">"lng"</span>: <span class="n">-122.2712</span>,
+  <span class="k">"ts"</span>: <span class="n">1736521923</span>
+}</div>
+          </div>
+
+          <div class="log-col">
+            <div class="connector"></div>
+            <div class="msg-card">{
+  <span class="k">"driver_id"</span>: <span class="n">67</span>,
+  <span class="k">"city"</span>: <span class="s">"Berkeley"</span>,
+  <span class="k">"lat"</span>: <span class="n">37.8715</span>,
+  <span class="k">"lng"</span>: <span class="n">-122.2730</span>,
+  <span class="k">"ts"</span>: <span class="n">1736521926</span>
+}</div>
+          </div>
+
+          <div class="log-col">
+            <div class="connector"></div>
+            <div class="msg-card latest">{
+  <span class="k">"driver_id"</span>: <span class="n">42</span>,
+  <span class="k">"city"</span>: <span class="s">"San Francisco"</span>,
+  <span class="k">"lat"</span>: <span class="hi">37.7793</span>,
+  <span class="k">"lng"</span>: <span class="hi">-122.4163</span>,
+  <span class="k">"ts"</span>: <span class="hi">1736521981</span>
+}</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Key point:</strong> driver 42 moved — the old message at offset 0 is never edited;
+        a <strong style="color:var(--red)">new message</strong> is appended at offset 3.
+        Messages are immutable; latest state = the last message read.
+      </p>
+    </div>
+    <div class="pager">3 / 19</div>
+  </section>
+
+  <!-- ================= Slide 3: message anatomy ================= -->
+  <section class="slide" id="s2b">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Message, event, record — same thing?</h1>
+      <p class="subtitle">Almost. Here is driver 42's location update from the last slide, seen as a complete Kafka message.</p>
+
+      <div class="anat-grid">
+        <div class="card">
+          <div class="card-head">Kafka message in detail<span class="meta">driver_locations · offset 3</span></div>
+          <div class="anat">
+            <div>
+              <div class="frow tall">
+                <span class="flabel">Value</span>
+                <div class="msg-card">{
+  <span class="k">"driver_id"</span>: <span class="n">42</span>,
+  <span class="k">"city"</span>: <span class="s">"San Francisco"</span>,
+  <span class="k">"lat"</span>: <span class="n">37.7793</span>,
+  <span class="k">"lng"</span>: <span class="n">-122.4163</span>,
+  <span class="k">"ts"</span>: <span class="n">1736521981</span>
+}</div>
+              </div>
+              <div class="frow"><span class="flabel">Key</span><div class="fbox">"42"</div></div>
+              <div class="frow"><span class="flabel">Timestamp</span><div class="fbox">1736521981</div></div>
+            </div>
+            <div>
+              <div class="frow"><span class="flabel">Headers</span>
+                <div class="fbox-pair"><div class="fbox">"schema_version"</div><div class="fbox">"3"</div></div>
+              </div>
+              <div class="frow"><span class="flabel"></span>
+                <div class="fbox-pair"><div class="fbox">"source"</div><div class="fbox">"driver-app"</div></div>
+              </div>
+              <div class="frow"><span class="flabel">Topic</span><div class="fbox addr">driver_locations</div></div>
+              <div class="frow"><span class="flabel">Partition</span><div class="fbox addr">0</div></div>
+              <div class="frow"><span class="flabel">Offset</span><div class="fbox addr">3</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Two words, one thing</div>
+          <div class="term">
+            <h5>Message <span>· record</span></h5>
+            <p>The <b>technical unit</b> a producer writes and a consumer reads:
+              key + value + timestamp + headers, addressed by topic · partition · offset.
+              The Kafka API literally calls it a record.</p>
+          </div>
+          <div class="term">
+            <h5>Event</h5>
+            <p>The <b>business meaning</b> — "something happened":</p>
+            <div class="evt-chips">
+              <span class="chip2">trip_requested</span>
+              <span class="chip2">payment_completed</span>
+              <span class="chip2">driver_location_updated</span>
+            </div>
+          </div>
+          <p class="term-note">In practice they're ~interchangeable — every event travels as a message.
+            Say <b>message / record</b> when discussing clients &amp; APIs;
+            say <b>event</b> when discussing business logic.</p>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Key point:</strong> the producer supplies <strong>key, value</strong> and optional
+        <strong>headers</strong> — the timestamp can come from the producer <em>or</em> the broker;
+        Kafka assigns the <strong style="color:var(--accent)">address</strong> — topic · partition · offset.
+        Keying by <code class="inline">driver_id</code> keeps each driver's updates in order.
+      </p>
+    </div>
+    <div class="pager">4 / 19</div>
+  </section>
+
+  <!-- ================= Slide 3 ================= -->
+  <section class="slide" id="s3">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Topics organize your data</h1>
+      <p class="subtitle">A ridesharing backend doesn't push everything into one stream — one topic per business domain, each appended and consumed independently.</p>
+
+      <div class="card">
+        <div class="topics-grid">
+          <div class="topic-row">
+            <span class="name">trip_requests</span>
+            <div class="bar"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">eta_updates</span>
+            <div class="bar"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">driver_locations</span>
+            <div class="bar"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">surge_pricing</span>
+            <div class="bar"><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">trip_events</span>
+            <div class="bar"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">driver_status</span>
+            <div class="bar"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">payments</span>
+            <div class="bar"><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">rider_signups</span>
+            <div class="bar"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">ratings</span>
+            <div class="bar"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">cancellations</span>
+            <div class="bar"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">receipts</span>
+            <div class="bar"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="topic-row">
+            <span class="name">…</span>
+            <div class="bar"><i></i><i></i><i></i></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Key point:</strong> topics are like table names for event streams.
+        Split them by business domain — trips, pricing, payments, ratings — and
+        downstream services subscribe only to what they need: <strong>pub/sub decoupling</strong>.
+      </p>
+    </div>
+    <div class="pager">5 / 19</div>
+  </section>
+
+  <!-- ================= Slide 6 · naming conventions ================= -->
+  <section class="slide" id="s6n">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Naming your topics</h1>
+      <p class="subtitle">Topics can't be renamed — pick a convention on day one.</p>
+
+      <div class="card">
+        <div class="nrow">
+          <div class="rule"><b>Lowercase &amp; descriptive</b>
+            <span>The name alone should say what's inside.</span></div>
+          <div class="ncode"><span class="bad">TripData2</span><span class="ok2">driver_locations</span></div>
+        </div>
+        <div class="nrow">
+          <div class="rule"><b>Hierarchical: domain.service.entity</b>
+            <span>Dot-separated, like Java packages — business domain, then service, then entity.</span></div>
+          <div class="ncode"><span class="ok2">rides.payments.transactions</span></div>
+        </div>
+        <div class="nrow">
+          <div class="rule"><b>Environment prefix — only if you must</b>
+            <span>One cluster shared across environments is not recommended; if so, prefix it.</span></div>
+          <div class="ncode">dev.rides.payments.transactions</div>
+        </div>
+        <div class="nrow">
+          <div class="rule"><b>Version suffix</b>
+            <span>Schemas change — a version lets old &amp; new consumers coexist during migration.</span></div>
+          <div class="ncode">rides.payments.transactions<span class="ok2">.v1</span></div>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Key point:</strong> "renaming" a topic really means creating a new one and migrating
+        every producer &amp; consumer — naming well now is cheap, fixing it later is not.
+      </p>
+    </div>
+    <div class="pager">6 / 19</div>
+  </section>
+
+  <!-- ================= Slide 6 · brokers ================= -->
+  <section class="slide" id="s5">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Brokers, replicas &amp; what's on disk</h1>
+      <p class="subtitle">A topic is split into partitions spread across brokers; each partition is copied (replicated) and stored as segment files.</p>
+
+      <div class="hpath">
+        <span class="crumb">Cluster</span><span class="sep">›</span>
+        <span class="crumb">Broker</span><span class="sep">›</span>
+        <span class="crumb">Partition</span><span class="sep">›</span>
+        <span class="crumb">Segment file</span>
+        <span class="rf">replication factor = 2</span>
+      </div>
+
+      <div class="cluster-grid">
+        <div class="card">
+          <div class="card-head">Cluster view<span class="meta">3 brokers</span></div>
+          <div class="brokers">
+            <div class="broker">
+              <h4>Broker 1</h4>
+              <div class="part leader"><span class="dot pA0"></span>trip_events · P0<span class="tag">leader</span></div>
+              <div class="part leader"><span class="dot pB0"></span>payments · P0<span class="tag">leader</span></div>
+              <div class="part replica"><span class="dot pA1"></span>trip_events · P1<span class="tag">replica</span></div>
+            </div>
+            <div class="broker">
+              <h4>Broker 2</h4>
+              <div class="part leader"><span class="dot pA1"></span>trip_events · P1<span class="tag">leader</span></div>
+              <div class="part replica"><span class="dot pA0"></span>trip_events · P0<span class="tag">replica</span></div>
+              <div class="part ghost">…</div>
+            </div>
+            <div class="broker">
+              <h4>Broker 3</h4>
+              <div class="part replica"><span class="dot pB0"></span>payments · P0<span class="tag">replica</span></div>
+              <div class="part ghost">room for more partitions</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card seg-panel">
+          <div class="card-head">On disk<span class="meta">trip_events–P0</span></div>
+          <div class="seg"><span>00000000000000.log</span><span class="st">closed</span></div>
+          <div class="seg"><span>00000000012480.log</span><span class="st">closed</span></div>
+          <div class="seg active"><span>00000000024960.log</span><span class="st">active · appends</span></div>
+          <div class="seg"><span>.index · .timeindex</span><span class="st">offset / time lookup</span></div>
+          <p class="seg-note">A partition is an ordered chain of <b>segment files</b>.
+            New messages append to the active segment; old segments expire by
+            retention — that's how an "endless" log fits on a finite disk.</p>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span><span class="chip lead"></span>leader — serves producers &amp; consumers</span>
+        <span><span class="chip repl"></span>replica — stays in sync, takes over on failure</span>
+        <span>● same color = same partition</span>
+      </div>
+
+      <div class="takeaways">
+        <article class="takeaway">
+          <h3>Broker</h3>
+          <p>A <b>server</b> in the cluster. It stores partitions — not whole topics — and serves client requests.</p>
+        </article>
+        <article class="takeaway">
+          <h3>Leader</h3>
+          <p>Each partition has <b>one leader</b>. All reads &amp; writes for that partition go through it.</p>
+        </article>
+        <article class="takeaway">
+          <h3>Replica</h3>
+          <p>Copies on <b>other brokers</b>. If Broker 1 dies, the replica of P0 on Broker 2 is <b>promoted to leader</b>.</p>
+        </article>
+        <article class="takeaway">
+          <h3>Segment</h3>
+          <p>On disk, a partition = <b>append-only files</b>. Retention deletes old segments, not individual messages.</p>
+        </article>
+      </div>
+    </div>
+    <div class="pager">7 / 19</div>
+  </section>
+
+  <!-- ================= Slide 8 · partition routing ================= -->
+  <section class="slide" id="s8r">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Which partition does a message land in?</h1>
+      <p class="subtitle">The producer decides — explicit partition, hash of the key, or round-robin. In that priority.</p>
+
+      <div class="card">
+        <div class="card-head">Three routing rules<span class="meta">explicit &gt; key &gt; round-robin</span></div>
+        <div class="gpanels">
+          <div class="gpanel">
+            <div class="viz">
+              <div class="keychips"><span>partition = 2</span></div>
+              <div class="flow">producer pins it explicitly</div>
+              <div class="prow"><span class="plabel">P2</span>
+                <div class="mini-strip"><i>0</i><i>1</i><i>2</i></div>
+              </div>
+            </div>
+            <p class="v">A · Explicit — rare, manual control</p>
+          </div>
+
+          <div class="gpanel">
+            <div class="viz">
+              <div class="keychips"><span>trip_981</span><span>trip_981</span><span>trip_981</span></div>
+              <div class="flow">hash(key) % #partitions → P0</div>
+              <div class="prow"><span class="plabel">P0</span>
+                <div class="mini-strip"><i>0</i><i>1</i><i>2</i></div>
+              </div>
+            </div>
+            <p class="v ok">✓ B · Key hash — most common; trip_981's lifecycle stays in order</p>
+          </div>
+
+          <div class="gpanel">
+            <div class="viz">
+              <div class="keychips"><span>no key</span></div>
+              <div class="flow">sticky round-robin, batch by batch</div>
+              <div class="prow">
+                <div class="mini-strip"><i>P0</i><i>P1</i><i>P2</i></div>
+              </div>
+            </div>
+            <p class="v">C · No key — load balancing for throughput, not order</p>
+          </div>
+        </div>
+
+        <div class="keymap">
+          <span>order per trip → <b>trip_id</b></span>
+          <span>order per driver → <b>driver_id</b></span>
+          <span>order per rider → <b>rider_id</b></span>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Key point:</strong> <code class="inline">partition = hash(key) % num_partitions</code> —
+        same key ⇒ same partition <strong>while the partition count stays stable</strong>;
+        adding partitions reshuffles the mapping.
+      </p>
+    </div>
+    <div class="pager">8 / 19</div>
+  </section>
+
+  <!-- ================= Slide 7 · time order I ================= -->
+  <section class="slide" id="s7">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Kafka order = partition offset order, not timestamp order</h1>
+      <p class="subtitle">A real question from class: "Every event already carries a timestamp — I can just sort later. So what does Kafka's time order even mean?"</p>
+
+      <div class="card mb">
+        <div class="card-head">The mailbox analogy</div>
+        <div class="analogy-grid">
+          <div class="term">
+            <h5>Postmark <span>· event timestamp</span></h5>
+            <p><b>Self-reported time</b>, stamped by the sender when the event is created.
+              Clocks drift, phones misreport, delivery gets delayed — the postmark can lie.</p>
+          </div>
+          <div class="term">
+            <h5>Mailbox order <span>· offset</span></h5>
+            <p>The order letters <b>actually land</b> in the box.
+              Assigned by Kafka at write time — monotonic, immutable, never re-sorted.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">Five arrivals, one partition<span class="meta">trip_events–P0 · cells show event timestamps</span></div>
+        <div class="order-strip">
+          <div class="ocell"><span class="off">offset 0</span><span class="ts">10:00</span></div>
+          <div class="ocell"><span class="off">offset 1</span><span class="ts">10:01</span></div>
+          <div class="ocell"><span class="off">offset 2</span><span class="ts">10:04</span></div>
+          <div class="ocell late"><span class="off">offset 3</span><span class="ts">10:02</span></div>
+          <div class="ocell"><span class="off">offset 4</span><span class="ts">10:05</span></div>
+        </div>
+        <p class="order-note">The event stamped <span class="late-txt">10:02</span> arrived <b>late</b> — Kafka still appends it at offset 3.
+          Consumers always read <b>0 → 1 → 2 → 3 → 4</b>; the log is never reordered.</p>
+      </div>
+
+      <p class="caption">
+        <strong>Key point:</strong> Kafka's promise is the <strong>written order within a partition</strong> —
+        strict, immutable, defined by offset. The timestamp inside the event is just a field:
+        useful for analytics, not proof of who came first.
+      </p>
+    </div>
+    <div class="pager">9 / 19</div>
+  </section>
+
+  <!-- ================= Slide 8 · time order II ================= -->
+  <section class="slide" id="s8">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Order guarantees, in one picture</h1>
+      <p class="subtitle">What the broker promises — and what stays your job.</p>
+
+      <div class="card mb">
+        <div class="gpanels">
+          <div class="gpanel">
+            <div class="viz">
+              <div class="prow"><span class="plabel">P0</span>
+                <div class="mini-strip"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i></div>
+              </div>
+              <div class="flow">read = write: 0 → 1 → 2 → 3 → 4</div>
+            </div>
+            <p class="v ok">✓ Within a partition: offset order, immutable</p>
+          </div>
+
+          <div class="gpanel">
+            <div class="viz">
+              <div class="prow"><span class="plabel">P0</span>
+                <div class="mini-strip"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i></div>
+              </div>
+              <div class="qmark">?</div>
+              <div class="prow"><span class="plabel">P1</span>
+                <div class="mini-strip"><i>0</i><i>1</i><i>2</i><i>3</i></div>
+              </div>
+            </div>
+            <p class="v no">✗ Across partitions: no global order</p>
+          </div>
+
+          <div class="gpanel">
+            <div class="viz">
+              <div class="keychips"><span>key 42</span><span>key 42</span><span>key 42</span></div>
+              <div class="flow">hash(key) % #partitions</div>
+              <div class="prow"><span class="plabel">P0</span>
+                <div class="mini-strip"><i>0</i><i>1</i><i>2</i></div>
+              </div>
+            </div>
+            <p class="v">Same key → same partition (stable partition count)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card qa">
+        <div class="qrow"><span class="qchip q">Q</span>
+          <p><b>"Can't I just sort by timestamp afterwards?"</b></p></div>
+        <div class="qrow"><span class="qchip a">A</span>
+          <p>That's <b>consumer-side business logic</b> — clocks skew, devices lie, late events keep coming.
+            Timestamps power <b>windows, watermarks &amp; late data</b> in Flink / Kafka Streams;
+            the broker's contract stays: <b>write order never changes</b>.</p></div>
+      </div>
+
+      <div class="oneliner">
+        Kafka does not discover the "true" event order — it preserves the
+        <span class="mono">write order</span> of each partition.
+        <span class="sub-line"><span class="mono">offset</span> = Kafka's order &nbsp;·&nbsp;
+        <span class="mono">timestamp</span> = your business time</span>
+      </div>
+    </div>
+    <div class="pager">10 / 19</div>
+  </section>
+
+  <!-- ================= Slide 9 · postmark vs offset ================= -->
+  <section class="slide" id="s9">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Postmark vs. offset — the full mapping</h1>
+      <p class="subtitle">"Think of the timestamp as the postmark, and the offset as the mailbox order. A letter can carry an earlier postmark but arrive later."</p>
+
+      <div class="compare">
+        <article class="side">
+          <h2>Mail ↔ Kafka</h2>
+          <p class="obj-name">the analogy, term by term</p>
+          <table class="mini-table">
+            <tr><th>Mail system</th><th>Kafka</th></tr>
+            <tr><td>Postmark time</td><td>event timestamp (event_time)</td></tr>
+            <tr><td>Arrival order at the mailbox</td><td>write order into a partition</td></tr>
+            <tr><td>Position in the stack</td><td>offset</td></tr>
+            <tr><td class="dim">Postal delays, traffic</td><td class="dim">network latency, retries, buffering</td></tr>
+            <tr><td class="hi">Early postmark, arrives late</td><td class="hi">early event_time, larger offset</td></tr>
+            <tr><td class="hi">Late postmark, arrives early</td><td class="hi">late event_time, smaller offset</td></tr>
+          </table>
+        </article>
+
+        <article class="side">
+          <h2>Letters A &amp; B</h2>
+          <p class="obj-name">same partition</p>
+          <div class="seg"><span>A · postmark 10:00</span><span class="st">arrives 10:05</span></div>
+          <div class="seg hi"><span>B · postmark 09:58</span><span class="st">arrives 10:08</span></div>
+          <div class="order-strip cols2" style="margin-top:14px">
+            <div class="ocell"><span class="off">offset 0</span><span class="ts">A · 10:00</span></div>
+            <div class="ocell late"><span class="off">offset 1</span><span class="ts">B · 09:58</span></div>
+          </div>
+          <p class="note"><b>B's postmark is earlier — yet B sits at offset 1.</b>
+            Arrival decided the position, not the stamp. Kafka records exactly this.</p>
+        </article>
+      </div>
+
+      <p class="caption">
+        <strong>Conclusion:</strong> the postmark doesn't decide the mailbox order,
+        and the timestamp doesn't decide the offset.
+        Kafka's only promise: <strong>within a partition, first written ⇒ smaller offset.</strong>
+      </p>
+    </div>
+    <div class="pager">11 / 19</div>
+  </section>
+
+  <!-- ================= Slide 10 · partitions vs HDFS blocks ================= -->
+  <section class="slide" id="s10">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
+      <h1>Big data? Split the topic into partitions</h1>
+      <p class="subtitle">Same spirit as Hadoop splitting files into blocks — but partitions shard a <b>live stream</b>, blocks shard <b>stored files</b>.</p>
+
+      <div class="compare">
+        <article class="side">
+          <h2>Partition vs. HDFS block</h2>
+          <p class="obj-name">same idea — divide &amp; distribute — different job</p>
+          <table class="mini-table">
+            <tr><th></th><th>Kafka partition</th><th>HDFS block</th></tr>
+            <tr><td class="dim">Purpose</td><td>parallel read/write of a live stream</td><td>store huge files across nodes</td></tr>
+            <tr><td class="dim">Data</td><td>append-only event log</td><td>static / batch files</td></tr>
+            <tr><td class="dim">Order</td><td>offset order per partition</td><td>no event-order model</td></tr>
+            <tr><td class="dim">Processing</td><td>consumers read by offset</td><td>MapReduce / Spark scan</td></tr>
+            <tr><td class="dim">Typical use</td><td>clickstreams, orders, payments</td><td>offline analytics, data lake</td></tr>
+            <tr><td class="dim">Scale by</td><td>more partitions → more parallelism</td><td>more nodes → more storage</td></tr>
+          </table>
+        </article>
+
+        <article class="side">
+          <h2>Why partitions scale</h2>
+          <p class="obj-name">click_events · 4 partitions, 4 consumers in parallel</p>
+          <div class="crow"><span class="plabel">P0</span><div class="mini-strip"><i>0</i><i>1</i><i>2</i><i>3</i></div><span class="flow">→</span><span class="cchip">consumer A</span></div>
+          <div class="crow"><span class="plabel">P1</span><div class="mini-strip"><i>0</i><i>1</i><i>2</i><i>3</i></div><span class="flow">→</span><span class="cchip">consumer B</span></div>
+          <div class="crow"><span class="plabel">P2</span><div class="mini-strip"><i>0</i><i>1</i><i>2</i><i>3</i></div><span class="flow">→</span><span class="cchip">consumer C</span></div>
+          <div class="crow"><span class="plabel">P3</span><div class="mini-strip"><i>0</i><i>1</i><i>2</i><i>3</i></div><span class="flow">→</span><span class="cchip">consumer D</span></div>
+          <p class="note"><b>Partition = Kafka's unit of parallelism.</b>
+            Each is an ordered log on its own broker; add partitions to add throughput.</p>
+        </article>
+      </div>
+
+      <div class="hpath flowline">
+        <span class="crumb">User events</span><span class="sep">›</span>
+        <span class="crumb">Kafka</span><span class="sep">›</span>
+        <span class="crumb">Spark / Flink / Kafka Streams</span><span class="sep">›</span>
+        <span class="crumb">HDFS · S3 · Warehouse</span>
+      </div>
+
+      <p class="caption">
+        <strong>They meet in one pipeline:</strong> Kafka ingests &amp; buffers the stream in real time;
+        Hadoop stores the history for offline analysis.
+        <strong>Partitions ≠ blocks — cousins, not twins.</strong>
+      </p>
+    </div>
+    <div class="pager">12 / 19</div>
+  </section>
+
+  <!-- ================= Slide 13 · demo block 1 ================= -->
+  <section class="slide" id="s13">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 01 · Topic Creation</b></p>
+      <h1>① Config comes from .env</h1>
+      <p class="subtitle"><code class="inline">demo01_create_topic.py</code> — block 1 of 3</p>
+
+      <div class="codegrid">
+        <div class="codecard"><pre><span class="kw">def</span> <span class="fn">load_config</span>() -&gt; dict[str, str]:
+    cwd_env = Path.cwd() / <span class="str">".env"</span>
+    script_env = Path(__file__).resolve().parent / <span class="str">".env"</span>
+    <span class="kw">if</span> cwd_env.exists():
+        load_dotenv(cwd_env)
+    <span class="kw">else</span>:
+        load_dotenv(script_env)
+    <span class="kw">return</span> {
+        <span class="str">"bootstrap.servers"</span>: os.getenv(<span class="str">"BOOTSTRAP_SERVERS"</span>, <span class="str">""</span>),
+        <span class="str">"security.protocol"</span>: os.getenv(<span class="str">"SECURITY_PROTOCOL"</span>, <span class="str">"SASL_SSL"</span>),
+        <span class="str">"sasl.mechanisms"</span>: os.getenv(<span class="str">"SASL_MECHANISMS"</span>, <span class="str">"PLAIN"</span>),
+        <span class="str">"sasl.username"</span>: os.getenv(<span class="str">"SASL_USERNAME"</span>, <span class="str">""</span>),
+        <span class="str">"sasl.password"</span>: os.getenv(<span class="str">"SASL_PASSWORD"</span>, <span class="str">""</span>),
+    }
+
+<span class="kw">def</span> <span class="fn">missing_config</span>(config: dict[str, str]) -&gt; list[str]:
+    env_by_client_key = {
+        <span class="str">"bootstrap.servers"</span>: <span class="str">"BOOTSTRAP_SERVERS"</span>,
+        <span class="str">"security.protocol"</span>: <span class="str">"SECURITY_PROTOCOL"</span>,
+        <span class="str">"sasl.mechanisms"</span>: <span class="str">"SASL_MECHANISMS"</span>,
+        <span class="str">"sasl.username"</span>: <span class="str">"SASL_USERNAME"</span>,
+        <span class="str">"sasl.password"</span>: <span class="str">"SASL_PASSWORD"</span>,
+    }
+    <span class="kw">return</span> [env_by_client_key[key] <span class="kw">for</span> key, value <span class="kw">in</span> config.items() <span class="kw">if not</span> value]</pre></div>
+
+        <div class="annlist">
+          <div class="ann red">
+            <b>Secrets never live in code</b>
+            <span>Servers, username, password all come from <code class="inline">.env</code>.
+              Hardcoding them in the script is the anti-pattern.</span>
+          </div>
+          <div class="ann">
+            <b>Dot-notation keys</b>
+            <span>The dict uses Kafka client names — <code class="inline">bootstrap.servers</code>,
+              <code class="inline">sasl.username</code> — translated from env vars.</span>
+          </div>
+          <div class="ann">
+            <b>Fail fast</b>
+            <span><code class="inline">missing_config()</code> names every missing variable
+              before any network call — no cryptic auth errors.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption highlight">
+        <strong>This demo creates a real Kafka topic in Confluent Cloud using Python.</strong>
+        Goal: create the topic only. It does <strong>not</strong> produce any messages;
+        the new topic is an empty log until a later producer writes records.
+      </p>
+    </div>
+    <div class="pager">13 / 19</div>
+  </section>
+
+  <!-- ================= Slide 14 · demo block 2 ================= -->
+  <section class="slide" id="s14">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 01 · Topic Creation</b></p>
+      <h1>② Check first, then create</h1>
+      <p class="subtitle"><code class="inline">demo01_create_topic.py</code> — block 2 of 3</p>
+
+      <div class="codegrid">
+        <div class="codecard"><pre><span class="kw">def</span> <span class="fn">topic_exists</span>(admin_client: AdminClient, topic_name: str) -&gt; bool:
+    <span class="kw">return</span> topic_name <span class="kw">in</span> admin_client.list_topics(timeout=<span class="num">10</span>).topics
+
+<span class="kw">def</span> <span class="fn">create_topic</span>(
+    admin_client: AdminClient,
+    topic_name: str,
+    partitions: int,
+    replication_factor: int,
+    cleanup_policy: str,
+) -&gt; str:
+    <span class="kw">if</span> topic_exists(admin_client, topic_name):
+        <span class="kw">return</span> <span class="str">"already_exists"</span>
+
+    topic = NewTopic(
+        topic_name,
+        num_partitions=partitions,
+        replication_factor=replication_factor,
+        config={<span class="str">"cleanup.policy"</span>: cleanup_policy},
+    )
+    futures = admin_client.create_topics([topic])
+    futures[topic_name].result(timeout=<span class="num">30</span>)
+    <span class="kw">return</span> <span class="str">"created"</span></pre></div>
+
+        <div class="annlist">
+          <div class="ann">
+            <b>Idempotent</b>
+            <span>Check before create — re-running returns
+              <code class="inline">already_exists</code> instead of crashing.</span>
+          </div>
+          <div class="ann">
+            <b>Three knobs of NewTopic</b>
+            <span><b>partitions</b> = parallelism ·
+              <b>replication_factor</b> = fault tolerance (3 on Confluent Cloud) ·
+              <b>cleanup.policy</b> = <i>delete</i> (expire by retention) or <i>compact</i> (latest per key).</span>
+          </div>
+          <div class="ann">
+            <b>Async under the hood</b>
+            <span><code class="inline">create_topics()</code> returns futures;
+              <code class="inline">result()</code> blocks until the broker confirms — or raises.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager">14 / 19</div>
+  </section>
+
+  <!-- ================= Slide 15 · demo block 3 ================= -->
+  <section class="slide" id="s15">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 01 · Topic Creation</b></p>
+      <h1>③ main() wires it together</h1>
+      <p class="subtitle"><code class="inline">demo01_create_topic.py</code> — block 3 of 3</p>
+
+      <div class="codegrid">
+        <div class="codecard"><pre><span class="kw">def</span> <span class="fn">main</span>() -&gt; None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(<span class="str">"--topic"</span>, default=os.getenv(<span class="str">"DEMO01_TOPIC_NAME"</span>, <span class="str">"msds682.demo01.trip-events.v1"</span>))
+    parser.add_argument(<span class="str">"--partitions"</span>, type=int, default=<span class="num">3</span>)
+    parser.add_argument(<span class="str">"--replication-factor"</span>, type=int, default=<span class="num">3</span>)
+    parser.add_argument(<span class="str">"--cleanup-policy"</span>, choices=[<span class="str">"delete"</span>, <span class="str">"compact"</span>], default=<span class="str">"delete"</span>)
+    parser.add_argument(<span class="str">"--run-id"</span>, default=<span class="str">"lec2"</span>)
+    args = parser.parse_args()
+
+    config = load_config()
+    missing = missing_config(config)
+    <span class="kw">if</span> missing:
+        <span class="kw">raise</span> SystemExit(<span class="str">f"Missing required .env values: {', '.join(missing)}"</span>)
+
+    admin_client = AdminClient(config)
+    status = create_topic(
+        admin_client=admin_client,
+        topic_name=args.topic,
+        partitions=args.partitions,
+        replication_factor=args.replication_factor,
+        cleanup_policy=args.cleanup_policy,
+    )
+
+    report = safe_report(<span class="cm">...</span>)  <span class="cm"># host + booleans only -- no secrets</span>
+    output_dir = Path(<span class="str">"outputs"</span>) / <span class="str">"runs"</span> / args.run_id / <span class="str">"demo01_topic_creation"</span>
+    output_dir.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)
+    output_file = output_dir / <span class="str">"topic_report.json"</span>
+    output_file.write_text(json.dumps(report, indent=<span class="num">2</span>) + <span class="str">"\n"</span>, encoding=<span class="str">"utf-8"</span>)</pre></div>
+
+        <div class="annlist">
+          <div class="ann">
+            <b>Topic name = convention</b>
+            <span><code class="inline">msds682.demo01.trip-events.v1</code> —
+              lowercase · dot-hierarchy · versioned.</span>
+          </div>
+          <div class="ann">
+            <b>One straight pipeline</b>
+            <span>load → validate → <code class="inline">AdminClient</code> → create → report.
+              Each step is one small function.</span>
+          </div>
+          <div class="ann">
+            <b>Evidence, not secrets</b>
+            <span>A JSON report lands in <code class="inline">outputs/runs/&lt;run-id&gt;/</code> —
+              reproducible proof of the run, credentials reduced to booleans.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Run it twice:</strong> <code class="inline">python demo01_create_topic.py</code> →
+        <strong>created</strong>, run again → <strong>already_exists</strong>. That's idempotency, live.
+        After this demo, the topic exists but still has <strong>zero messages</strong>;
+        messages appear only when a producer sends them.
+      </p>
+    </div>
+    <div class="pager">15 / 19</div>
+  </section>
+
+  <!-- ================= Slide 16 · producer async vs sync ================= -->
+  <section class="slide" id="s16">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 02 · Producers</b></p>
+      <h1>Sync vs async producer</h1>
+      <p class="subtitle">Demo 01 left <code class="inline">msds682.demo01.trip-events.v1</code> empty — 02A–02D now produce real trip events into it.
+        The real Kafka default is async; sync-style is a teaching simplification.</p>
+
+      <div class="codegrid">
+        <div class="codecard tight"><pre><span class="cm"># demo02c_confluent_async_sync_compare.py</span>
+<span class="kw">def</span> <span class="fn">run_async</span>(config, count, seed, flush_timeout):
+    producer = Producer(config)
+    tracker = DeliveryTracker()
+    events = make_trip_events(count, seed)
+    <span class="kw">for</span> event <span class="kw">in</span> events:
+        <span class="cm"># Async default: enqueue all messages first.</span>
+        producer.produce(TOPIC_NAME, key=event_key(event),
+                         value=serialize_event(event),
+                         callback=tracker.callback)
+        producer.poll(<span class="num">0</span>)
+    remaining = producer.flush(flush_timeout)
+
+<span class="kw">def</span> <span class="fn">run_sync_style</span>(config, count, seed, flush_timeout):
+    producer = Producer(config)
+    tracker = DeliveryTracker()
+    events = make_trip_events(count, seed)
+    remaining = <span class="num">0</span>
+    <span class="kw">for</span> event <span class="kw">in</span> events:
+        <span class="cm"># Teaching simplification: wait after each produce.</span>
+        producer.produce(TOPIC_NAME, key=event_key(event),
+                         value=serialize_event(event),
+                         callback=tracker.callback)
+        remaining = producer.flush(flush_timeout)</pre></div>
+
+        <div class="annlist">
+          <div class="ann accent">
+            <b>Real default: async</b>
+            <span><code class="inline">produce(...)</code> queues the message and returns quickly.
+              Delivery result arrives later through <code class="inline">tracker.callback</code>.</span>
+          </div>
+          <div class="ann">
+            <b><code class="inline">poll(0)</code> serves callbacks</b>
+            <span>It lets the client run delivery callbacks while the loop continues. It is not Python <code class="inline">asyncio</code>.</span>
+          </div>
+          <div class="ann">
+            <b><code class="inline">flush()</code> is the wait point</b>
+            <span>Async path: queue all messages, then flush once before exit.
+              Sync-style path: flush after each message, only for comparison.</span>
+          </div>
+          <div class="ann red">
+            <b>Do not teach sync as Kafka default</b>
+            <span>Demo 02A and Demo 02C use <code class="inline">sync_style_flush_each_message</code>.
+              It is slower and simplified, not the normal producer pattern.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="producer-timeline">
+        <div class="timeline-card">
+          <h3>02A sync-style: wait after every message</h3>
+          <div class="timeline-track">
+            <div class="timeline-step">produce 1</div>
+            <div class="timeline-step wait">flush</div>
+            <div class="timeline-step">produce 2</div>
+            <div class="timeline-step wait">flush</div>
+            <div class="timeline-step">produce 3</div>
+            <div class="timeline-step wait">flush</div>
+            <div class="timeline-step">produce 4</div>
+            <div class="timeline-step wait">flush</div>
+          </div>
+          <p class="timeline-note">Four messages, four blocking waits. Slowest, but easiest to reason about.</p>
+        </div>
+        <div class="timeline-card">
+          <h3>02B async: queue first, wait once at the end</h3>
+          <div class="timeline-track">
+            <div class="timeline-step">produce 1</div>
+            <div class="timeline-step">produce 2</div>
+            <div class="timeline-step">produce 3</div>
+            <div class="timeline-step">produce 4</div>
+            <div class="timeline-step wait">final flush</div>
+          </div>
+          <p class="timeline-note">Four messages, one final wait. Network delivery can overlap while the loop continues.</p>
+        </div>
+      </div>
+    </div>
+    <div class="pager">16 / 19</div>
+  </section>
+
+  <!-- ================= Slide 17 · producer demo outputs ================= -->
+  <section class="slide" id="s17">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 02 · Producers</b></p>
+      <h1>What each producer demo proves</h1>
+      <p class="subtitle">All four demos write real messages to the same topic. The difference is the producer behavior and the JSON report.</p>
+
+      <table class="mini-table">
+        <tr><th>Demo</th><th>Output proof</th><th>Meaning</th></tr>
+        <tr><td>02A sync-style</td><td><code>producer_mode: sync_style_flush_each_message</code><br><code>delivered: 4</code></td><td>Four messages sent; the script waited after each message.</td></tr>
+        <tr><td>02B async</td><td><code>producer_mode: async</code><br><code>remaining_after_flush: 0</code></td><td>Messages were queued first; the script waited once at the end.</td></tr>
+        <tr><td>02C compare</td><td>Rows for <code>async</code> and <code>sync_style_flush_each_message</code></td><td>Same message idea, different waiting strategy and speed.</td></tr>
+        <tr><td>02D serialization</td><td><code>serialized_type: UTF-8 JSON bytes</code></td><td><code>TripEvent</code> was converted to bytes before Kafka stored it.</td></tr>
+      </table>
+
+      <table class="mini-table spaced">
+        <tr><th>Example real run</th><th>Count</th><th>Elapsed</th><th>Messages/sec</th><th>Point</th></tr>
+        <tr><td>02C async row</td><td>2000</td><td>1.056219s</td><td>1893.55</td><td>Queue first, final wait</td></tr>
+        <tr><td>02C sync-style row</td><td>2000</td><td>88.750945s</td><td>22.53</td><td>Wait after every message</td></tr>
+      </table>
+
+      <p class="caption highlight">
+        <strong>Direct rule:</strong> one topic, many appended messages. Demo 02C with <code class="inline">--count 2000</code>
+        sends 2,000 async messages plus 2,000 sync-style messages: 4,000 new messages total.
+      </p>
+    </div>
+    <div class="pager">17 / 19</div>
+  </section>
+
+  <!-- ================= Slide 18 · producer configuration ================= -->
+  <section class="slide" id="s18">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 02 · Producers</b></p>
+      <h1>How to configure a producer</h1>
+      <p class="subtitle">Separate cluster connection config from per-message choices. Do not mix secrets with payload logic.</p>
+
+      <div class="codegrid">
+        <div class="codecard tight"><pre><span class="cm"># demo02_producer_common.py</span>
+TOPIC_NAME = <span class="str">"msds682.demo01.trip-events.v1"</span>
+
+<span class="kw">def</span> <span class="fn">load_producer_config</span>() -&gt; dict[str, str]:
+    load_dotenv_for_demo()
+    <span class="kw">return</span> {
+        <span class="str">"bootstrap.servers"</span>: os.getenv(<span class="str">"BOOTSTRAP_SERVERS"</span>, <span class="str">""</span>),
+        <span class="str">"security.protocol"</span>: os.getenv(<span class="str">"SECURITY_PROTOCOL"</span>, <span class="str">"SASL_SSL"</span>),
+        <span class="str">"sasl.mechanisms"</span>: os.getenv(<span class="str">"SASL_MECHANISMS"</span>, <span class="str">"PLAIN"</span>),
+        <span class="str">"sasl.username"</span>: os.getenv(<span class="str">"SASL_USERNAME"</span>, <span class="str">""</span>),
+        <span class="str">"sasl.password"</span>: os.getenv(<span class="str">"SASL_PASSWORD"</span>, <span class="str">""</span>),
+    }
+
+config = require_producer_config()
+producer = Producer(config)
+
+producer.produce(
+    topic=TOPIC_NAME,
+    key=event_key(event),
+    value=serialize_event(event),
+    callback=tracker.callback,
+)
+producer.poll(<span class="num">0</span>)
+remaining = producer.flush(args.flush_timeout)</pre></div>
+
+        <div class="annlist">
+          <div class="ann red">
+            <b>Connection config comes from <code class="inline">.env</code></b>
+            <span><code class="inline">bootstrap.servers</code>, <code class="inline">security.protocol</code>,
+              <code class="inline">sasl.mechanisms</code>, username, and password are cluster/auth settings.</span>
+          </div>
+          <div class="ann">
+            <b><code class="inline">Producer(config)</code> creates the client</b>
+            <span>This is the real Confluent producer client used by Demo 02A/02B/02C/02D.</span>
+          </div>
+          <div class="ann accent">
+            <b>Per-message choices are in <code class="inline">produce()</code></b>
+            <span><code class="inline">topic</code> = destination,
+              <code class="inline">key</code> = <code class="inline">trip_id</code> bytes,
+              <code class="inline">value</code> = serialized event bytes,
+              <code class="inline">callback</code> = delivery report.</span>
+          </div>
+          <div class="ann">
+            <b>Message shape lives in producer code</b>
+            <span><code class="inline">TripEvent</code> defines fields.
+              <code class="inline">serialize_event()</code> turns the model into UTF-8 JSON bytes for Kafka.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Direct rule:</strong> config connects to Kafka; <code class="inline">produce()</code> chooses topic, key, value, and callback.
+        Demo 02 does not tune production batching settings; it focuses on what the producer sends and when it waits.
+      </p>
+    </div>
+    <div class="pager">18 / 19</div>
+  </section>
+
+  <!-- ================= Slide 19 · message shape and delivery ================= -->
+  <section class="slide" id="s19">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 02 · Producers</b></p>
+      <h1>What the producer actually sends</h1>
+      <p class="subtitle">The topic was created earlier. Demo 02 now chooses message shape, key, value bytes, and delivery tracking.</p>
+
+      <div class="codegrid">
+        <div class="codecard tight"><pre><span class="cm"># demo02_producer_common.py</span>
+<span class="kw">class</span> <span class="fn">TripEvent</span>(BaseModel):
+    trip_id: str
+    event_type: Literal[<span class="str">"trip_requested"</span>, <span class="str">"driver_matched"</span>,
+                        <span class="str">"trip_started"</span>, <span class="str">"trip_completed"</span>]
+    rider_id: str
+    event_time: str
+    zone: str
+    driver_id: str | <span class="kw">None</span> = <span class="kw">None</span>
+    fare: float | <span class="kw">None</span> = Field(default=<span class="kw">None</span>, ge=<span class="num">0</span>)
+
+<span class="kw">def</span> <span class="fn">event_key</span>(event: TripEvent) -&gt; bytes:
+    <span class="kw">return</span> event.trip_id.encode(<span class="str">"utf-8"</span>)
+
+<span class="kw">def</span> <span class="fn">serialize_event</span>(event: TripEvent) -&gt; bytes:
+    <span class="kw">return</span> event.model_dump_json(exclude_none=<span class="kw">True</span>).encode(<span class="str">"utf-8"</span>)
+
+<span class="cm"># demo02d_confluent_serialization_producer.py</span>
+value_bytes = serialize_event(event)
+producer.produce(
+    topic=TOPIC_NAME,
+    key=event_key(event),
+    value=value_bytes,
+    callback=tracker.callback,
+)</pre></div>
+
+        <div class="annlist">
+          <div class="ann accent">
+            <b><code class="inline">TripEvent</code> defines value shape</b>
+            <span>Fields are <code class="inline">trip_id</code>, <code class="inline">event_type</code>,
+              <code class="inline">rider_id</code>, <code class="inline">event_time</code>, <code class="inline">zone</code>,
+              optional <code class="inline">driver_id</code>, optional <code class="inline">fare</code>.</span>
+          </div>
+          <div class="ann">
+            <b>Key = trip id bytes</b>
+            <span><code class="inline">event_key(event)</code> encodes <code class="inline">trip_id</code>.
+              In real Kafka this keeps one trip lifecycle on the same partition while partition count is stable.</span>
+          </div>
+          <div class="ann">
+            <b>Value = JSON bytes</b>
+            <span><code class="inline">serialize_event()</code> does Pydantic model → JSON string → UTF-8 bytes.
+              Kafka stores bytes, not Python objects.</span>
+          </div>
+          <div class="ann red">
+            <b>Delivery is reported later</b>
+            <span><code class="inline">tracker.callback</code> records topic, partition, offset, and key on success;
+              failures go into <code class="inline">tracker.failed</code>.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Direct rule:</strong> topic config came from Demo 01; message schema and bytes come from Demo 02 producer code.
+      </p>
+    </div>
+    <div class="pager">19 / 19</div>
+  </section>
+
+
+  <script>
+    // PageDown/PageUp + arrow keys jump between slides
+    const slides = [...document.querySelectorAll("section.slide")];
+    let idx = 0;
+    const clamp = i => Math.max(0, Math.min(slides.length - 1, i));
+    document.addEventListener("keydown", e => {
+      if (["ArrowDown", "PageDown", " "].includes(e.key)) idx = clamp(idx + 1);
+      else if (["ArrowUp", "PageUp"].includes(e.key)) idx = clamp(idx - 1);
+      else return;
+      e.preventDefault();
+      slides[idx].scrollIntoView({ behavior: "smooth" });
+    });
+    // keep idx in sync when user scrolls manually
+    const io = new IntersectionObserver(es => {
+      es.forEach(en => { if (en.isIntersecting) idx = slides.indexOf(en.target); });
+    }, { threshold: 0.6 });
+    slides.forEach(s => io.observe(s));
+  </script>
+</body>
+</html>

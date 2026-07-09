@@ -542,6 +542,48 @@ tbody tr:hover {
   max-width: var(--max-width);
 }
 
+.standalone-handout-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.standalone-handout-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.standalone-handout-bar h2 {
+  margin: 0;
+}
+
+.standalone-handout-bar a {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #ffffff;
+  color: var(--usf-green-dark);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.standalone-handout-bar a:hover {
+  border-color: var(--usf-green);
+  background: #f7faf7;
+}
+
+.standalone-handout-frame {
+  width: 100%;
+  height: min(1080px, calc(100vh - 180px));
+  min-height: 720px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f4f4f2;
+}
+
 .concept-slide {
   margin-top: 8px;
   padding: 26px;
