@@ -45,7 +45,7 @@ def main() -> None:
     args = parser.parse_args()
 
     report = collect_environment()
-    output_dir = Path("outputs") / "runs" / args.run_id / "demo01_environment"
+    output_dir = Path("outputs") / "runs" / args.run_id / "demo00_environment"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / "environment_report.json"
     output_file.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

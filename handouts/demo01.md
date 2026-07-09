@@ -1,28 +1,40 @@
-# Demo 01: Environment Setup and First Local Run
+# Demo 01: Create a Kafka Topic with Python
 
-This first demo checks whether your laptop can run the Python environment used in MSDS 682. It does not require Confluent, Kafka, Docker, AWS, GCP, or any private credentials.
+This demo creates a real Kafka topic in Confluent Cloud using Python.
 
-The goal is simple: create a Python environment, install the course packages, run one script, and produce a local JSON report that the TA can inspect if something goes wrong.
+You will use the same pattern as many production projects:
 
-## What You Will Verify
+1. keep secrets in `.env`;
+2. load config with `python-dotenv`;
+3. create an `AdminClient`;
+4. check whether the topic already exists;
+5. create it only if needed;
+6. write a small JSON report for debugging.
 
-- Python can run from your terminal.
-- Your virtual environment is active.
-- The core course packages are installed.
-- A local output artifact is created under `outputs/runs/...`.
+## What You Will Create
+
+We will create a ridesharing event topic:
+
+```text
+msds682.demo01.trip-events.v1
+```
+
+Mental model:
+
+- topic: `trip-events`
+- messages: `trip_requested`, `driver_matched`, `trip_started`, `trip_completed`
+- key idea: this topic stores the event history for trips
 
 ## Step 1: Create a Working Folder
-
-Open a terminal and create a folder for the course demos.
 
 ```bash
 mkdir -p msds682-demos
 cd msds682-demos
 ```
 
-## Step 2: Create a Python Environment
+## Step 2: Create and Activate a Python Environment
 
-Recommended setup with `uv`:
+Recommended:
 
 ```bash
 uv python install 3.11
@@ -30,97 +42,101 @@ uv venv --python 3.11 .venv
 source .venv/bin/activate
 ```
 
-Fallback setup with built-in `venv`:
+Fallback:
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
-On Windows PowerShell, activation usually looks like this:
+Windows PowerShell:
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-## Step 3: Install the Course Packages
-
-Create a file named `requirements.txt`:
-
-```txt
-apscheduler
-confluent-kafka[avro,schemaregistry]
-fastmcp
-fastapi
-httpx
-matplotlib
-pandas
-pydantic
-python-dotenv
-pytest
-uvicorn
-```
-
-Install the packages:
+## Step 3: Install Packages
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install confluent-kafka python-dotenv
 ```
 
-If you use `uv`, this is also fine:
+## Step 4: Create `.env`
 
-```bash
-uv pip install -r requirements.txt
-```
-
-## Step 4: Download the Demo Script
-
-Download the script:
-
-[demo01_environment_check.py](handouts/demo01_environment_check.py)
-
-Or create a file named `demo01_environment_check.py` and copy the code from that link.
-
-## Step 5: Run Demo 01
-
-Run:
-
-```bash
-python demo01_environment_check.py --run-id lec1
-```
-
-Expected behavior:
-
-- The terminal prints your Python version, platform, and package versions.
-- A JSON report is written to:
+Create a file named `.env` in the same folder as the script.
 
 ```text
-outputs/runs/lec1/demo01_environment/environment_report.json
+BOOTSTRAP_SERVERS=YOUR_BOOTSTRAP_SERVER:9092
+SECURITY_PROTOCOL=SASL_SSL
+SASL_MECHANISMS=PLAIN
+SASL_USERNAME=YOUR_KAFKA_API_KEY
+SASL_PASSWORD=YOUR_KAFKA_API_SECRET
+DEMO01_TOPIC_NAME=msds682.demo01.trip-events.v1
 ```
 
-## Step 6: Check the Output
+Important:
 
-Open the JSON report. It should look similar to this:
+- Do not paste `.env` into Canvas, GitHub, Slack, or AI tools.
+- Do not commit `.env`.
+- `SASL_USERNAME` and `SASL_PASSWORD` must be a Kafka cluster API key and secret, not a general website password.
+
+## Step 5: Download the Script
+
+Download:
+
+[demo01_create_topic.py](handouts/demo01_create_topic.py)
+
+Or create a file named `demo01_create_topic.py` and copy the code from that link.
+
+## Step 6: Run Demo 01
+
+```bash
+python demo01_create_topic.py --run-id lec2
+```
+
+Expected output:
 
 ```json
 {
-  "python": "3.11.x",
-  "implementation": "CPython",
-  "platform": "macOS-...",
-  "packages": {
-    "fastapi": "0.x",
-    "pydantic": "2.x",
-    "confluent-kafka": "2.x",
-    "fastmcp": "3.x"
-  }
+  "status": "created",
+  "topic": "msds682.demo01.trip-events.v1",
+  "partitions": 3,
+  "replication_factor": 3,
+  "cleanup_policy": "delete",
+  "has_username": true,
+  "has_password": true
 }
 ```
 
-If a package says `"not installed"`, rerun the install step and ask for help if it still fails.
+If the topic already exists, this is also fine:
+
+```json
+{
+  "status": "already_exists"
+}
+```
+
+## Step 7: Check the Report
+
+The script writes:
+
+```text
+outputs/runs/lec2/demo01_topic_creation/topic_report.json
+```
+
+This report is safe to show to the TA because it does not print your API secret.
+
+## Optional: Use Your Own Topic Name
+
+If many students share one cluster, use your initials or USF username:
+
+```bash
+python demo01_create_topic.py \
+  --topic msds682.demo01.trip-events.yourname.v1 \
+  --run-id lec2
+```
 
 ## What This Demo Means
 
-This demo is the first reproducibility check for the course. Later assignments will do more interesting work with producers, consumers, schemas, FastAPI, and AI-assisted workflows, but they all depend on this basic setup working first.
-
-For grading and TA review, the minimum runnable path should work locally without private cloud credentials.
+This is the first real Kafka admin workflow in the course. A producer cannot send useful events until the team agrees on a topic name and the topic exists. Later demos will write messages into topics; this demo creates the destination first.

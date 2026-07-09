@@ -284,12 +284,20 @@ const pages = {
 // parsing; PDF handouts (kind: "pdf") open the file directly.
 const handouts = [
   {
+    slug: "demo00",
+    title: "Demo 00: Environment Setup",
+    kind: "md",
+    file: "handouts/demo00.md",
+    date: "Jul 2026",
+    summary: "Step-by-step first local run: create a Python environment, install packages, run the environment check, and inspect the JSON artifact."
+  },
+  {
     slug: "demo01",
-    title: "Demo 01: Environment Setup",
+    title: "Demo 01: Create a Kafka Topic",
     kind: "md",
     file: "handouts/demo01.md",
     date: "Jul 2026",
-    summary: "Step-by-step first local run: create a Python environment, install packages, run the environment check, and inspect the JSON artifact."
+    summary: "Step-by-step Confluent Cloud topic creation with Python AdminClient, .env credentials, idempotent topic creation, and a safe JSON report."
   },
   {
     slug: "lec2-topic-vs-table",
