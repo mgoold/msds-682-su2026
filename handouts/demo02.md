@@ -77,7 +77,7 @@ One produced message value looks like this:
   "rider_id": "rider-981",
   "driver_id": "driver-004",
   "zone": "south",
-  "event_time": "2026-07-04T10:01:00Z"
+  "event_time": "2026-07-04T10:00:01Z"
 }
 ```
 
@@ -279,6 +279,8 @@ python demo02c_confluent_async_sync_compare.py --run-id lec2-demo02c-speed --cou
 
 This sends 2,000 async messages and 2,000 sync-style messages to the same topic. Total new topic messages: 4,000.
 
+Demo 02C intentionally writes the same deterministic logical events twice: once through async and once through sync-style. This is for producer behavior comparison, not a production pattern.
+
 ### 4.3 Output Files
 
 Confluent scripts write secret-free JSON reports under:
@@ -312,6 +314,7 @@ Real Confluent Cloud run checked on 2026-07-09:
 | Demo 02D serialization | 4 | 4 | 1.056037 | n/a | Passed |
 
 Demo 02C produced 4,000 total messages in that run: 2,000 async messages plus 2,000 sync-style messages.
+Those two batches use the same seed, so they intentionally contain duplicate logical trip events.
 
 ### 5.1 Sync-Style Producer
 

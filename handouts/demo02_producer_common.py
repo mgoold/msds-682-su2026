@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field
 
 
 TOPIC_NAME = "msds682.demo01.trip-events.v1"
+BASE_EVENT_TIME = datetime(2026, 7, 4, 10, 0, tzinfo=timezone.utc)
 
 
 class TripEvent(BaseModel):
@@ -92,6 +94,7 @@ def make_trip_event(index: int, rng: random.Random) -> TripEvent:
     event_types = ["trip_requested", "driver_matched", "trip_started", "trip_completed"]
     event_type = event_types[index % len(event_types)]
     trip_number = 981 + (index // len(event_types))
+    event_time = (BASE_EVENT_TIME + timedelta(seconds=index)).isoformat().replace("+00:00", "Z")
     return TripEvent(
         trip_id=f"trip_{trip_number}",
         event_type=event_type,
@@ -99,7 +102,7 @@ def make_trip_event(index: int, rng: random.Random) -> TripEvent:
         driver_id=None if event_type == "trip_requested" else f"driver-{rng.randint(1, 8):03d}",
         fare=round(rng.uniform(10.0, 90.0), 2) if event_type == "trip_completed" else None,
         zone=["north", "south", "west"][index % 3],
-        event_time=f"2026-07-04T10:{index % 60:02d}:00Z",
+        event_time=event_time,
     )
 
 

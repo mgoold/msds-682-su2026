@@ -67,7 +67,8 @@ def create_topic(
 
     # The three knobs of a topic:
     #   num_partitions: parallelism (how many consumers can read at once)
-    #   replication_factor: fault tolerance (3 is required on Confluent Cloud)
+    #   replication_factor: fault tolerance. This class uses 3 by default;
+    #                       managed Kafka limits may depend on cluster settings.
     #   cleanup.policy: how the log forgets. "delete" expires old segments
     #                   by retention; "compact" keeps the latest per key.
     topic = NewTopic(

@@ -1094,7 +1094,7 @@
       <p class="subtitle">Same trip, two storage models: a table keeps the current state; a topic keeps the whole story.</p>
       <p class="deck-meta">
         <span>Created at 1:48 AM PDT on July 9, 2026</span>
-        <span>Last updated at 11:18 AM PDT on July 9, 2026</span>
+        <span>Last updated at 1:32 PM PDT on July 9, 2026</span>
       </p>
 
       <div class="compare">
@@ -1948,7 +1948,7 @@
           <div class="ann">
             <b>Three knobs of NewTopic</b>
             <span><b>partitions</b> = parallelism ·
-              <b>replication_factor</b> = fault tolerance (3 on Confluent Cloud) ·
+              <b>replication_factor</b> = fault tolerance (class default: 3; allowed values depend on cluster settings) ·
               <b>cleanup.policy</b> = <i>delete</i> (expire by retention) or <i>compact</i> (latest per key).</span>
           </div>
           <div class="ann">
@@ -2139,7 +2139,7 @@
 
       <p class="caption highlight">
         <strong>Direct rule:</strong> one topic, many appended messages. Demo 02C with <code class="inline">--count 2000</code>
-        sends 2,000 async messages plus 2,000 sync-style messages: 4,000 new messages total.
+        sends the same deterministic logical events twice: 2,000 async messages plus 2,000 sync-style messages, 4,000 new messages total.
       </p>
     </div>
     <div class="pager">17 / 19</div>

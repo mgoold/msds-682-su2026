@@ -298,7 +298,7 @@ const handouts = [
     kind: "md",
     file: "handouts/demo01.md",
     createdAt: "Created at 4:46 PM PDT on July 6, 2026",
-    lastUpdatedAt: "Last updated at 10:56 AM PDT on July 9, 2026",
+    lastUpdatedAt: "Last updated at 1:32 PM PDT on July 9, 2026",
     summary: "Step-by-step Confluent Cloud topic creation with Python AdminClient, .env credentials, idempotent topic creation, and a safe JSON report."
   },
   {
@@ -307,7 +307,7 @@ const handouts = [
     kind: "md",
     file: "handouts/demo02.md",
     createdAt: "Created at 3:49 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 10:56 AM PDT on July 9, 2026",
+    lastUpdatedAt: "Last updated at 1:32 PM PDT on July 9, 2026",
     summary: "Producer core demos over the Demo 01 trip topic: sync-style producer, async producer, async-vs-sync comparison, and serialization."
   },
   {
@@ -316,7 +316,7 @@ const handouts = [
     kind: "html",
     file: "handouts/lec2-topic-vs-table.html",
     createdAt: "Created at 1:48 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 11:18 AM PDT on July 9, 2026",
+    lastUpdatedAt: "Last updated at 1:32 PM PDT on July 9, 2026",
     wide: true,
     standalone: true,
     summary: "Supplemental Lec 2 slide deck after Demo 02: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, and serialization."

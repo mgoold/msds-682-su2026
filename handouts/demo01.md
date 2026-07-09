@@ -51,7 +51,7 @@ Expected terminal output:
 
 If you run it again, `status` should become `already_exists`. That is correct. The script is safe to rerun.
 
-The report also includes `partitions_on_cluster`, read back from cluster metadata. Note that `already_exists` does not check that the existing topic matches your `--partitions` / `--replication-factor` flags — compare `partitions_on_cluster` with `partitions` to spot a mismatch.
+The report also includes `partitions_on_cluster`, read back from cluster metadata. Note that `already_exists` does not fully validate the existing topic config. This script reports the existing partition count, but it does not verify `cleanup.policy` or the actual replication factor.
 
 The script also writes:
 
@@ -82,7 +82,7 @@ Think of the topic as a future event history for trips. Right now the topic is e
 |---|---|
 | Topic name is lowercase and versioned | This follows a production-style naming convention and avoids vague names like `test` |
 | `partitions=3` | Kafka can split one topic into parallel logs; later this affects ordering and consumer scaling |
-| `replication_factor=3` | Confluent Cloud expects replicated data for fault tolerance |
+| `replication_factor=3` | Class default for fault tolerance; allowed values may depend on managed Kafka cluster settings |
 | `cleanup.policy=delete` | Old records expire by retention policy; this is the normal event-log behavior |
 | `topic_exists(...)` before `create_topics(...)` | The script is idempotent: running it twice does not break |
 | JSON report has no secret | You can show the result without exposing the API key or password |
@@ -234,7 +234,7 @@ Example message values used by producer/consumer demos look like:
   "rider_id": "rider-981",
   "driver_id": "driver-004",
   "zone": "south",
-  "event_time": "2026-07-04T10:01:00Z"
+  "event_time": "2026-07-04T10:00:01Z"
 }
 ```
 
