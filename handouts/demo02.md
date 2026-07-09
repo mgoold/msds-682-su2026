@@ -156,7 +156,32 @@ Direct definitions:
 | Async producer | `produce(...)` queues a message and returns quickly; delivery result arrives later |
 | Sync-style producer | Teaching simplification: produce one message, then `flush()` immediately |
 
+The visible difference is the waiting pattern:
+
+```text
+Demo 02A sync-style:
+produce -> flush
+produce -> flush
+produce -> flush
+produce -> flush
+
+Demo 02B async:
+produce
+produce
+produce
+produce
+flush
+```
+
+Both write real messages to the same topic: `msds682.demo01.trip-events.v1`.
+
+**Sync-style feels simpler because it waits after each message. Async can feel less direct because delivery reports come back later, but it is the normal Kafka producer pattern.**
+
 **Do not call `flush()` after every message in normal producer code.** Demo 02C does it only to make sync-style behavior easy to see.
+
+With only 4 messages, async may not look much faster. With many messages, async is usually faster because the producer can queue messages and let network delivery overlap.
+
+Yes, `wait until delivered` is slower when you do it after every message. Async also waits, but it waits once at the end with `flush()`.
 
 Demo 02A uses this sync-style loop:
 
@@ -256,6 +281,17 @@ outputs/runs/<run-id>/<demo-name>/report.json
 
 ## 5. Expected Results
 
+Use this table to understand what each run proves.
+
+| Demo | What you see in output | Meaning |
+|---|---|---|
+| Demo 02A | `producer_mode: sync_style_flush_each_message`, `delivered: 4` | Four messages were sent; script waited after each message |
+| Demo 02B | `producer_mode: async`, `delivered: 4`, `remaining_after_flush: 0` | Four messages were queued first, then the script waited at the end |
+| Demo 02C | Two result rows: `async` and `sync_style_flush_each_message` | Same message idea, different waiting strategy |
+| Demo 02D | `serialized_type: UTF-8 JSON bytes` plus delivery counts | A `TripEvent` Python object was validated and converted to bytes before Kafka stored it |
+
+All four demos use one topic. They create different messages and reports, not different topics.
+
 ### 5.1 Sync-Style Producer
 
 Demo 02A is the closest match to the old sync producer notebook. The old notebook printed lines such as "All messages delivered successfully". The 2026 script keeps the same meaning but prints structured JSON:
@@ -284,9 +320,12 @@ Offsets will differ every run. The important check is `delivered == attempted`.
 
 Demo 02B, 02C, and 02D use the same delivery-report idea. The old notebook printed callback lines such as `Message delivered to topic_example_v1 [2] at offset 526`; the 2026 scripts store the same information in `delivered_messages` or comparison rows.
 
+Demo 02B async producer:
+
 ```json
 {
   "topic": "msds682.demo01.trip-events.v1",
+  "producer_mode": "async",
   "attempted": 4,
   "delivered": 4,
   "failed": [],
@@ -294,7 +333,29 @@ Demo 02B, 02C, and 02D use the same delivery-report idea. The old notebook print
 }
 ```
 
-The important check is:
+Demo 02C comparison:
+
+```json
+{
+  "rows": [
+    {"strategy": "async", "attempted": 4, "delivered": 4},
+    {"strategy": "sync_style_flush_each_message", "attempted": 4, "delivered": 4}
+  ]
+}
+```
+
+Demo 02D serialization:
+
+```json
+{
+  "sample_python_object": {"trip_id": "trip_981", "event_type": "driver_matched"},
+  "sample_serialized_value": "{\"trip_id\":\"trip_981\",\"event_type\":\"driver_matched\"}",
+  "serialized_type": "UTF-8 JSON bytes",
+  "delivered": 4
+}
+```
+
+The important delivery check is:
 
 ```text
 delivered == attempted
