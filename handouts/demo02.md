@@ -180,8 +180,8 @@ Do not copy the exact timing numbers. They depend on network and machine state. 
   "trip_id": "trip_981",
   "event_type": "driver_matched",
   "rider_id": "rider-981",
-  "driver_id": "driver-003",
-  "zone": "north",
+  "driver_id": "driver-004",
+  "zone": "south",
   "event_time": "2026-07-04T10:01:00Z"
 }
 ```
@@ -213,7 +213,7 @@ The topic name is shared on purpose. The storage backend is different:
 | `event_type` | Shows that one topic can carry related lifecycle event types |
 | `model_dump(exclude_none=True)` | Avoids writing fields like `driver_id: null` when the event does not have a driver yet |
 | `produce(...)` | Real Kafka: queues one message asynchronously |
-| `callback=delivery_report` | Tells whether Kafka accepted the message |
+| `callback=tracker.callback` | Tells whether Kafka accepted the message |
 | `producer.poll(0)` | Lets delivery callbacks run while the script continues |
 | `producer.flush()` | Explicit wait point before the script exits |
 | Benchmark CSV/PNG | Shows a simple way to compare producer strategies |
@@ -407,10 +407,10 @@ In real `confluent-kafka`, the default producer pattern is async:
 
 ```python
 producer.produce(
-    topic="msds682.demo01.trip-events.v1",
-    key=event.trip_id,
-    value=json.dumps(event.model_dump(exclude_none=True)).encode("utf-8"),
-    callback=delivery_report,
+    topic=TOPIC_NAME,
+    key=event_key(event),
+    value=serialize_event(event),
+    callback=tracker.callback,
 )
 
 # Serve delivery callbacks and wait for queued messages before exiting.
@@ -464,8 +464,8 @@ tracker = DeliveryTracker()
 for event in events:
     producer.produce(
         topic=TOPIC_NAME,
-        key=event.trip_id.encode("utf-8"),
-        value=event.model_dump_json(exclude_none=True).encode("utf-8"),
+        key=event_key(event),
+        value=serialize_event(event),
         callback=tracker.callback,
     )
     producer.poll(0)
@@ -479,8 +479,8 @@ Sync-style comparison core:
 for event in events:
     producer.produce(
         topic=TOPIC_NAME,
-        key=event.trip_id.encode("utf-8"),
-        value=event.model_dump_json(exclude_none=True).encode("utf-8"),
+        key=event_key(event),
+        value=serialize_event(event),
         callback=tracker.callback,
     )
     producer.flush()  # teaching simplification: wait after each message

@@ -218,8 +218,8 @@ The sequence is:
 |---|---|---|
 | Demo 01 topic creation | Confluent topic `msds682.demo01.trip-events.v1` | Create the empty Kafka topic |
 | Demo 02 producer benchmark | Local topic named `msds682.demo01.trip-events.v1` | Produce trip lifecycle event messages |
+| Demo 02B/02C/02D Confluent producers | Confluent topic `msds682.demo01.trip-events.v1` | Write trip lifecycle events to the real Kafka cluster |
 | Demo 03 consumer offsets | Local topic named `msds682.demo01.trip-events.v1` | Replay trip events from offsets |
-| Future Confluent producer extension | Confluent topic `msds682.demo01.trip-events.v1` | Write the same style of messages to the real Kafka cluster |
 
 Example message values used by producer/consumer demos look like:
 
@@ -228,8 +228,8 @@ Example message values used by producer/consumer demos look like:
   "trip_id": "trip_981",
   "event_type": "driver_matched",
   "rider_id": "rider-981",
-  "driver_id": "driver-003",
-  "zone": "north",
+  "driver_id": "driver-004",
+  "zone": "south",
   "event_time": "2026-07-04T10:01:00Z"
 }
 ```

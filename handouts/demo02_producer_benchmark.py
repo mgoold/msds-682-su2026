@@ -30,15 +30,21 @@ class JsonlTransport:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("", encoding="utf-8")
 
+    @staticmethod
+    def encode_payload(payload: dict) -> str:
+        return json.dumps(payload, sort_keys=True) + "\n"
+
     def produce(self, topic: str, payload: dict) -> None:
         path = self.topic_path(topic)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+            handle.write(self.encode_payload(payload))
 
     def produce_many(self, topic: str, rows: list[dict]) -> None:
-        for row in rows:
-            self.produce(topic, row)
+        path = self.topic_path(topic)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.writelines(self.encode_payload(row) for row in rows)
 
 
 def run_strategy(strategy: str, count: int, batch_size: int, seed: int, run_id: str) -> dict:
@@ -87,6 +93,10 @@ def main() -> list[dict]:
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--seed", type=int, default=682)
     args = parser.parse_args()
+    if args.count < 0:
+        raise SystemExit("--count must be >= 0")
+    if args.batch_size < 1:
+        raise SystemExit("--batch-size must be >= 1")
 
     rows = [
         run_strategy("sync_style", args.count, args.batch_size, args.seed, args.run_id),

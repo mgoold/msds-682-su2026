@@ -45,17 +45,18 @@ def run_sync_style(config: dict[str, str], count: int, seed: int, flush_timeout:
     tracker = DeliveryTracker()
     events = make_trip_events(count, seed)
     start = time.perf_counter()
+    remaining = 0
     for event in events:
         # Sync-style teaching simplification: wait after each produce.
         producer.produce(TOPIC_NAME, key=event_key(event), value=serialize_event(event), callback=tracker.callback)
-        producer.flush(flush_timeout)
+        remaining = producer.flush(flush_timeout)
     elapsed = max(time.perf_counter() - start, 0.000001)
     return {
         "strategy": "sync_style_flush_each_message",
         "attempted": count,
         "delivered": len(tracker.delivered),
         "failed": len(tracker.failed),
-        "remaining_after_flush": 0,
+        "remaining_after_flush": remaining,
         "elapsed_seconds": round(elapsed, 6),
         "messages_per_sec": round(count / elapsed, 2),
     }
