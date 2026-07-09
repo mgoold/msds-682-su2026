@@ -280,7 +280,8 @@ const pages = {
 
 // Handout manifest. To add a handout: drop a file in `handouts/` and add a row
 // here. Markdown handouts (kind: "md") render in-page with syntax-highlighted
-// code blocks; PDF handouts (kind: "pdf") open the file directly.
+// code blocks; HTML handouts (kind: "html") render in-page without Markdown
+// parsing; PDF handouts (kind: "pdf") open the file directly.
 const handouts = [
   {
     slug: "demo01",
@@ -293,8 +294,8 @@ const handouts = [
   {
     slug: "lec2-topic-vs-table",
     title: "Lec 2: Kafka Topic vs Database Table",
-    kind: "md",
-    file: "handouts/lec2-topic-vs-table.md",
+    kind: "html",
+    file: "handouts/lec2-topic-vs-table.html",
     date: "Jul 2026",
     wide: true,
     summary: "One-page visual comparison of database tables and Kafka topics: records vs event messages, mutability, ordering, partitions, offsets, keys, values, and timestamps."
@@ -328,7 +329,7 @@ function handoutsListBody() {
   const cards = handouts.map((h) => {
     const href = h.kind === "pdf" ? h.file : `#/handouts/${h.slug}`;
     const target = h.kind === "pdf" ? ' target="_blank" rel="noopener"' : "";
-    const badge = h.kind === "pdf" ? "PDF" : "Markdown";
+    const badge = h.kind === "pdf" ? "PDF" : h.kind === "html" ? "HTML" : "Markdown";
     const action = h.kind === "pdf" ? "Download PDF" : "Open handout";
     return `
       <article class="handout-card">
@@ -393,7 +394,7 @@ async function renderHandout(slug) {
   const backLink = '<p class="back-link"><a href="#/handouts">&larr; All handouts</a></p>';
   content.className = meta && meta.wide ? "content wide" : "content";
 
-  if (!meta || meta.kind !== "md") {
+  if (!meta || !["md", "html"].includes(meta.kind)) {
     content.innerHTML = `${backLink}<h2>Handout not found</h2><p>This handout is not available.</p>`;
     document.title = "Handout not found - MSDS 682";
     return;
@@ -405,8 +406,10 @@ async function renderHandout(slug) {
   try {
     const res = await fetch(meta.file, { cache: "no-cache" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const md = await res.text();
-    const html = window.marked ? window.marked.parse(md) : `<pre>${escapeHtml(md)}</pre>`;
+    const source = await res.text();
+    const html = meta.kind === "html"
+      ? source
+      : window.marked ? window.marked.parse(source) : `<pre>${escapeHtml(source)}</pre>`;
     const articleClass = meta.wide ? "handout handout-wide" : "handout";
     content.innerHTML = `${backLink}<article class="${articleClass}">${html}</article>`;
     if (window.hljs) {
