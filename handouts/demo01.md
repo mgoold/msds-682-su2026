@@ -100,9 +100,15 @@ def load_config():
     # This keeps API keys out of the Python source file.
     load_dotenv()
     return {
+        # Kafka broker address. This tells the client which cluster to contact.
         "bootstrap.servers": os.getenv("BOOTSTRAP_SERVERS"),
+
+        # Confluent Cloud requires encrypted SASL authentication.
         "security.protocol": os.getenv("SECURITY_PROTOCOL", "SASL_SSL"),
         "sasl.mechanisms": os.getenv("SASL_MECHANISMS", "PLAIN"),
+
+        # SASL_USERNAME is the Kafka API key.
+        # SASL_PASSWORD is the Kafka API secret.
         "sasl.username": os.getenv("SASL_USERNAME"),
         "sasl.password": os.getenv("SASL_PASSWORD"),
     }
@@ -122,8 +128,16 @@ def create_topic(admin_client, topic_name):
     # It does not create any Kafka messages.
     topic = NewTopic(
         topic_name,
+
+        # Three partitions means Kafka stores this topic as three ordered logs.
+        # Kafka ordering is guaranteed inside one partition, not globally.
         num_partitions=3,
+
+        # Three replicas means Confluent keeps copies for fault tolerance.
         replication_factor=3,
+
+        # "delete" means Kafka eventually deletes old records by retention.
+        # It is the normal setting for an event-history topic.
         config={"cleanup.policy": "delete"},
     )
     # create_topics returns a future. result(...) waits for broker confirmation.
@@ -228,11 +242,27 @@ You need three values from Confluent:
 Create a file named `.env` in the same folder as `demo01_create_topic.py`.
 
 ```text
+# Kafka cluster bootstrap server.
+# Get this from your Confluent cluster settings.
+# Keep only host:port here; do not include https://.
 BOOTSTRAP_SERVERS=YOUR_CLUSTER_HOST:9092
+
+# Confluent Cloud Kafka connections use SASL over SSL.
+# For this course, leave these two values as shown.
 SECURITY_PROTOCOL=SASL_SSL
 SASL_MECHANISMS=PLAIN
+
+# Kafka API key from Confluent.
+# This is the username for the Python Kafka client.
 SASL_USERNAME=YOUR_KAFKA_API_KEY
+
+# Kafka API secret from Confluent.
+# This is the password for the Python Kafka client.
+# Never share, screenshot, commit, or paste this value into AI tools.
 SASL_PASSWORD=YOUR_KAFKA_API_SECRET
+
+# Topic name to create.
+# You may customize the middle/name part if the instructor asks you to.
 DEMO01_TOPIC_NAME=msds682.demo01.trip-events.v1
 ```
 
@@ -248,6 +278,17 @@ DEMO01_TOPIC_NAME=msds682.demo01.trip-events.v1
 ```
 
 Never submit or screenshot real `.env` values.
+
+Quick meaning of each `.env` field:
+
+| Field | Meaning | Example |
+|---|---|---|
+| `BOOTSTRAP_SERVERS` | Kafka cluster address | `pkc-abc12.us-west2.gcp.confluent.cloud:9092` |
+| `SECURITY_PROTOCOL` | Encrypted auth protocol | `SASL_SSL` |
+| `SASL_MECHANISMS` | SASL auth mechanism | `PLAIN` |
+| `SASL_USERNAME` | Kafka API key | `ABCD1234EFGH5678` |
+| `SASL_PASSWORD` | Kafka API secret | do not display |
+| `DEMO01_TOPIC_NAME` | Topic this script creates | `msds682.demo01.trip-events.v1` |
 
 ## Step 6: Download the Script
 
@@ -300,6 +341,32 @@ python demo01_create_topic.py \
   --topic msds682.demo01.trip-events.yourname.v1 \
   --run-id lec2
 ```
+
+## Optional Reference: Delete a Topic
+
+Do not run this in the normal demo. It is here so you can recognize the common admin operation.
+
+Deleting a Kafka topic removes the topic and its stored messages. In this Demo 01 topic there are no messages yet, but in real projects deletion can destroy data.
+
+```python
+from confluent_kafka.admin import AdminClient
+
+
+def delete_topic(admin_client, topic_name):
+    # delete_topics also returns {topic_name: Future}.
+    # result(...) waits until Kafka accepts the delete request.
+    futures = admin_client.delete_topics([topic_name], operation_timeout=30)
+    futures[topic_name].result(timeout=30)
+    print(f"Deleted topic: {topic_name}")
+
+
+# Example only. Do not run unless the instructor asks.
+conf = load_config()
+admin_client = AdminClient(conf)
+delete_topic(admin_client, "msds682.demo01.trip-events.v1")
+```
+
+Safer production habit: before deletion, list topics, confirm the exact topic name, and check whether any producers or consumers still depend on it.
 
 ## Common Problems
 

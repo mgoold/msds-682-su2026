@@ -21,9 +21,16 @@ def load_config() -> dict[str, str]:
     # librdkafka client config uses dot-notation keys ("bootstrap.servers"),
     # while env vars use upper snake case; this dict is the translation layer.
     return {
+        # Kafka cluster address, for example:
+        # pkc-abc12.us-west2.gcp.confluent.cloud:9092
         "bootstrap.servers": os.getenv("BOOTSTRAP_SERVERS", ""),
+
+        # Confluent Cloud Kafka uses SASL_SSL + PLAIN for API-key auth.
         "security.protocol": os.getenv("SECURITY_PROTOCOL", "SASL_SSL"),
         "sasl.mechanisms": os.getenv("SASL_MECHANISMS", "PLAIN"),
+
+        # SASL username/password are the Kafka API key and secret.
+        # They are intentionally loaded from .env, not hardcoded here.
         "sasl.username": os.getenv("SASL_USERNAME", ""),
         "sasl.password": os.getenv("SASL_PASSWORD", ""),
     }
