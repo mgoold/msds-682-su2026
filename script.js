@@ -291,6 +291,15 @@ const handouts = [
     summary: "Step-by-step first local run: create a Python environment, install packages, run the environment check, and inspect the JSON artifact."
   },
   {
+    slug: "lec2-topic-vs-table",
+    title: "Lec 2: Kafka Topic vs Database Table",
+    kind: "md",
+    file: "handouts/lec2-topic-vs-table.md",
+    date: "Jul 2026",
+    wide: true,
+    summary: "One-page visual comparison of database tables and Kafka topics: records vs event messages, mutability, ordering, partitions, offsets, keys, values, and timestamps."
+  },
+  {
     slug: "syllabus",
     title: "Final Syllabus",
     kind: "pdf",
@@ -382,7 +391,7 @@ function renderStatic(route) {
 async function renderHandout(slug) {
   const meta = handouts.find((h) => h.slug === slug);
   const backLink = '<p class="back-link"><a href="#/handouts">&larr; All handouts</a></p>';
-  content.className = "content";
+  content.className = meta && meta.wide ? "content wide" : "content";
 
   if (!meta || meta.kind !== "md") {
     content.innerHTML = `${backLink}<h2>Handout not found</h2><p>This handout is not available.</p>`;
@@ -398,7 +407,8 @@ async function renderHandout(slug) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const md = await res.text();
     const html = window.marked ? window.marked.parse(md) : `<pre>${escapeHtml(md)}</pre>`;
-    content.innerHTML = `${backLink}<article class="handout">${html}</article>`;
+    const articleClass = meta.wide ? "handout handout-wide" : "handout";
+    content.innerHTML = `${backLink}<article class="${articleClass}">${html}</article>`;
     if (window.hljs) {
       content.querySelectorAll("pre code").forEach((el) => window.hljs.highlightElement(el));
     }

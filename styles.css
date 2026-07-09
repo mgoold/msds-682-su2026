@@ -518,6 +518,209 @@ tbody tr:hover {
   font-size: 0.86rem;
 }
 
+.handout-wide {
+  max-width: var(--max-width);
+}
+
+.concept-slide {
+  margin-top: 8px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbf8 100%);
+}
+
+.concept-slide-header {
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.concept-slide-header .eyebrow {
+  margin: 0 0 8px;
+  color: var(--usf-green);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.concept-slide-header h2 {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.concept-slide-header p:last-child {
+  max-width: 740px;
+  margin: 0;
+  color: #3f4550;
+  font-size: 1.1rem;
+}
+
+.concept-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.concept-panel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.concept-panel h3 {
+  margin: 0 0 14px;
+  font-size: 1.32rem;
+}
+
+.table-panel h3 {
+  color: var(--usf-green);
+}
+
+.topic-panel h3 {
+  color: #8a5b00;
+}
+
+.mini-data-table {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.mini-data-table .table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.mini-data-table span {
+  min-width: 0;
+  padding: 10px 9px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.mini-data-table span:last-child {
+  border-right: 0;
+}
+
+.mini-data-table .table-row:last-child span {
+  border-bottom: 0;
+}
+
+.mini-data-table .table-head span {
+  background: var(--accent-soft);
+  color: var(--usf-green-dark);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.concept-note {
+  margin: 14px 0 0;
+  color: #3f4550;
+}
+
+.partition-card {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid #efd58b;
+  border-radius: 8px;
+  background: var(--gold-soft);
+}
+
+.partition-card > strong {
+  display: block;
+  margin-bottom: 9px;
+  color: #6f4b00;
+  font-size: 0.92rem;
+}
+
+.event-row {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) 56px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 7px;
+  padding: 8px;
+  border: 1px solid #ead79c;
+  border-radius: 6px;
+  background: #fffdf7;
+  color: #31363d;
+  font-size: 0.86rem;
+}
+
+.event-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.event-row span:first-child,
+.event-row span:last-child {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.topic-parts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.topic-parts span {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3f4550;
+  font-size: 0.82rem;
+}
+
+.topic-parts strong {
+  display: block;
+  color: var(--usf-green-dark);
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.concept-takeaways {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.concept-takeaways article {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.concept-takeaways h3 {
+  margin: 0 0 8px;
+  color: var(--usf-green-dark);
+  font-size: 1rem;
+}
+
+.concept-takeaways p {
+  margin: 0;
+  color: #3f4550;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
 /* Footer */
 .footer {
   display: flex;
@@ -570,6 +773,31 @@ tbody tr:hover {
   .meta-row {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+
+  .concept-slide {
+    padding: 18px;
+  }
+
+  .concept-compare,
+  .concept-takeaways {
+    grid-template-columns: 1fr;
+  }
+
+  .topic-parts {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .event-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-data-table {
+    overflow-x: auto;
+  }
+
+  .mini-data-table .table-row {
+    min-width: 560px;
   }
 
   .footer {
