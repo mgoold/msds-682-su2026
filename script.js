@@ -288,7 +288,8 @@ const handouts = [
     title: "Demo 00: Environment Setup",
     kind: "md",
     file: "handouts/demo00.md",
-    date: "Jul 2026",
+    createdAt: "Created at 3:17 AM PDT on July 9, 2026",
+    lastUpdatedAt: "Last updated at 3:17 AM PDT on July 9, 2026",
     summary: "Step-by-step first local run: create a Python environment, install packages, run the environment check, and inspect the JSON artifact."
   },
   {
@@ -296,7 +297,8 @@ const handouts = [
     title: "Demo 01: Create a Kafka Topic",
     kind: "md",
     file: "handouts/demo01.md",
-    date: "Jul 2026",
+    createdAt: "Created at 4:46 PM PDT on July 6, 2026",
+    lastUpdatedAt: "Last updated at 10:56 AM PDT on July 9, 2026",
     summary: "Step-by-step Confluent Cloud topic creation with Python AdminClient, .env credentials, idempotent topic creation, and a safe JSON report."
   },
   {
@@ -304,7 +306,8 @@ const handouts = [
     title: "Demo 02: Kafka Producer",
     kind: "md",
     file: "handouts/demo02.md",
-    date: "Jul 2026",
+    createdAt: "Created at 3:49 AM PDT on July 9, 2026",
+    lastUpdatedAt: "Last updated at 10:56 AM PDT on July 9, 2026",
     summary: "Producer core demos over the Demo 01 trip topic: sync-style producer, async producer, async-vs-sync comparison, and serialization."
   },
   {
@@ -312,9 +315,8 @@ const handouts = [
     title: "Lec 2 Lab Supplemental Materials",
     kind: "html",
     file: "handouts/lec2-topic-vs-table.html",
-    date: "Last updated at 11:17 AM PDT on July 9, 2026",
-    createdAt: "Created at 11:07 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 11:17 AM PDT on July 9, 2026",
+    createdAt: "Created at 1:48 AM PDT on July 9, 2026",
+    lastUpdatedAt: "Last updated at 11:18 AM PDT on July 9, 2026",
     wide: true,
     standalone: true,
     summary: "Supplemental Lec 2 slide deck after Demo 02: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, and serialization."
@@ -324,7 +326,8 @@ const handouts = [
     title: "Final Syllabus",
     kind: "pdf",
     file: "assets/msds-682-syllabus.pdf",
-    date: "Summer 2026",
+    createdAt: "Created at 4:36 PM PDT on July 3, 2026",
+    lastUpdatedAt: "Last updated at 4:36 PM PDT on July 3, 2026",
     summary: "Official Simple Syllabus PDF for MSDS 682-01 Data Stream Processing."
   }
   // PDF example (uncomment and add the file to publish):
@@ -333,7 +336,8 @@ const handouts = [
   //   title: "Week 1 Slides",
   //   kind: "pdf",
   //   file: "handouts/week1-slides.pdf",
-  //   date: "Sep 2026",
+  //   createdAt: "Created at 9:00 AM PDT on September 1, 2026",
+  //   lastUpdatedAt: "Last updated at 9:00 AM PDT on September 1, 2026",
   //   summary: "Lecture slides handout (PDF)."
   // }
 ];
@@ -345,13 +349,10 @@ function escapeHtml(value) {
 }
 
 function handoutMetaHtml(h) {
-  if (h.createdAt || h.lastUpdatedAt) {
-    return [h.createdAt, h.lastUpdatedAt]
-      .filter(Boolean)
-      .map((line) => `<span>${escapeHtml(line)}</span>`)
-      .join("");
-  }
-  return `<span>${escapeHtml(h.date)}</span>`;
+  return [h.createdAt, h.lastUpdatedAt]
+    .filter(Boolean)
+    .map((line) => `<span>${escapeHtml(line)}</span>`)
+    .join("");
 }
 
 function handoutsListBody() {
