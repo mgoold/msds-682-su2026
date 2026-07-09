@@ -1,5 +1,8 @@
 .claude/
 .DS_Store
+.env
+.env.*
+.venv/
 .playwright-mcp/
 *.png
 .local-guards/

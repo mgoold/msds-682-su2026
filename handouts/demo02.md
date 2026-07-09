@@ -300,6 +300,19 @@ Use this table to understand what each run proves.
 
 All four demos use one topic. They create different messages and reports, not different topics.
 
+Real Confluent Cloud run checked on 2026-07-09:
+
+| Script | Count | Delivered | Elapsed seconds | Messages/sec | Result |
+|---|---:|---:|---:|---:|---|
+| Demo 01 create topic | 1 topic | n/a | n/a | n/a | `already_exists`; topic has 3 partitions |
+| Demo 02A sync-style | 4 | 4 | 1.144073 | n/a | Passed |
+| Demo 02B async | 4 | 4 | 1.063295 | n/a | Passed |
+| Demo 02C async row | 2000 | 2000 | 1.056219 | 1893.55 | Passed |
+| Demo 02C sync-style row | 2000 | 2000 | 88.750945 | 22.53 | Passed |
+| Demo 02D serialization | 4 | 4 | 1.056037 | n/a | Passed |
+
+Demo 02C produced 4,000 total messages in that run: 2,000 async messages plus 2,000 sync-style messages.
+
 ### 5.1 Sync-Style Producer
 
 Demo 02A is the closest match to the old sync producer notebook. The old notebook printed lines such as "All messages delivered successfully". The 2026 script keeps the same meaning but prints structured JSON:
@@ -315,7 +328,7 @@ Demo 02A is the closest match to the old sync producer notebook. The old noteboo
     {
       "topic": "msds682.demo01.trip-events.v1",
       "partition": 2,
-      "offset": 526,
+      "offset": 26,
       "key": "trip_981"
     }
   ]
@@ -350,15 +363,15 @@ Demo 02C comparison:
       "strategy": "async",
       "attempted": 2000,
       "delivered": 2000,
-      "elapsed_seconds": 2.1,
-      "messages_per_sec": 952.38
+      "elapsed_seconds": 1.056219,
+      "messages_per_sec": 1893.55
     },
     {
       "strategy": "sync_style_flush_each_message",
       "attempted": 2000,
       "delivered": 2000,
-      "elapsed_seconds": 38.5,
-      "messages_per_sec": 51.95
+      "elapsed_seconds": 88.750945,
+      "messages_per_sec": 22.53
     }
   ]
 }
@@ -377,8 +390,8 @@ Demo 02D serialization:
 
 ```json
 {
-  "sample_python_object": {"trip_id": "trip_981", "event_type": "driver_matched"},
-  "sample_serialized_value": "{\"trip_id\":\"trip_981\",\"event_type\":\"driver_matched\"}",
+  "sample_python_object": {"trip_id": "trip_981", "event_type": "trip_requested"},
+  "sample_serialized_value": "{\"trip_id\":\"trip_981\",\"event_type\":\"trip_requested\",\"rider_id\":\"rider-981\",\"event_time\":\"2026-07-04T10:00:00Z\",\"zone\":\"north\"}",
   "serialized_type": "UTF-8 JSON bytes",
   "delivered": 4
 }
@@ -418,6 +431,7 @@ After Demo 02A/02B/02C/02D:
 |---|---|---|
 | `ModuleNotFoundError: pydantic` | Packages not installed in the active environment | Activate `.venv`, then reinstall packages |
 | `Missing required .env values` | Running Confluent script without Demo 01 `.env` | Put `.env` in the same folder or current working directory |
+| `SASL authentication error` mentioning `Global API key` | The key is for Confluent Cloud management, not Kafka broker auth | Create a Kafka API key scoped to the cluster and put that key/secret in `.env` |
 | `Local: Message timed out` | Topic missing, bad credentials, or network issue | Run Demo 01 first and verify topic exists |
 | No output files | Running from a different folder than expected | Check current directory with `pwd` |
 | Messages not visible immediately in Confluent UI | UI search window or metrics lag | Trust the script delivery report first, then search the topic messages |
