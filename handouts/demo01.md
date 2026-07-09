@@ -85,6 +85,26 @@ Think of the topic as a future event history for trips. Right now the topic is e
 | `topic_exists(...)` before `create_topics(...)` | The script is idempotent: running it twice does not break |
 | JSON report has no secret | You can show the result without exposing the API key or password |
 
+## Topic Config vs Message Structure
+
+Creating a topic does not define the data structure of future messages.
+
+Demo 01 defines only topic-level settings:
+
+| Topic-level item | Defined here? | Meaning |
+|---|---|---|
+| `topic_name` | Yes | The Kafka destination name |
+| `num_partitions` | Yes | How many partition logs the topic has |
+| `replication_factor` | Yes | How many broker copies Confluent keeps |
+| `cleanup.policy` | Yes | How Kafka eventually removes old records |
+| message key shape | No | Chosen by producer code later |
+| message value shape | No | Chosen by producer code later |
+| Avro/JSON schema | No | Added later only if the producer uses Schema Registry or validation |
+
+Kafka itself stores message bytes. If the producer sends raw JSON, strings, or bytes, Kafka does not enforce a schema. If the course later uses Avro plus Schema Registry, then the schema registered in Schema Registry becomes the authority for the message value structure.
+
+In this demo, the topic is an empty log container. It is ready for producer writes, but it does not yet say that a message must have fields like `trip_id`, `rider_id`, or `event_type`.
+
 ## Read the Core Code First
 
 This is the important logic before you run anything.
@@ -179,6 +199,35 @@ Download the complete runnable script:
 | Define a schema | Schema/serialization comes later |
 | Show nonzero production metrics | No messages are written in Demo 01 |
 | Prove topic ordering | Ordering matters after messages are produced into partitions |
+
+## Relation to Later Producer Examples
+
+Conceptually, producer demos come after this topic-creation demo: first create a destination topic, then produce messages into a topic.
+
+In the current 2026 local-first demo package, later producer examples use local JSONL-backed topics such as:
+
+```text
+msds682.demo.orders
+msds682.demo.couriers
+```
+
+Those local demos are intentionally runnable without Confluent credentials. They teach producer behavior, batching, offsets, validation, and FastAPI workflows without requiring a cloud Kafka cluster.
+
+So the relationship is:
+
+| Demo | Topic/storage used | Purpose |
+|---|---|---|
+| Demo 01 | Confluent topic `msds682.demo01.trip-events.v1` | Show real Kafka admin topic creation |
+| Later local producer demos | Local JSONL topics like `msds682.demo.orders` | Teach producer/message behavior without cloud dependencies |
+| Future Confluent producer extension | Could write to `msds682.demo01.trip-events.v1` or another agreed topic | Connect producer code to the real Kafka cluster |
+
+If you want a producer to use the exact topic created in Demo 01, the producer must explicitly produce to:
+
+```text
+msds682.demo01.trip-events.v1
+```
+
+Kafka does not automatically connect producer examples to a topic just because it exists.
 
 ## Step 1: Create a Working Folder
 
