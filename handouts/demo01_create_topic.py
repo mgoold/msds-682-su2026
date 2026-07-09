@@ -138,6 +138,11 @@ def main() -> None:
         cleanup_policy=args.cleanup_policy,
         status=status,
     )
+    # "already_exists" does not verify the existing topic matches the flags:
+    # read back the actual partition count so a mismatch is visible.
+    topic_metadata = admin_client.list_topics(timeout=10).topics.get(args.topic)
+    if topic_metadata is not None:
+        report["partitions_on_cluster"] = len(topic_metadata.partitions)
     # Evidence file for reproducibility: every run leaves a JSON report
     # under outputs/runs/<run-id>/ that can be checked without cluster access.
     output_dir = Path("outputs") / "runs" / args.run_id / "demo01_topic_creation"

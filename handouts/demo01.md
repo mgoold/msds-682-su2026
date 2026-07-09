@@ -51,6 +51,8 @@ Expected terminal output:
 
 If you run it again, `status` should become `already_exists`. That is correct. The script is safe to rerun.
 
+The report also includes `partitions_on_cluster`, read back from cluster metadata. Note that `already_exists` does not check that the existing topic matches your `--partitions` / `--replication-factor` flags — compare `partitions_on_cluster` with `partitions` to spot a mismatch.
+
 The script also writes:
 
 ```text

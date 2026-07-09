@@ -59,7 +59,9 @@ def main() -> dict:
         "elapsed_seconds": round(elapsed, 6),
         "connection": safe_config_report(config),
         "sample_value": event_dict(events[0]) if events else {},
-        "delivered_messages": tracker.delivered,
+        # First 10 only: with a large --count, printing every delivery
+        # would flood the terminal and bloat the JSON report.
+        "delivered_messages": tracker.delivered[:10],
     }
     output_file = write_json_report(args.run_id, "demo02b_confluent_async_producer", report)
     print(json.dumps(report, indent=2))

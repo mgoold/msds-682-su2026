@@ -337,6 +337,8 @@ Demo 02A is the closest match to the old sync producer notebook. The old noteboo
 
 Offsets will differ every run. The important check is `delivered == attempted`.
 
+`delivered_messages` lists at most the first 10 deliveries, so reports stay readable even with a large `--count`.
+
 ### 5.2 Async, Compare, Serialization
 
 Demo 02B, 02C, and 02D use the same delivery-report idea. The old notebook printed callback lines such as `Message delivered to topic_example_v1 [2] at offset 526`; the 2026 scripts store the same information in `delivered_messages` or comparison rows.
