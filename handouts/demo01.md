@@ -210,15 +210,17 @@ The Lec 2 topic creation demo, producer demo, and consumer-offset demo now use t
 msds682.demo01.trip-events.v1
 ```
 
-The local producer/consumer demos are still runnable without Confluent credentials because they use the course's local JSONL transport. The topic name is the same as the Confluent topic, but the storage backend is local unless the script explicitly uses the Confluent client.
+The Lec 2 producer demos use Confluent Cloud directly. They write to the same topic that Demo 01 creates.
 
 The sequence is:
 
 | Demo | Topic/storage used | Purpose |
 |---|---|---|
 | Demo 01 topic creation | Confluent topic `msds682.demo01.trip-events.v1` | Create the empty Kafka topic |
-| Demo 02 producer benchmark | Local topic named `msds682.demo01.trip-events.v1` | Produce trip lifecycle event messages |
-| Demo 02B/02C/02D Confluent producers | Confluent topic `msds682.demo01.trip-events.v1` | Write trip lifecycle events to the real Kafka cluster |
+| Demo 02A sync-style producer | Confluent topic `msds682.demo01.trip-events.v1` | Write trip events and wait after each message |
+| Demo 02B async producer | Confluent topic `msds682.demo01.trip-events.v1` | Write trip events asynchronously |
+| Demo 02C async vs sync-style comparison | Confluent topic `msds682.demo01.trip-events.v1` | Compare producer wait patterns |
+| Demo 02D serialization producer | Confluent topic `msds682.demo01.trip-events.v1` | Serialize trip events before sending |
 | Demo 03 consumer offsets | Local topic named `msds682.demo01.trip-events.v1` | Replay trip events from offsets |
 
 Example message values used by producer/consumer demos look like:

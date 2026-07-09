@@ -305,7 +305,7 @@ const handouts = [
     kind: "md",
     file: "handouts/demo02.md",
     date: "Jul 2026",
-    summary: "Producer core demos over the Demo 01 trip topic: sync-style producer, async producer, async-vs-sync comparison, serialization, and optional local warm-up."
+    summary: "Producer core demos over the Demo 01 trip topic: sync-style producer, async producer, async-vs-sync comparison, and serialization."
   },
   {
     slug: "lec2-topic-vs-table",
