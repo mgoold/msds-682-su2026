@@ -1,0 +1,11 @@
+apscheduler
+confluent-kafka[avro,schemaregistry]
+fastmcp
+fastapi
+httpx
+matplotlib
+pandas
+pydantic
+python-dotenv
+pytest
+uvicorn
