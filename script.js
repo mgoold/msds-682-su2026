@@ -335,10 +335,10 @@ const handouts = [
     kind: "html",
     file: "handouts/lec2-topic-vs-table.html",
     createdAt: "Created at 1:48 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 4:07 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 4:55 PM PDT on July 13, 2026",
     wide: true,
     standalone: true,
-    summary: "Canonical Summer 2026 Lecture 2 HTML slides: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, serialization, and client-side producer batching."
+    summary: "Canonical Summer 2026 Lecture 2 HTML slides: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, serialization, inherited producer options, and client-side batching."
   },
   {
     slug: "syllabus",
