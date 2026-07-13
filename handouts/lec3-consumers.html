@@ -1123,6 +1123,100 @@
     <div class="pager"></div>
   </section>
 
+  <section class="slide" id="restored-concurrency-vocabulary">
+    <div class="frame">
+      <p class="kicker">Restored and updated · concurrency vocabulary</p>
+      <h1>Async, concurrent, and parallel are not synonyms</h1>
+      <p class="subtitle">Use the word that describes the behavior you actually mean.</p>
+
+      <table>
+        <thead><tr><th>Term</th><th>What it describes</th><th>Concrete example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Synchronous</strong></td><td>The caller waits for the operation to finish.</td><td>Call <code>flush()</code> and wait for the producer queue to drain.</td></tr>
+          <tr><td><strong>Asynchronous</strong></td><td>The operation starts now; completion is observed later.</td><td><code>produce()</code> enqueues, then delivery is reported through a callback or future.</td></tr>
+          <tr><td><strong>Sequential</strong></td><td>Steps run in a required order.</td><td>Decode → validate → process → commit.</td></tr>
+          <tr><td><strong>Concurrent</strong></td><td>Tasks overlap in time and may interleave.</td><td>Kafka and async HTTP work share one event loop.</td></tr>
+          <tr><td><strong>Parallel</strong></td><td>Work executes at the same instant on multiple execution resources.</td><td>Independent partitions are processed by separate consumer instances.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid2" style="margin-top: 16px;">
+        <div class="callout" style="margin-top: 0;"><strong><code class="inline">asyncio</code>:</strong> best for cooperative, nonblocking I/O when the application already owns an event loop.</div>
+        <div class="callout amber" style="margin-top: 0;"><strong>Threads:</strong> useful for blocking I/O and native code that releases the GIL; pure-Python CPU work usually needs processes, vectorized/native code, or another execution strategy.</div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-tool-layers">
+    <div class="frame">
+      <p class="kicker">Restored and updated · environment management</p>
+      <h1>Different tools manage different layers</h1>
+      <p class="subtitle">The 2026 course path is intentionally small: <strong>uv + .venv + requirements.txt</strong>.</p>
+
+      <div class="grid4">
+        <div class="card">
+          <p class="eyebrow">Python version</p>
+          <h2>uv</h2>
+          <p class="bodycopy"><code class="inline">uv python install 3.11.14</code> installs the required interpreter. <strong>asdf</strong> remains an optional multi-language version manager.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Project isolation</p>
+          <h2>venv</h2>
+          <p class="bodycopy"><code class="inline">.venv</code> gives this project its own interpreter path and installed packages.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Dependencies</p>
+          <h2>uv pip / pip</h2>
+          <p class="bodycopy">Install the versions declared by the course <code class="inline">requirements.txt</code>; do not infer them from an old environment.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Project workflow</p>
+          <h2>Poetry</h2>
+          <p class="bodycopy">A valid packaging workflow, but optional here. Do not mix Poetry and the course’s uv/requirements workflow in one homework repository.</p>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>Other layers:</strong> Homebrew installs system tools on macOS; Docker packages an application runtime; Conda is a separate environment ecosystem. None replaces the published Python dependency contract.</div>
+      <div class="source-row"><a href="requirements.txt" target="_blank" rel="noreferrer">Summer 2026 requirements SSOT ↗</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-environment-isolation">
+    <div class="frame">
+      <p class="kicker">Restored and updated · version isolation</p>
+      <h1>One machine can host many isolated projects</h1>
+      <p class="subtitle">Isolation is the enduring idea; the old Python 3.10 and confluent-kafka 2.2 examples are not the course baseline.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">MSDS 682 · course project</p>
+          <h2>Python 3.11.14 · <code class="inline">.venv</code></h2>
+          <div class="command">confluent-kafka[avro,schemaregistry]==2.15.0</div>
+          <div class="command">pydantic==2.13.4</div>
+          <div class="command">python-dotenv==1.2.2</div>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Another project</p>
+          <h2>Its own Python · its own <code class="inline">.venv</code></h2>
+          <div class="command">different-package==different-version</div>
+          <div class="command">independent lock or requirements file</div>
+          <div class="command">no package leakage into MSDS 682</div>
+        </div>
+      </div>
+
+      <div class="flowline">
+        <div class="flow-node">uv python install 3.11.14</div><div class="arrow">→</div>
+        <div class="flow-node accent">uv venv --python 3.11.14 .venv</div><div class="arrow">→</div>
+        <div class="flow-node green">uv pip install -r requirements.txt</div>
+      </div>
+
+      <div class="callout"><strong>Verification:</strong> activate the environment, then run <code class="inline">python -c "import confluent_kafka; print(confluent_kafka.__version__)"</code>. Expected: <strong>2.15.0</strong>.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
   <section class="slide" id="s02">
     <div class="frame">
       <p class="kicker">Lecture outcome</p>
@@ -1257,6 +1351,173 @@
       <div class="source-row">
         <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec2-topic-vs-table" target="_blank" rel="noreferrer">Lecture 2 deck — producer batching on the final slide ↗</a>
       </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-producer-configuration">
+    <div class="frame">
+      <p class="kicker">Restored and updated · producer configuration</p>
+      <h1>Know the knobs; keep credentials outside source code</h1>
+      <p class="subtitle">Demo 02 and Assignment 1 use the shared connection loader and intentionally leave production tuning at client defaults.</p>
+
+      <div class="grid2 wide-right">
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Identity</p><p class="bodycopy"><code class="inline">client.id</code> makes logs and broker metrics attributable to one application.</p></div>
+          <div class="card flat"><p class="eyebrow">Reliability</p><p class="bodycopy"><code class="inline">acks</code>, <code class="inline">retries</code>, and <code class="inline">enable.idempotence</code> shape acknowledgement, retry, ordering, and duplicate behavior.</p></div>
+          <div class="card flat"><p class="eyebrow">Efficiency</p><p class="bodycopy"><code class="inline">compression.type</code>, <code class="inline">linger.ms</code>, and batch limits trade latency for throughput.</p></div>
+        </div>
+        <div class="codecard tight"><pre><span class="cm"># Credentials are loaded by the shared course helper.</span>
+config = <span class="fn">require_producer_config</span>()
+
+producer_config = {
+    **config,
+    <span class="str">"client.id"</span>: <span class="str">"msds682-demo02"</span>,
+    <span class="cm"># Optional tuning belongs here only when measured.</span>
+}
+
+<span class="cm"># .env is ignored and never submitted.</span>
+BOOTSTRAP_SERVERS=
+SASL_USERNAME=
+SASL_PASSWORD=</pre></div>
+      </div>
+
+      <div class="callout red"><strong>Never restore the old <code class="inline">config.ini</code> example verbatim.</strong> It contained historical credentials and obsolete tuning values. Use blank environment placeholders plus the shared loader.</div>
+      <div class="source-row"><a href="https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md" target="_blank" rel="noreferrer">librdkafka configuration reference ↗</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-batching-question">
+    <div class="frame narrow">
+      <p class="kicker">Restored · producer batching 1 of 3</p>
+      <h1>True or false: each message crosses the network alone?</h1>
+      <p class="subtitle"><strong>False.</strong> The Python call handles one record; the client transports record batches.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Your Python loop</p>
+          <h2><code class="inline">produce(message)</code></h2>
+          <ul class="compact-list">
+            <li>Serializes one key/value record.</li>
+            <li>Appends it to a local, partition-specific queue.</li>
+            <li>Usually returns before the broker acknowledges delivery.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">The network request</p>
+          <h2>One ProduceRequest carries batches</h2>
+          <ul class="compact-list">
+            <li>A background librdkafka thread builds a batch per partition.</li>
+            <li>A quiet partition may send a one-record batch—it is still a batch.</li>
+            <li>Compression works on batches, not on isolated Python function calls.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>Why the sync-style benchmark is slow:</strong> calling <code class="inline">flush()</code> after every <code class="inline">produce()</code> prevents useful accumulation and forces the application to wait for each record’s network completion.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-batching-mechanics">
+    <div class="frame">
+      <p class="kicker">Restored · producer batching 2 of 3</p>
+      <h1>The first limit reached closes the batch</h1>
+      <p class="subtitle">These are librdkafka 2.15 defaults; Demo 02 and Assignment 1 do not tune them.</p>
+
+      <div class="grid2 wide-left">
+        <div class="codecard tight"><pre>Your code          Producer library                  Broker
+   |                       |                           |
+produce(1) ------&gt; [ partition buffer: 1       ]      |
+produce(2) ------&gt; [ partition buffer: 1 2     ]      |
+produce(3) ------&gt; [ partition buffer: 1 2 3   ]      |
+   |                       |                           |
+   |  batch closes when any limit is reached first:   |
+   |    time  : linger.ms          = 5 ms             |
+   |    size  : batch.size         = 1,000,000 bytes  |
+   |    count : batch.num.messages = 10,000           |
+   |                       |                           |
+   |       [ batch 1 ] === ProduceRequest ==========&gt; |
+   |                       | &lt;========== ack ========= |
+   |                       |                           |
+poll(0)  serves callbacks that are already ready      |
+flush()  serves callbacks until drained or timeout    |</pre></div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Time</p><p class="bodycopy"><code class="inline">linger.ms=5</code> allows a short accumulation window; more waiting may improve throughput but adds latency.</p></div>
+          <div class="card flat"><p class="eyebrow">Bytes</p><p class="bodycopy"><code class="inline">batch.size=1,000,000</code> limits the MessageSet size, including protocol overhead.</p></div>
+          <div class="card flat"><p class="eyebrow">Count</p><p class="bodycopy"><code class="inline">batch.num.messages=10,000</code> is a librdkafka-specific record-count ceiling.</p></div>
+          <div class="callout amber"><strong>Do not import Java defaults.</strong> The Java producer’s commonly cited 16 KB <code class="inline">batch.size</code> is not this Python client’s default.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-batching-tradeoff">
+    <div class="frame">
+      <p class="kicker">Restored · producer batching 3 of 3</p>
+      <h1>Batching trades a little latency for throughput</h1>
+      <p class="subtitle">Fewer requests and better compression reduce overhead; waiting to accumulate records can delay an individual record.</p>
+
+      <table>
+        <thead><tr><th>Layer</th><th>“Batch” means</th><th>Course rule</th></tr></thead>
+        <tbody>
+          <tr><td><strong>librdkafka client</strong></td><td>Per-partition MessageSet bounded by time, bytes, and record count.</td><td>Defaults are internal; our demos expose no tuning flag.</td></tr>
+          <tr><td><strong>Assignment 1 CSV</strong></td><td><code>--batch-size 500</code> is an application-level measurement group.</td><td>Async flushes at each 500-record boundary; sync-style flushes every record.</td></tr>
+          <tr><td><strong>Consumer fetch</strong></td><td>The broker/client may transfer multiple records in one fetch response.</td><td>Demo 03 still processes and validates each returned message explicitly.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid2" style="margin-top: 16px;">
+        <div class="callout green" style="margin-top: 0;"><strong>Throughput:</strong> larger effective batches amortize network, protocol, compression, and broker I/O overhead.</div>
+        <div class="callout amber" style="margin-top: 0;"><strong>Latency:</strong> a record can wait for <code class="inline">linger.ms</code> or another trigger before its batch is sent.</div>
+      </div>
+
+      <div class="source-row">
+        <a href="https://docs.confluent.io/platform/current/clients/librdkafka/html/md_CONFIGURATION.html" target="_blank" rel="noreferrer">Official librdkafka configuration ↗</a>
+        <a href="https://docs.confluent.io/kafka/design/efficient-design.html" target="_blank" rel="noreferrer">Kafka efficiency design ↗</a>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-serialization-contract">
+    <div class="frame">
+      <p class="kicker">Restored and aligned · serialization</p>
+      <h1>The consumer must reverse the producer’s byte contract</h1>
+      <p class="subtitle">Kafka stores bytes. Applications agree on how keys and values become bytes—and how those bytes become validated data again.</p>
+
+      <div class="flowline">
+        <div class="flow-node">TripEvent object</div><div class="arrow">→</div>
+        <div class="flow-node accent">Pydantic validation</div><div class="arrow">→</div>
+        <div class="flow-node">JSON string</div><div class="arrow">→</div>
+        <div class="flow-node green">UTF-8 bytes</div><div class="arrow">→</div>
+        <div class="flow-node">Kafka record</div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Demo 02 producer</p>
+          <h2>Serialize</h2>
+          <ul class="compact-list">
+            <li><code class="inline">trip_id</code> becomes the UTF-8 key.</li>
+            <li><code class="inline">serialize_event()</code> emits JSON value bytes.</li>
+            <li>One topic carries one documented, compatible event contract.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Demo 03 consumer</p>
+          <h2>Decode and validate</h2>
+          <ul class="compact-list">
+            <li><code class="inline">message_to_record()</code> decodes UTF-8.</li>
+            <li><code class="inline">TripEvent.model_validate_json()</code> rejects invalid values.</li>
+            <li>Lecture 4 replaces implicit JSON coordination with Avro and Schema Registry.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout red"><strong>Commit only after decode, validation, and processing succeed.</strong> A byte payload that cannot satisfy the shared event contract is not completed work.</div>
     </div>
     <div class="pager"></div>
   </section>
@@ -1572,6 +1833,30 @@
           <div class="card flat"><p class="eyebrow">close()</p><p class="bodycopy">Stops consuming, leaves the group, releases resources, and commits stored offsets only when auto commit is enabled.</p></div>
           <div class="callout red"><strong>Consumer close is not producer flush.</strong> Consumers have no outgoing delivery queue to drain.</div>
         </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-subscribe-poll-close">
+    <div class="frame">
+      <p class="kicker">Restored and aligned · consumer API</p>
+      <h1>Subscribe, retrieve, process, and close deliberately</h1>
+      <p class="subtitle">The old API overview remains useful once its infinite loop and forced-replay behavior are removed.</p>
+
+      <table>
+        <thead><tr><th>Operation</th><th>What it does</th><th>Demo 03 contract</th></tr></thead>
+        <tbody>
+          <tr><td><strong><code>subscribe()</code></strong></td><td>Joins the group and lets Kafka assign partitions for an exact topic list or a topic pattern.</td><td>03A–03D subscribe to the exact shared topic; assignment/revocation callbacks become evidence.</td></tr>
+          <tr><td><strong><code>poll(timeout)</code></strong></td><td>Returns one message, <code>None</code> on timeout, or an error/event that the application must inspect.</td><td>Preferred for the demos because every record and stop condition remains visible.</td></tr>
+          <tr><td><strong><code>consume(n, timeout)</code></strong></td><td>Returns a list of up to <code>n</code> messages and is useful when application code wants a batch-shaped retrieval call.</td><td>Valid API, but not used in Demo 03; do not confuse it with producer batching.</td></tr>
+          <tr><td><strong><code>close()</code></strong></td><td>Stops consuming, leaves the group, and releases resources; auto-commit behavior depends on configuration.</td><td>Always called in <code>finally</code>. It is not producer <code>flush()</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid2" style="margin-top: 16px;">
+        <div class="callout green" style="margin-top: 0;"><strong>Normal assignment:</strong> respect Kafka’s committed position. Do not force <code class="inline">OFFSET_BEGINNING</code> inside every <code class="inline">on_assign</code>.</div>
+        <div class="callout red" style="margin-top: 0;"><strong>Explicit replay only:</strong> Demo 03C changes assigned offsets when the user supplies <code class="inline">--force-beginning</code>.</div>
       </div>
     </div>
     <div class="pager"></div>
