@@ -290,7 +290,7 @@ const handouts = [
     kind: "md",
     file: "handouts/assignment01.md",
     createdAt: "Created at 12:24 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 12:58 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 1:14 PM PDT on July 13, 2026",
     summary: "Required real-Confluent producer assignment with a student starter, Demo 02A–02D, a 20,000-message-per-strategy benchmark, strategic AI-use and fallback disclosure, and up to 3 extra-credit points."
   },
   {

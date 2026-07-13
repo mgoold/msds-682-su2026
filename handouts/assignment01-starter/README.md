@@ -5,6 +5,11 @@ This starter matches the required files and commands in the official
 `CODE START HERE` and `CODE ENDS HERE`; do not remove the markers, docstrings,
 or explanatory comments.
 
+The course Demo 02 files are worked references that teach the required producer
+behaviors. This starter is the assignment scaffold: implement it, run the
+larger required benchmark, generate its fixed artifacts, and submit this folder.
+Do not replace the starter with unchanged demo files.
+
 ## 1. Set up Python 3.11.14
 
 ```bash
@@ -30,8 +35,9 @@ Run the credential-free tests before using Confluent:
 python -m pytest -q
 ```
 
-The starter tests are expected to fail until the marked code blocks are
-implemented. They do not replace the required real Confluent runs.
+Before implementation, contract-only tests may pass while tests that exercise
+the marked code blocks fail. All tests must pass after you complete the starter.
+They do not replace the required real Confluent runs.
 
 ## 4. Run Demo 02A-02D assignment programs
 
@@ -66,3 +72,5 @@ Copy `REPORT_TEMPLATE.md` to `report.md` and complete every section.
 Rename the folder to `assignment1_<usf_username>`, remove `.env`, `.venv`, and
 cache files, and submit `assignment1_<usf_username>.zip` to Canvas. Do not
 remove the completed source files, reports, benchmark CSV, graph, or report.
+Use the official assignment's ASCII submission tree and checkbox list before
+uploading.

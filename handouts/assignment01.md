@@ -15,6 +15,11 @@ it, and follow its `README.md`. The starter contains the required file layout,
 report and AI-assistance templates, credential-free tests, docstrings, comments,
 and clearly marked implementation blocks.
 
+After downloading, rename the unzipped folder to
+`assignment1_<usf_username>`. Work inside that folder and submit that completed
+folder as a ZIP. Do not submit the unchanged course Demo 02 files in place of
+the starter.
+
 Complete every block between these exact markers:
 
 ```python
@@ -26,6 +31,24 @@ Complete every block between these exact markers:
 Do not remove the markers, docstrings, or explanatory comments. You may add
 small helper functions when they make your code clearer, but keep the provided
 interfaces so the included tests remain useful.
+
+## Student workflow
+
+1. Download and unzip the student starter, then rename its folder with your USF
+   username.
+2. Complete Demo 01 and review the full Demo 02A–02D sequence. The demos teach
+   the producer behaviors; the starter is the assignment scaffold you edit and
+   submit.
+3. Implement every marked code block in the starter while preserving its
+   interfaces, docstrings, and comments.
+4. Run `python -m pytest -q`. Contract-only tests may already pass before you
+   finish; all tests must pass after implementation.
+5. Configure `.env` locally and run the five commands in the starter README
+   against your real Confluent Cloud cluster.
+6. Inspect the generated evidence, CSV, and plot. Complete `report.md` and the
+   conditional AI disclosure.
+7. Use the submission tree and checkbox list below to audit your finished
+   folder, create `assignment1_<usf_username>.zip`, and upload it to Canvas.
 
 ## Objective
 
@@ -53,6 +76,22 @@ Complete these course materials first:
 The starter is based on the course Demo 02 sequence. Cite Demo 02 in your
 README and clearly explain the implementation and benchmark extensions you
 completed for the assignment.
+
+### How Demo 02 relates to the starter
+
+Demo 02 is a worked course reference. It shows the core producer behavior with
+small teaching runs. The student starter preserves those behaviors but adds the
+assignment-scale benchmark, fixed output contracts, validation, tests, report
+templates, and submission structure. You must implement and submit the starter;
+do not simply rename or resubmit the demo scripts.
+
+| Course reference | Starter file(s) to complete | Required output |
+|---|---|---|
+| Demo 02A: sync-style producer | `src/producer_sync.py` | `evidence/demo02a_report.json` |
+| Demo 02B: asynchronous producer | `src/producer_async.py` | `evidence/demo02b_report.json` |
+| Demo 02C: async versus sync-style | `src/producer_compare.py`, `src/analyze_results.py` | benchmark CSV, plot, and secret-free config JSON |
+| Demo 02D: validation and serialization | `src/producer_serialization.py` | `evidence/demo02d_report.json` |
+| Shared Demo 02 module | `src/producer_common.py` | one event/config/serialization contract used by all four parts |
 
 ## Required work: 20 base points
 
@@ -194,45 +233,77 @@ Your disclosure must demonstrate two AI-use capabilities:
 
 ## Submission structure
 
-Submit one ZIP file named `assignment1_<usf_username>.zip` with a structure equivalent to:
+Submit one ZIP file named `assignment1_<usf_username>.zip`. When the ZIP is
+opened, it must contain one top-level folder with this structure:
 
 ```text
 assignment1_<usf_username>/
-  README.md
-  requirements.txt
-  .env.example
-  src/
-    producer_common.py
-    producer_sync.py
-    producer_async.py
-    producer_compare.py
-    producer_serialization.py
-  results/
-    producer_benchmark.csv
-    producer_benchmark.png
-  evidence/
-    demo02a_report.json
-    demo02b_report.json
-    demo02c_config.json
-    demo02d_report.json
-  report.md
-  AI_USAGE.md              # required only if AI assistance was used
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── src/
+│   ├── producer_common.py
+│   ├── producer_sync.py
+│   ├── producer_async.py
+│   ├── producer_compare.py
+│   └── producer_serialization.py
+├── tests/
+│   └── test_producer_logic.py
+├── results/
+│   ├── producer_benchmark.csv
+│   └── producer_benchmark.png
+├── evidence/
+│   ├── demo02a_report.json
+│   ├── demo02b_report.json
+│   ├── demo02c_config.json
+│   └── demo02d_report.json
+├── report.md
+└── AI_USAGE.md                 # include only if AI assistance was used
 ```
 
-Equivalent clear filenames are acceptable. `README.md` must contain setup and run commands. Do not include `.env`, credentials, `.venv`, cached packages, or unrelated large files.
+The downloaded starter also contains `REPORT_TEMPLATE.md`,
+`AI_USAGE_TEMPLATE.md`, and small README files inside output folders. You may
+leave those template/helper files in the ZIP, but blank templates do not count
+as completed deliverables. `README.md` must contain setup and run commands. Do
+not include `.env`, credentials, `.venv`, cached packages, or unrelated large
+files.
 
 ## Grading rubric: 20 base points
 
-| Area | Points | Criteria |
-|---|---:|---|
-| Confluent setup and credential safety | 2 | Uses a real Confluent cluster and one shared topic; configuration is externalized; no secrets are submitted. |
-| Demo 02A and Demo 02B | 4 | Implements sync-style and async behavior correctly, including callbacks, polling, flushing, and delivery counts. |
-| Demo 02C benchmark | 5 | Sends at least 20,000 messages per strategy, records every 500-message batch, uses a fair fixed-seed comparison, and produces complete CSV evidence. |
-| Demo 02D schema and serialization | 3 | Validates an explicit event model, uses a stable key, serializes to UTF-8 JSON bytes, and proves successful delivery. |
-| Visualization and analysis | 3 | Provides a useful comparison graph and a data-supported analysis of performance, tradeoffs, noise, callbacks, polling, and flushing. |
-| Producer-code understanding | 2 | Correctly answers the four configuration, callback, `poll()`, and `flush()` questions. |
-| Submission quality | 1 | ZIP is organized, documented, runnable, readable, free of credentials/unnecessary files, and includes the required AI-use status and conditional disclosure. |
-| **Base total** | **20** | |
+The rubric is atomic: each row is graded independently against one visible pass
+condition. There are no hidden bundled criteria.
+
+| # | Atomic criterion | Points | Pass condition |
+|---:|---|---:|---|
+| 1 | Real Confluent run | 0.5 | Required evidence comes from a real Confluent Cloud Kafka cluster. |
+| 2 | Shared topic | 0.5 | Demo 02A–02D all use the same documented topic. |
+| 3 | Credential safety | 1 | Credentials are externalized, `.env.example` is blank, and no secret is submitted. |
+| 4 | Demo 02A control flow | 1 | Sync-style code calls `produce()` and then `flush()` for each message. |
+| 5 | Demo 02A evidence | 1 | Report shows attempted, delivered, failed, remaining, topic, and elapsed time. |
+| 6 | Demo 02B control flow | 1 | Async code produces all messages, serves callbacks with `poll(0)`, and performs one final `flush()`. |
+| 7 | Demo 02B evidence | 1 | Report shows attempted, delivered, failed, remaining, topic, and elapsed time. |
+| 8 | Benchmark message count | 1 | At least 20,000 messages are sent by each strategy. |
+| 9 | Benchmark batch contract | 1 | Each row represents 500 messages; CSV has at least 40 rows per strategy and 80 total. |
+| 10 | Fair comparison | 1 | Both strategies use the same generator, payloads, count, and documented fixed seed. |
+| 11 | Benchmark CSV contract | 1 | CSV contains every required column with sequential batch indexes and cumulative counts. |
+| 12 | Completed batch delivery | 1 | Every batch reports 500 delivered, zero failed, and zero remaining after flush. |
+| 13 | Event validation | 1 | A Pydantic event model enforces the required message-value fields and fare constraint. |
+| 14 | Message key | 0.5 | `trip_id` is encoded as the stable UTF-8 Kafka key. |
+| 15 | Message value | 0.5 | The validated event is serialized as UTF-8 JSON value bytes. |
+| 16 | Demo 02D evidence | 1 | Report includes a Python-object sample, serialized sample, delivery result, and topic. |
+| 17 | Visualization | 1 | Submitted plot clearly compares the two strategies over 500-message batches. |
+| 18 | Performance analysis | 1 | At least 150 words use submitted data to explain the observed winner and strategy tradeoffs. |
+| 19 | Delivery and benchmark reasoning | 1 | Analysis correctly explains callbacks, `poll()`, `flush()`, timing completion, and benchmark limitations. |
+| 20 | Configuration question | 0.5 | Correctly explains required producer configuration and why it stays outside source code. |
+| 21 | Callback question | 0.5 | Correctly explains what the delivery callback records on success and failure. |
+| 22 | Polling question | 0.5 | Correctly distinguishes `poll(0)` from `flush()`. |
+| 23 | Final-flush question | 0.5 | Correctly explains why the async program must flush before exit. |
+| 24 | Required tree | 0.25 | Every required file in the published submission tree is present. |
+| 25 | Completed starter | 0.25 | Tests pass and no required marked block remains unimplemented. |
+| 26 | AI-use status | 0.25 | `report.md` declares Yes/No and includes `AI_USAGE.md` when the answer is Yes. |
+| 27 | Package hygiene | 0.25 | README is runnable and the ZIP excludes credentials, environments, caches, and unrelated large files. |
+| | **Base total** | **20** | |
 
 ## Extra credit: up to 3 additional points
 
@@ -259,18 +330,23 @@ Run at least three additional independent comparisons per strategy with at least
 
 Confluent Cloud resources may consume credits while running. Monitor usage, stop or delete unused resources after collecting evidence, and never keep credentials in submitted files.
 
-## Final checklist
+## Submission checklist
 
-- Real Confluent Cloud was used for all required producer runs.
-- Demo 02A, 02B, 02C, and 02D are all included.
-- Both benchmark strategies sent at least 20,000 messages.
-- CSV contains one row per 500-message batch per strategy.
-- Plot and 150-word analysis are included.
-- Benchmark CSV has at least 80 rows: 40 async and 40 sync-style.
-- Every benchmark batch reports 500 delivered, zero failed, and zero remaining after flush.
-- `.env` and all credentials are excluded.
-- Every `CODE START HERE` / `CODE ENDS HERE` block is implemented, and no
-  `NotImplementedError` remains in required code.
-- `report.md` says whether AI assistance was used; a completed `AI_USAGE.md` is
-  included if the answer is Yes.
-- ZIP filename and folder structure are clear.
+Before uploading to Canvas, check every box:
+
+- [ ] I downloaded the official student starter and completed that scaffold rather than submitting unchanged Demo 02 files.
+- [ ] My ZIP is named `assignment1_<usf_username>.zip` and opens to one top-level `assignment1_<usf_username>/` folder.
+- [ ] `README.md` contains reproducible Python setup and run commands.
+- [ ] `.env.example` contains blank credential values, and `.env`, API keys, passwords, and credential screenshots are excluded.
+- [ ] Every `CODE START HERE` / `CODE ENDS HERE` block is implemented; no required `NotImplementedError` remains.
+- [ ] `python -m pytest -q` passes in my completed submission folder.
+- [ ] Demo 02A, 02B, 02C, and 02D all ran against the same real Confluent Cloud topic.
+- [ ] `demo02a_report.json`, `demo02b_report.json`, `demo02c_config.json`, and `demo02d_report.json` are present and secret-free.
+- [ ] Both benchmark strategies sent at least 20,000 messages using the same fixed-seed logical events.
+- [ ] `producer_benchmark.csv` has at least 80 rows: at least 40 async and 40 sync-style rows, one per 500-message batch.
+- [ ] Every benchmark row shows 500 delivered, zero failed, and zero remaining after flush.
+- [ ] `producer_benchmark.png` clearly compares async and sync-style results.
+- [ ] `report.md` includes the requested 150-word analysis, four producer-code answers, serialization sample, limitations, and cleanup confirmation.
+- [ ] `report.md` answers Yes or No for AI assistance.
+- [ ] If I used AI, I included a completed `AI_USAGE.md`; if I did not use AI, no separate AI log is required.
+- [ ] `.venv`, `__pycache__`, `.pytest_cache`, compiled files, and unrelated large files are excluded.
