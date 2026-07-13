@@ -55,6 +55,8 @@ Copy `REPORT_TEMPLATE.md` to `report.md` and complete every section.
 - If you did not use AI assistance, select `No` in `report.md`.
 - If you used any AI assistance, select `Yes`, copy
   `AI_USAGE_TEMPLATE.md` to `AI_USAGE.md`, and submit the completed log.
+- Use the template to explain why AI was appropriate, how you checked accuracy,
+  and how you recovered or would fall back if AI failed or became repetitive.
 - The disclosure is required when AI is used. It does not itself earn extra
   credit. The optional AI-review point has additional evidence requirements in
   the assignment specification.

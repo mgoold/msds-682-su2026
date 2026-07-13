@@ -177,6 +177,21 @@ disclosure does **not** automatically earn extra credit. The optional AI review
 point below requires substantive engineering judgment and supporting evidence.
 You remain responsible for understanding and verifying everything submitted.
 
+Your disclosure must demonstrate two AI-use capabilities:
+
+1. **Strategic use and accuracy judgment.** Explain why AI was appropriate at
+   that point, what you already understood, how it improved efficiency, and how
+   you independently evaluated whether its answer was accurate. AI should
+   accelerate work you understand, not replace your understanding of Kafka,
+   Python, the benchmark, or your own conclusions.
+2. **Failure recovery and fallback.** Explain how you recognized and responded
+   if AI gave an incorrect answer, became repetitive, or could not solve the
+   problem. Possible responses include improving the prompt, adding relevant
+   code/logs/documentation as context, running a focused test, narrowing the
+   task, consulting primary documentation, debugging manually, or switching to
+   another non-AI method. If no failure occurred, state the warning signs that
+   would make you stop and the fallback you would use.
+
 ## Submission structure
 
 Submit one ZIP file named `assignment1_<usf_username>.zip` with a structure equivalent to:
@@ -231,8 +246,10 @@ Add a credential-free local replay or dry-run mode using the same event contract
 
 Go beyond the required disclosure: use AI for a substantive engineering review,
 identify concrete suggestions, accept and reject at least one suggestion with
-reasons, and provide benchmark or test evidence supporting both decisions. A
-usage log without this decision-and-evidence trail earns no extra-credit point.
+reasons, and provide benchmark or test evidence supporting both decisions.
+Also demonstrate strategic timing, an independent accuracy check, and a real
+recovery action or a clear stop condition with a non-AI fallback. A usage log
+without this judgment-and-evidence trail earns no extra-credit point.
 
 ### +1: advanced evaluation and observability
 
