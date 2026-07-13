@@ -18,8 +18,9 @@ def load_and_validate_rows(path: Path) -> list[dict[str, Any]]:
 
     # ==================== CODE START HERE ====================
     # TODO: Read the CSV with DictReader, verify all CSV_COLUMNS, convert numeric
-    # fields, require async and sync_style, and verify >=40 sequential valid
-    # 500-message rows per strategy with zero failures/remaining after flush.
+    # fields, require async and sync_style, and verify at least
+    # MINIMUM_MESSAGES // REQUIRED_BATCH_SIZE sequential valid rows per strategy
+    # with zero failures/remaining after flush.
     raise NotImplementedError("Complete load_and_validate_rows")
     # ===================== CODE ENDS HERE =====================
 

@@ -46,13 +46,17 @@ Run all commands from this starter's top-level directory:
 ```bash
 python src/producer_sync.py --run-id assignment1
 python src/producer_async.py --run-id assignment1
-python src/producer_compare.py --run-id assignment1 --messages 20000 --batch-size 500 --seed 682
+python src/producer_compare.py --run-id assignment1 --messages 2000 --batch-size 500 --seed 682
 python src/analyze_results.py --input results/producer_benchmark.csv --output results/producer_benchmark.png
 python src/producer_serialization.py --run-id assignment1
 ```
 
 The programs write the required secret-free reports to `evidence/` and the
 benchmark data and graph to `results/`.
+
+The sync-style benchmark flushes after every message. The 2,000-message base
+run is designed to complete in about 20 minutes or less on a typical course
+setup, but cloud and network latency vary. Start before the due-date evening.
 
 ## 5. Write the report and disclose AI assistance
 

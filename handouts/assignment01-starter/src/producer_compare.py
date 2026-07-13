@@ -24,7 +24,7 @@ from producer_common import (
 )
 
 
-MINIMUM_MESSAGES = 20_000
+MINIMUM_MESSAGES = 2_000
 REQUIRED_BATCH_SIZE = 500
 CSV_COLUMNS = [
     "run_id",
@@ -101,6 +101,7 @@ def main() -> list[dict[str, Any]]:
     parser.add_argument("--batch-size", type=int, default=REQUIRED_BATCH_SIZE)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--flush-timeout", type=float, default=30.0)
+    parser.add_argument("--output", type=Path, default=Path("results/producer_benchmark.csv"))
     args = parser.parse_args()
     validate_benchmark_arguments(args.messages, args.batch_size)
 
@@ -122,7 +123,7 @@ def main() -> list[dict[str, Any]]:
             )
         )
 
-    csv_path = write_csv(Path("results/producer_benchmark.csv"), rows)
+    csv_path = write_csv(args.output, rows)
     config_path = write_json_file(
         Path("evidence/demo02c_config.json"),
         {

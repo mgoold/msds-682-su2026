@@ -81,7 +81,7 @@ const pages = {
               <td><span class="tag in-person">In person</span></td>
               <td>101 Howard, Classroom 529</td>
               <td>Apache Kafka Pt. 3</td>
-              <td>FastAPI, hands-on demo, Data Schemas Pt. 1, Schema Registry; Assignment 1 due Jul 18, 11:59pm</td>
+              <td>FastAPI, hands-on demo, Data Schemas Pt. 1, Schema Registry; Assignment 1 extended deadline Jul 21, 11:59pm</td>
             </tr>
             <tr>
               <td>5</td>
@@ -176,7 +176,7 @@ const pages = {
         <article class="assignment-card">
           <h3>Assignment 1</h3>
           <p>Use real Confluent Cloud Kafka to complete Demo 02A–02D: sync-style producer, async producer, performance comparison, and serialization. The base assignment is 20 points, with up to 3 extra-credit points. Disclose AI assistance if used.</p>
-          <p><span class="tag">Due Jul 18, 2026 · 11:59pm PDT · 20 + up to 3 extra credit</span></p>
+          <p><span class="tag">Extended deadline: Tue Jul 21, 2026 · 11:59pm PDT · 20 + up to 3 extra credit</span></p>
           <p><a class="download-link" href="#/handouts/assignment01">Open Assignment 1</a> · <a href="handouts/assignment01-starter.zip">Download student starter</a></p>
         </article>
         <article class="assignment-card">
@@ -290,8 +290,8 @@ const handouts = [
     kind: "md",
     file: "handouts/assignment01.md",
     createdAt: "Created at 12:24 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 1:14 PM PDT on July 13, 2026",
-    summary: "Required real-Confluent producer assignment with a student starter, Demo 02A–02D, a 20,000-message-per-strategy benchmark, strategic AI-use and fallback disclosure, and up to 3 extra-credit points."
+    lastUpdatedAt: "Last updated at 1:23 PM PDT on July 13, 2026",
+    summary: "Required real-Confluent producer assignment with a student starter, Demo 02A–02D, a 2,000-message-per-strategy benchmark designed for a shorter run, strategic AI-use disclosure, and up to 3 extra-credit points."
   },
   {
     slug: "demo00",

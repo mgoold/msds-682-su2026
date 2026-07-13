@@ -132,13 +132,13 @@ def test_benchmark_records_one_completed_row_per_batch() -> None:
 
 
 def test_base_benchmark_arguments_are_enforced() -> None:
-    """CLI validation protects the 20,000-message and 500-message requirements."""
+    """CLI validation protects the 2,000-message and 500-message requirements."""
 
-    validate_benchmark_arguments(20_000, 500)
+    validate_benchmark_arguments(2_000, 500)
     with pytest.raises(ValueError):
-        validate_benchmark_arguments(19_999, 500)
+        validate_benchmark_arguments(1_999, 500)
     with pytest.raises(ValueError):
-        validate_benchmark_arguments(20_000, 250)
+        validate_benchmark_arguments(2_000, 250)
 
 
 def test_safe_config_report_excludes_credentials() -> None:
@@ -163,7 +163,7 @@ def test_analyzer_validates_and_plots_complete_evidence(tmp_path: Path) -> None:
 
     rows = []
     for strategy in ("async", "sync_style"):
-        for batch_index in range(1, 41):
+        for batch_index in range(1, 5):
             rows.append(
                 {
                     "run_id": "test-run",
@@ -181,5 +181,5 @@ def test_analyzer_validates_and_plots_complete_evidence(tmp_path: Path) -> None:
     csv_path = write_csv(tmp_path / "benchmark.csv", rows)
     validated = load_and_validate_rows(csv_path)
     plot_path = plot_rows(validated, tmp_path / "benchmark.png")
-    assert len(validated) == 80
+    assert len(validated) == 8
     assert plot_path.exists()

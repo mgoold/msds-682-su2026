@@ -1,6 +1,9 @@
 # Assignment 1: Confluent Cloud Kafka Producer Performance Analysis
 
-**Due:** July 18, 2026 at 11:59 PM PDT
+**Due:** Tuesday, July 21, 2026 at 11:59 PM PDT
+
+> **Extended deadline:** The due date changed from July 18 to July 21. You have
+> about one week to finish the assignment.
 
 **Submission:** Upload one ZIP file to [Canvas](https://usfca.instructure.com/courses/1633704).
 
@@ -112,7 +115,10 @@ produce -> flush
 produce -> flush
 ```
 
-Your code must use a delivery callback and report attempted, delivered, failed, and remaining-after-flush counts. Explain why calling `flush()` after every message is easy to understand but normally slow.
+Your code must use a delivery callback and report attempted, delivered, failed,
+remaining-after-flush, and elapsed-time values. Explain why calling `flush()`
+after every message is easy to understand but normally slow. A small run using
+the starter default of **4 messages** is sufficient for Demo 02A.
 
 ### 3. Demo 02B: asynchronous producer
 
@@ -126,16 +132,19 @@ poll callbacks while producing
 one final flush
 ```
 
-Use a delivery callback, call `poll(0)` or an equivalent callback-serving method while producing, and call `flush()` once at the end. Report the same delivery counts as Demo 02A.
+Use a delivery callback, call `poll(0)` or an equivalent callback-serving method
+while producing, and call `flush()` once at the end. Report the same delivery
+counts and elapsed time as Demo 02A. A small run using the starter default of
+**4 messages** is sufficient for Demo 02B.
 
 ### 4. Demo 02C: producer performance benchmark
 
 Extend the Demo 02C comparison into a reproducible benchmark.
 
-- Send at least **20,000 messages per strategy**: at least 20,000 async messages and at least 20,000 sync-style messages.
+- Send at least **2,000 messages per strategy**: at least 2,000 async messages and at least 2,000 sync-style messages.
 - Use the same event generator, payload shape, message count, and seed for both strategies. Use `682` as the default seed unless you document another fixed seed.
 - Measure **500 messages per batch**. For each async batch, queue 500 messages, serve callbacks while producing, and flush once at the batch boundary. For each sync-style batch, flush after every message. Stop the batch timer only after that batch has completed delivery.
-- Write one CSV row per strategy per 500-message batch. A 20,000-message comparison therefore produces at least 40 rows per strategy and at least 80 benchmark rows total.
+- Write one CSV row per strategy per 500-message batch. A 2,000-message comparison therefore produces at least 4 rows per strategy and at least 8 benchmark rows total.
 - Include at least these columns:
 
 ```text
@@ -156,6 +165,11 @@ remaining_after_flush
 
 Because both strategies send the same deterministic logical events to one topic, duplicate logical events are expected in this benchmark.
 
+The sync-style pass performs one cloud round trip per message because it flushes
+after every send. The 2,000-message base benchmark is designed to complete in
+about 20 minutes or less on a typical course setup, but actual network and cloud
+latency vary. Start the run before the due-date evening.
+
 ### 5. Demo 02D: schema validation and serialization
 
 Use an explicit event model such as the course `TripEvent` Pydantic model.
@@ -169,7 +183,10 @@ validated Python event
 -> Kafka producer
 ```
 
-Use a stable event key such as `trip_id`, include at least one sample serialized event in your report, and explain why Kafka ultimately stores keys and values as bytes.
+Use a stable event key such as `trip_id`, enforce the nonnegative fare constraint
+shown in Demo 02, include at least one sample serialized event in your report,
+and explain why Kafka ultimately stores keys and values as bytes. A small run
+using the starter default of **4 messages** is sufficient for Demo 02D.
 
 ### 6. Visualization and written analysis
 
@@ -238,28 +255,28 @@ opened, it must contain one top-level folder with this structure:
 
 ```text
 assignment1_<usf_username>/
-├── README.md
-├── requirements.txt
-├── .env.example
-├── .gitignore
-├── src/
-│   ├── producer_common.py
-│   ├── producer_sync.py
-│   ├── producer_async.py
-│   ├── producer_compare.py
-│   └── producer_serialization.py
-├── tests/
-│   └── test_producer_logic.py
-├── results/
-│   ├── producer_benchmark.csv
-│   └── producer_benchmark.png
-├── evidence/
-│   ├── demo02a_report.json
-│   ├── demo02b_report.json
-│   ├── demo02c_config.json
-│   └── demo02d_report.json
-├── report.md
-└── AI_USAGE.md                 # include only if AI assistance was used
+|-- README.md
+|-- requirements.txt
+|-- .env.example
+|-- .gitignore
+|-- src/
+|   |-- producer_common.py
+|   |-- producer_sync.py
+|   |-- producer_async.py
+|   |-- producer_compare.py
+|   `-- producer_serialization.py
+|-- tests/
+|   `-- test_producer_logic.py
+|-- results/
+|   |-- producer_benchmark.csv
+|   `-- producer_benchmark.png
+|-- evidence/
+|   |-- demo02a_report.json
+|   |-- demo02b_report.json
+|   |-- demo02c_config.json
+|   `-- demo02d_report.json
+|-- report.md
+`-- AI_USAGE.md                 # include only if AI assistance was used
 ```
 
 The downloaded starter also contains `REPORT_TEMPLATE.md`,
@@ -271,39 +288,25 @@ files.
 
 ## Grading rubric: 20 base points
 
-The rubric is atomic: each row is graded independently against one visible pass
-condition. There are no hidden bundled criteria.
+The rubric has 13 focused grading decisions. Essential P0 outcomes are worth 2
+points each; supporting P1 outcomes are worth 1 point each.
 
-| # | Atomic criterion | Points | Pass condition |
-|---:|---|---:|---|
-| 1 | Real Confluent run | 0.5 | Required evidence comes from a real Confluent Cloud Kafka cluster. |
-| 2 | Shared topic | 0.5 | Demo 02A–02D all use the same documented topic. |
-| 3 | Credential safety | 1 | Credentials are externalized, `.env.example` is blank, and no secret is submitted. |
-| 4 | Demo 02A control flow | 1 | Sync-style code calls `produce()` and then `flush()` for each message. |
-| 5 | Demo 02A evidence | 1 | Report shows attempted, delivered, failed, remaining, topic, and elapsed time. |
-| 6 | Demo 02B control flow | 1 | Async code produces all messages, serves callbacks with `poll(0)`, and performs one final `flush()`. |
-| 7 | Demo 02B evidence | 1 | Report shows attempted, delivered, failed, remaining, topic, and elapsed time. |
-| 8 | Benchmark message count | 1 | At least 20,000 messages are sent by each strategy. |
-| 9 | Benchmark batch contract | 1 | Each row represents 500 messages; CSV has at least 40 rows per strategy and 80 total. |
-| 10 | Fair comparison | 1 | Both strategies use the same generator, payloads, count, and documented fixed seed. |
-| 11 | Benchmark CSV contract | 1 | CSV contains every required column with sequential batch indexes and cumulative counts. |
-| 12 | Completed batch delivery | 1 | Every batch reports 500 delivered, zero failed, and zero remaining after flush. |
-| 13 | Event validation | 1 | A Pydantic event model enforces the required message-value fields and fare constraint. |
-| 14 | Message key | 0.5 | `trip_id` is encoded as the stable UTF-8 Kafka key. |
-| 15 | Message value | 0.5 | The validated event is serialized as UTF-8 JSON value bytes. |
-| 16 | Demo 02D evidence | 1 | Report includes a Python-object sample, serialized sample, delivery result, and topic. |
-| 17 | Visualization | 1 | Submitted plot clearly compares the two strategies over 500-message batches. |
-| 18 | Performance analysis | 1 | At least 150 words use submitted data to explain the observed winner and strategy tradeoffs. |
-| 19 | Delivery and benchmark reasoning | 1 | Analysis correctly explains callbacks, `poll()`, `flush()`, timing completion, and benchmark limitations. |
-| 20 | Configuration question | 0.5 | Correctly explains required producer configuration and why it stays outside source code. |
-| 21 | Callback question | 0.5 | Correctly explains what the delivery callback records on success and failure. |
-| 22 | Polling question | 0.5 | Correctly distinguishes `poll(0)` from `flush()`. |
-| 23 | Final-flush question | 0.5 | Correctly explains why the async program must flush before exit. |
-| 24 | Required tree | 0.25 | Every required file in the published submission tree is present. |
-| 25 | Completed starter | 0.25 | Tests pass and no required marked block remains unimplemented. |
-| 26 | AI-use status | 0.25 | `report.md` declares Yes/No and includes `AI_USAGE.md` when the answer is Yes. |
-| 27 | Package hygiene | 0.25 | README is runnable and the ZIP excludes credentials, environments, caches, and unrelated large files. |
-| | **Base total** | **20** | |
+| # | Priority | Grading criterion | Points | Pass condition |
+|---:|---|---|---:|---|
+| 1 | P0 | Confluent setup and credential safety | 2 | Uses real Confluent Cloud, one shared topic, externalized configuration, and no submitted secrets. |
+| 2 | P0 | Demo 02A sync-style producer | 2 | Implements produce-then-flush-per-message correctly and submits complete delivery/timing evidence. |
+| 3 | P0 | Demo 02B asynchronous producer | 2 | Implements produce plus callback polling and one final flush, with complete delivery/timing evidence. |
+| 4 | P0 | Benchmark scale and fairness | 2 | Sends at least 2,000 messages per strategy using identical fixed-seed logical events. |
+| 5 | P0 | Batch CSV and completed delivery | 2 | Records 500-message batches with required columns, sequential counts, 500 delivered, zero failed, and zero remaining. |
+| 6 | P0 | Event validation and serialization | 2 | Enforces the event model/fare constraint and uses a stable UTF-8 key plus UTF-8 JSON value bytes. |
+| 7 | P0 | Visualization and data-supported analysis | 2 | Submits a readable comparison plot and at least 150 words grounded in the submitted benchmark. |
+| 8 | P1 | Producer behavior understanding | 1 | Correctly explains configuration, callbacks, `poll(0)`, `flush()`, and the final-flush requirement. |
+| 9 | P1 | Benchmark limitations | 1 | Explains timing completion, network/cloud noise, and why one run is not a universal capacity claim. |
+| 10 | P1 | Required evidence set | 1 | Includes every required 02A/02B/02C/02D report, CSV, plot, and secret-free config artifact. |
+| 11 | P1 | Completed and tested starter | 1 | Included tests pass and no required marked block remains unimplemented. |
+| 12 | P1 | AI-use disclosure | 1 | `report.md` declares Yes/No and includes a complete `AI_USAGE.md` when the answer is Yes. |
+| 13 | P1 | Submission package quality | 1 | Required tree and README are complete; credentials, environments, caches, and unrelated files are excluded. |
+| | | **Base total** | **20** | |
 
 ## Extra credit: up to 3 additional points
 
@@ -324,7 +327,12 @@ without this judgment-and-evidence trail earns no extra-credit point.
 
 ### +1: advanced evaluation and observability
 
-Run at least three additional independent comparisons per strategy with at least 2,000 messages per strategy per run. Report variability plus p50 and p95 batch latency, success/failure counts, and a secret-free producer configuration snapshot. Explain benchmark noise.
+Run at least three additional independent comparisons, each with at least 2,000
+messages per strategy. Use a distinct `--run-id` and `--output` CSV filename for
+each run so results are not overwritten. Report variability plus p50 and p95
+batch latency, success/failure counts, and a secret-free producer configuration
+snapshot. Explain benchmark noise. These are additional runs; the base evidence
+must still include its own complete 2,000-message-per-strategy comparison.
 
 ## Cost and cleanup
 
@@ -342,8 +350,8 @@ Before uploading to Canvas, check every box:
 - [ ] `python -m pytest -q` passes in my completed submission folder.
 - [ ] Demo 02A, 02B, 02C, and 02D all ran against the same real Confluent Cloud topic.
 - [ ] `demo02a_report.json`, `demo02b_report.json`, `demo02c_config.json`, and `demo02d_report.json` are present and secret-free.
-- [ ] Both benchmark strategies sent at least 20,000 messages using the same fixed-seed logical events.
-- [ ] `producer_benchmark.csv` has at least 80 rows: at least 40 async and 40 sync-style rows, one per 500-message batch.
+- [ ] Both benchmark strategies sent at least 2,000 messages using the same fixed-seed logical events.
+- [ ] `producer_benchmark.csv` has at least 8 rows: at least 4 async and 4 sync-style rows, one per 500-message batch.
 - [ ] Every benchmark row shows 500 delivered, zero failed, and zero remaining after flush.
 - [ ] `producer_benchmark.png` clearly compares async and sync-style results.
 - [ ] `report.md` includes the requested 150-word analysis, four producer-code answers, serialization sample, limitations, and cleanup confirmation.
