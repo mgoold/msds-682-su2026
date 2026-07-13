@@ -24,6 +24,9 @@
 | 4 | Demo 03D: native asyncio | When does Python `asyncio` add value? | Runs `AIOProducer` and `AIOConsumer` concurrently without blocking the event loop. |
 
 FastAPI is intentionally **not** part of Demo 03. It begins in Lecture 4.
+Demo 03A–03C are the consumer core; Demo 03D is the short asyncio extension
+promised in Lecture 3. Confluent removed the AsyncIO clients' experimental
+designation in version 2.13, so the pinned 2.15.0 API is not experimental.
 
 ## 2. One continuous Demo 01 → Demo 02 → Demo 03 story
 
@@ -44,6 +47,10 @@ All producer and consumer scripts reuse the same topic and Pydantic `TripEvent`
 contract from `demo02_producer_common.py`. Demo 03 does not introduce a second
 topic constant or a duplicate event schema.
 
+This shared topic can already contain thousands of retained Demo 02 benchmark
+records. Keep the provided message/time limits: Demo 03 teaches consumer
+behavior with bounded samples rather than printing the entire retained log.
+
 ## 3. Fall 2023 → Summer 2026 updates
 
 The teaching intent is preserved, but the implementation has been modernized.
@@ -55,6 +62,7 @@ The teaching intent is preserved, but the implementation has been modernized.
 | The normal assignment callback forced every partition to `OFFSET_BEGINNING`. | Normal mode respects committed group offsets; only explicit replay mode requests `OFFSET_BEGINNING`. | Otherwise “resume” silently becomes “replay.” |
 | `Consumer.poll(1.0)` was placed inside `async def`, even though it blocked the event loop. | Demo 03A–03C use the standard synchronous `Consumer`; Demo 03D uses native `AIOConsumer`/`AIOProducer`. | `async def` alone does not make a blocking call nonblocking. |
 | Producer and consumer tasks were both infinite and awaited sequentially. | Demo 03D uses finite tasks and `asyncio.gather()`. | Concurrency and shutdown are visible and testable. |
+| The AsyncIO client originally carried an experimental designation. | Confluent removed that designation in 2.13; this course pins 2.15.0. | Students use the current native API while treating asyncio as a focused Lecture 3 extension. |
 | Consumer cleanup was incomplete. | Every consumer closes in `finally`; native async clients are awaited during shutdown. | Closing releases sockets and leaves the group promptly, triggering faster rebalance. |
 | Message values were printed as raw bytes. | UTF-8 JSON is decoded and validated against the same Pydantic v2 `TripEvent` used by Demo 02. | Serialization and deserialization become one explicit contract. |
 | Package versions floated. | Python 3.11.14 and the Summer 2026 requirements file are pinned, including `confluent-kafka==2.15.0`. | Instructor, TA, and student behavior stays reproducible. |
@@ -122,6 +130,14 @@ Committing before successful processing can skip work after a failure.
 `Consumer.close()` releases resources, leaves the group, and allows Kafka to
 rebalance promptly. It does not “send pending consumer messages.” Producers use
 `flush()` because producers have outgoing delivery queues.
+
+Offset behavior depends on configuration:
+
+- Demo 03A has `enable.auto.commit=true`, so `close()` also commits its latest
+  stored offsets before leaving the group.
+- Demo 03B has `enable.auto.commit=false`; its two-run resume works because the
+  script explicitly calls `commit()` after successful decode and validation.
+  `close()` does not replace that manual commit.
 
 ## 5. Setup
 
@@ -386,14 +402,14 @@ The Demo 03D report must show the requested count delivered and consumed:
 outputs/runs/lec3-demo03d/demo03d_confluent_asyncio_produce_consume/report.json
 ```
 
-## 10. Evidence produced by the demos
+## 10. Expected results and evidence
 
-| Demo | Secret-free evidence |
-|---|---|
-| 03A | decoded records, assignments, offsets, and safe consumer config |
-| 03B | records, commit mode, commit requests/results, and resume group ID |
-| 03C | assignment/revocation history, member ID, group ID, and explicit replay mode |
-| 03D | delivered Kafka metadata, consumed validated records, and safe producer/consumer config |
+| Demo | Expected result | Secret-free evidence |
+|---|---|---|
+| 03A | Stops after the requested sample or idle timeout; every value validates as a `TripEvent`. | Decoded records, assignments, offsets, and safe consumer config. |
+| 03B | The second sync run with the same group resumes after the first run's committed offsets; async mode records acknowledgements with no failures. | Records, commit mode, commit requests/results, and resume group ID. |
+| 03C | Concurrent members receive non-overlapping partition assignments; forced replay reads a bounded sample from retained history. | Assignment/revocation history, member ID, group ID, and explicit replay mode. |
+| 03D | The requested count is both delivered and consumed before the timeout. | Delivered Kafka metadata, consumed validated records, and safe producer/consumer config. |
 
 The reports may include group IDs, client IDs, topic names, partitions, and
 offsets. They must never include `sasl.username`, `sasl.password`, `.env`, or
@@ -437,5 +453,6 @@ shutdown. This is part of the lesson, not optional cleanup boilerplate.
 ## Official references
 
 - [Confluent Python client overview and consumer examples](https://docs.confluent.io/kafka-clients/python/current/overview.html)
+- [Confluent Python client changelog](https://docs.confluent.io/kafka-clients/python/current/changelog.html)
 - [Confluent Kafka Python client repository](https://github.com/confluentinc/confluent-kafka-python)
 - [librdkafka configuration reference](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)

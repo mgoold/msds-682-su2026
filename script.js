@@ -326,7 +326,7 @@ const handouts = [
     kind: "md",
     file: "handouts/demo03.md",
     createdAt: "Created at 1:57 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 1:57 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 2:11 PM PDT on July 13, 2026",
     summary: "Real Confluent consumer sequence over the shared trip topic: bounded poll loop, manual offset commits and resume, consumer groups and replay, plus native asyncio producer/consumer clients."
   },
   {
