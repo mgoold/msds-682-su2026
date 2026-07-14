@@ -58,13 +58,13 @@ create topic -> sync-style producer -> async producer -> compare sync/async -> s
 |---|---|---|
 | Demo 01 | Creates the empty Confluent topic | `msds682.demo01.trip-events.v1` |
 | Demo 02A/02B/02C/02D | Produce trip event messages in Confluent | `msds682.demo01.trip-events.v1` |
-| Demo 03 | Consumer/replay demo, released after Lec 3 | `msds682.demo01.trip-events.v1` |
+| [Demo 03A–03D](#/handouts/demo03) | Consume, commit, rebalance, replay, and use native asyncio on Confluent | `msds682.demo01.trip-events.v1` |
 
 The topic name is shared on purpose:
 
 | Storage | Used by | Meaning |
 |---|---|---|
-| Confluent Kafka | Demo 01 and Demo 02A/02B/02C/02D | Real Kafka topic and real Kafka messages |
+| Confluent Kafka | Demo 01, Demo 02A–02D, and Demo 03A–03D | Real Kafka topic, real messages, and independent consumer-group progress |
 
 ### 2.2 Message Value Example
 
@@ -240,13 +240,17 @@ Confluent has AsyncIO APIs, but Lec 2 does not use them. This demo stays focused
 mkdir -p msds682-demos
 cd msds682-demos
 
-uv python install 3.11
-uv venv --python 3.11 .venv
+uv python install 3.11.14
+uv venv --python 3.11.14 .venv
 source .venv/bin/activate
 
 python -m pip install --upgrade pip
-python -m pip install confluent-kafka python-dotenv pydantic
+python -m pip install -r requirements.txt
 ```
+
+Use the published [Summer 2026 requirements file](handouts/requirements.txt),
+which pins `confluent-kafka[avro,schemaregistry]==2.15.0` and the rest of the
+course environment.
 
 Download these files into the same folder:
 
@@ -446,7 +450,7 @@ After Demo 02A/02B/02C/02D:
 | Not included yet | Why |
 |---|---|
 | Creating the topic | Demo 01 covers topic creation |
-| Consuming messages | Demo 03 covers offset/replay behavior after Lec 3 |
+| Consuming messages | [Demo 03](#/handouts/demo03) covers poll loops, commits, groups, replay, and native asyncio |
 | Schema Registry | Pydantic validation is local to Python; Schema Registry is later/optional |
 | Distributed Kafka performance testing | This is a concept demo, not a load test |
 | Python `asyncio` producer API | Lec 2 focuses on Kafka producer basics |

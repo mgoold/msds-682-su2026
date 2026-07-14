@@ -71,7 +71,7 @@ const pages = {
               <td><span class="tag zoom">Zoom</span></td>
               <td>Zoom</td>
               <td>Apache Kafka Pt. 2</td>
-              <td>Consumers</td>
+              <td>Consumers; Demo 03A–03D on Confluent Cloud</td>
             </tr>
             <tr>
               <td>4</td>
@@ -81,7 +81,7 @@ const pages = {
               <td><span class="tag in-person">In person</span></td>
               <td>101 Howard, Classroom 529</td>
               <td>Apache Kafka Pt. 3</td>
-              <td>FastAPI, hands-on demo, Data Schemas Pt. 1, Schema Registry; Assignment 1 due Jul 18, 11:59pm</td>
+              <td>FastAPI, hands-on demo, Data Schemas Pt. 1, Schema Registry; Assignment 1 extended deadline Jul 21, 11:59pm</td>
             </tr>
             <tr>
               <td>5</td>
@@ -175,8 +175,9 @@ const pages = {
       <div class="assignment-list">
         <article class="assignment-card">
           <h3>Assignment 1</h3>
-          <p>Individual assignment worth 20% of the course grade. Focus: Kafka-style producer logic, event schemas, local replay, and performance benchmarking.</p>
-          <p><span class="tag">Due Jul 18, 2026 · 11:59pm</span></p>
+          <p>Use real Confluent Cloud Kafka to complete Demo 02A–02D: sync-style producer, async producer, performance comparison, and serialization. The base assignment is 20 points, with up to 3 extra-credit points. Disclose AI assistance if used.</p>
+          <p><span class="tag">Extended deadline: Tue Jul 21, 2026 · 11:59pm PDT · 20 + up to 3 extra credit</span></p>
+          <p><a class="download-link" href="#/handouts/assignment01">Open Assignment 1</a> · <a href="handouts/assignment01-starter.zip">Download student starter</a></p>
         </article>
         <article class="assignment-card">
           <h3>Assignment 2</h3>
@@ -196,7 +197,7 @@ const pages = {
 
       <h3>Submission and collaboration</h3>
       <ul>
-        <li>Canvas link: to be provided at the first class.</li>
+        <li><a href="https://usfca.instructure.com/courses/1633704" target="_blank" rel="noopener">Canvas course page</a>; USF login may be required.</li>
         <li>Late submissions are not accepted unless prior approval has been granted by the instructor.</li>
         <li>GitHub is used for code management, collaboration, and portfolio development.</li>
         <li>AI tools, coding agents, open-source resources, and online references are permitted with clear attribution and explanation.</li>
@@ -284,6 +285,15 @@ const pages = {
 // iframe; PDF handouts (kind: "pdf") open the file directly.
 const handouts = [
   {
+    slug: "assignment01",
+    title: "Assignment 1: Confluent Cloud Kafka Producer Performance Analysis",
+    kind: "md",
+    file: "handouts/assignment01.md",
+    createdAt: "Created at 12:24 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 1:23 PM PDT on July 13, 2026",
+    summary: "Required real-Confluent producer assignment with a student starter, Demo 02A–02D, a 2,000-message-per-strategy benchmark designed for a shorter run, strategic AI-use disclosure, and up to 3 extra-credit points."
+  },
+  {
     slug: "demo00",
     title: "Demo 00: Environment Setup",
     kind: "md",
@@ -311,15 +321,35 @@ const handouts = [
     summary: "Producer core demos over the Demo 01 trip topic: sync-style producer, async producer, async-vs-sync comparison, and serialization."
   },
   {
+    slug: "demo03",
+    title: "Demo 03: Kafka Consumers on Confluent Cloud",
+    kind: "md",
+    file: "handouts/demo03.md",
+    createdAt: "Created at 1:57 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 2:33 PM PDT on July 13, 2026",
+    summary: "Real Confluent consumer sequence over the shared trip topic: bounded poll loop, manual offset commits and resume, consumer groups and replay, plus native asyncio producer/consumer clients."
+  },
+  {
     slug: "lec2-topic-vs-table",
-    title: "Lec 2 Lab Supplemental Materials",
+    title: "Lecture 2: Kafka Topics and Producers",
     kind: "html",
     file: "handouts/lec2-topic-vs-table.html",
     createdAt: "Created at 1:48 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 1:32 PM PDT on July 9, 2026",
+    lastUpdatedAt: "Last updated at 4:55 PM PDT on July 13, 2026",
     wide: true,
     standalone: true,
-    summary: "Supplemental Lec 2 slide deck after Demo 02: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, and serialization."
+    summary: "Canonical Summer 2026 Lecture 2 HTML slides: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, serialization, inherited producer options, and client-side batching."
+  },
+  {
+    slug: "lec3-consumers",
+    title: "Lecture 3: Kafka Consumers",
+    kind: "html",
+    file: "handouts/lec3-consumers.html",
+    createdAt: "Created at 4:09 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 5:20 PM PDT on July 13, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Canonical Summer 2026 Lecture 3 HTML slides: consumer offsets and groups, commit and replay, Demo 03A–03D alignment, AI engineering Q&A, environment layers, producer batching, and native asyncio."
   },
   {
     slug: "syllabus",

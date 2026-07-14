@@ -45,20 +45,15 @@ On Windows PowerShell, activation usually looks like this:
 
 ## Step 3: Install the Course Packages
 
-Create a file named `requirements.txt`:
+Download the exact Summer 2026 package baseline:
+
+[requirements.txt](handouts/requirements.txt)
+
+The file pins the course environment rather than installing floating latest
+versions. Its Kafka line is:
 
 ```txt
-apscheduler
-confluent-kafka[avro,schemaregistry]
-fastmcp
-fastapi
-httpx
-matplotlib
-pandas
-pydantic
-python-dotenv
-pytest
-uvicorn
+confluent-kafka[avro,schemaregistry]==2.15.0
 ```
 
 Install the packages:
@@ -111,7 +106,7 @@ Open the JSON report. It should look similar to this:
   "packages": {
     "fastapi": "0.x",
     "pydantic": "2.x",
-    "confluent-kafka": "2.x",
+    "confluent-kafka": "2.15.0",
     "fastmcp": "3.x"
   }
 }

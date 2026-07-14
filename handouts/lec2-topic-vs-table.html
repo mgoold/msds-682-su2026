@@ -1,9 +1,11 @@
 <!doctype html>
+<!-- Canonical Summer 2026 Lecture 2 HTML source. Professor-side renderers consume this file; do not maintain another editable copy. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lec 2 Lab Supplemental Materials</title>
+  <meta name="description" content="MSDS 682 Summer 2026 Lecture 2 slides: Kafka topics, partitions, producers, serialization, and client-side batching on Confluent Cloud.">
+  <title>MSDS 682 · Lecture 2 · Kafka Topics and Producers</title>
   <style>
     :root {
       --bg: #f4f4f2;
@@ -70,17 +72,6 @@
       margin: 0 0 2.4vh;
       color: var(--muted);
       font-size: clamp(14px, 1.05vw, 18px);
-    }
-
-    .deck-meta {
-      margin: -1.1vh 0 2vh;
-      color: var(--muted);
-      font-size: clamp(11px, .82vw, 13px);
-      line-height: 1.45;
-    }
-
-    .deck-meta span {
-      display: block;
     }
 
     .card {
@@ -1092,11 +1083,6 @@
       <p class="kicker">MSDS 682 · Lecture 2 · <b>Kafka Topics</b></p>
       <h1>Topic vs. database table</h1>
       <p class="subtitle">Same trip, two storage models: a table keeps the current state; a topic keeps the whole story.</p>
-      <p class="deck-meta">
-        <span>Created at 1:48 AM PDT on July 9, 2026</span>
-        <span>Last updated at 1:32 PM PDT on July 9, 2026</span>
-      </p>
-
       <div class="compare">
         <article class="side">
           <h2>Database table</h2>
@@ -1142,7 +1128,7 @@
         </article>
       </div>
     </div>
-    <div class="pager">1 / 19 · scroll</div>
+    <div class="pager">1 / 21 · scroll</div>
   </section>
 
   <!-- ================= Slide 2 · append-only log ================= -->
@@ -1249,7 +1235,7 @@
         </article>
       </div>
     </div>
-    <div class="pager">2 / 19</div>
+    <div class="pager">2 / 21</div>
   </section>
 
   <!-- ================= Slide 2 ================= -->
@@ -1322,7 +1308,7 @@
         Messages are immutable; latest state = the last message read.
       </p>
     </div>
-    <div class="pager">3 / 19</div>
+    <div class="pager">3 / 21</div>
   </section>
 
   <!-- ================= Slide 3: message anatomy ================= -->
@@ -1394,7 +1380,7 @@
         Keying by <code class="inline">driver_id</code> keeps each driver's updates in order.
       </p>
     </div>
-    <div class="pager">4 / 19</div>
+    <div class="pager">4 / 21</div>
   </section>
 
   <!-- ================= Slide 3 ================= -->
@@ -1463,7 +1449,7 @@
         downstream services subscribe only to what they need: <strong>pub/sub decoupling</strong>.
       </p>
     </div>
-    <div class="pager">5 / 19</div>
+    <div class="pager">5 / 21</div>
   </section>
 
   <!-- ================= Slide 6 · naming conventions ================= -->
@@ -1501,7 +1487,7 @@
         every producer &amp; consumer — naming well now is cheap, fixing it later is not.
       </p>
     </div>
-    <div class="pager">6 / 19</div>
+    <div class="pager">6 / 21</div>
   </section>
 
   <!-- ================= Slide 6 · brokers ================= -->
@@ -1580,7 +1566,7 @@
         </article>
       </div>
     </div>
-    <div class="pager">7 / 19</div>
+    <div class="pager">7 / 21</div>
   </section>
 
   <!-- ================= Slide 8 · partition routing ================= -->
@@ -1640,7 +1626,7 @@
         adding partitions reshuffles the mapping.
       </p>
     </div>
-    <div class="pager">8 / 19</div>
+    <div class="pager">8 / 21</div>
   </section>
 
   <!-- ================= Slide 7 · time order I ================= -->
@@ -1685,7 +1671,7 @@
         useful for analytics, not proof of who came first.
       </p>
     </div>
-    <div class="pager">9 / 19</div>
+    <div class="pager">9 / 21</div>
   </section>
 
   <!-- ================= Slide 8 · time order II ================= -->
@@ -1749,7 +1735,7 @@
         <span class="mono">timestamp</span> = your business time</span>
       </div>
     </div>
-    <div class="pager">10 / 19</div>
+    <div class="pager">10 / 21</div>
   </section>
 
   <!-- ================= Slide 9 · postmark vs offset ================= -->
@@ -1794,7 +1780,7 @@
         Kafka's only promise: <strong>within a partition, first written ⇒ smaller offset.</strong>
       </p>
     </div>
-    <div class="pager">11 / 19</div>
+    <div class="pager">11 / 21</div>
   </section>
 
   <!-- ================= Slide 10 · partitions vs HDFS blocks ================= -->
@@ -1844,7 +1830,7 @@
         <strong>Partitions ≠ blocks — cousins, not twins.</strong>
       </p>
     </div>
-    <div class="pager">12 / 19</div>
+    <div class="pager">12 / 21</div>
   </section>
 
   <!-- ================= Slide 13 · demo block 1 ================= -->
@@ -1905,7 +1891,7 @@
         the new topic is an empty log until a later producer writes records.
       </p>
     </div>
-    <div class="pager">13 / 19</div>
+    <div class="pager">13 / 21</div>
   </section>
 
   <!-- ================= Slide 14 · demo block 2 ================= -->
@@ -1959,7 +1945,7 @@
         </div>
       </div>
     </div>
-    <div class="pager">14 / 19</div>
+    <div class="pager">14 / 21</div>
   </section>
 
   <!-- ================= Slide 15 · demo block 3 ================= -->
@@ -2025,7 +2011,7 @@
         messages appear only when a producer sends them.
       </p>
     </div>
-    <div class="pager">15 / 19</div>
+    <div class="pager">15 / 21</div>
   </section>
 
   <!-- ================= Slide 16 · producer async vs sync ================= -->
@@ -2113,7 +2099,7 @@
         </div>
       </div>
     </div>
-    <div class="pager">16 / 19</div>
+    <div class="pager">16 / 21</div>
   </section>
 
   <!-- ================= Slide 17 · producer demo outputs ================= -->
@@ -2142,7 +2128,7 @@
         sends the same deterministic logical events twice: 2,000 async messages plus 2,000 sync-style messages, 4,000 new messages total.
       </p>
     </div>
-    <div class="pager">17 / 19</div>
+    <div class="pager">17 / 21</div>
   </section>
 
   <!-- ================= Slide 18 · producer configuration ================= -->
@@ -2208,7 +2194,64 @@ remaining = producer.flush(args.flush_timeout)</pre></div>
         Demo 02 does not tune production batching settings; it focuses on what the producer sends and when it waits.
       </p>
     </div>
-    <div class="pager">18 / 19</div>
+    <div class="pager">18 / 21</div>
+  </section>
+
+  <!-- ================= Slide 18b · producer options you inherit ================= -->
+  <section class="slide" id="s18b">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 02 · Producers</b></p>
+      <h1>Producer options you inherit</h1>
+      <p class="subtitle">Demo 02's <code class="inline">.env</code> carries only connection settings.
+        Every behavior option below runs on the librdkafka 2.15 default — know what you are inheriting before you tune.</p>
+
+      <div class="codegrid">
+        <div class="codecard tight"><pre><span class="cm"># demo02_producer_common.py — everything Demo 02 sets:</span>
+<span class="kw">return</span> {
+    <span class="str">"bootstrap.servers"</span>: os.getenv(<span class="str">"BOOTSTRAP_SERVERS"</span>, <span class="str">""</span>),
+    <span class="str">"security.protocol"</span>: os.getenv(<span class="str">"SECURITY_PROTOCOL"</span>, <span class="str">"SASL_SSL"</span>),
+    <span class="str">"sasl.mechanisms"</span>: os.getenv(<span class="str">"SASL_MECHANISMS"</span>, <span class="str">"PLAIN"</span>),
+    <span class="str">"sasl.username"</span>: os.getenv(<span class="str">"SASL_USERNAME"</span>, <span class="str">""</span>),
+    <span class="str">"sasl.password"</span>: os.getenv(<span class="str">"SASL_PASSWORD"</span>, <span class="str">""</span>),
+}
+
+<span class="cm"># Not set anywhere in Demo 02 — librdkafka defaults apply:</span>
+<span class="cm">#   client.id            = "rdkafka"</span>
+<span class="cm">#   retries              = 2147483647 (bounded by delivery.timeout.ms)</span>
+<span class="cm">#   enable.idempotence   = false</span>
+<span class="cm">#   compression.type     = none</span></pre></div>
+
+        <div class="annlist">
+          <div class="ann">
+            <b><code class="inline">client.id</code> names the producer</b>
+            <span>Appears in broker logs and quotas — useful for debugging. Demo 02 keeps the default;
+              Demo 03 sets one per demo so evidence is attributable.</span>
+          </div>
+          <div class="ann">
+            <b><code class="inline">retries</code>: failed sends retry automatically</b>
+            <span>The client retries delivery until <code class="inline">delivery.timeout.ms</code> expires.
+              With retries and no idempotence, a retried message can arrive out of order.</span>
+          </div>
+          <div class="ann accent">
+            <b><code class="inline">enable.idempotence</code> prevents duplicates and reordering</b>
+            <span>When true, retries cannot create duplicate or reordered records.
+              librdkafka defaults to <strong>false</strong>; the Java client has enabled it by default since 3.0 —
+              know which client you are holding.</span>
+          </div>
+          <div class="ann">
+            <b><code class="inline">compression.type</code> trades CPU for bandwidth</b>
+            <span>Compressing batches (for example <code class="inline">lz4</code>, <code class="inline">zstd</code>)
+              shrinks network transfer at producer/consumer CPU cost. Default is <code class="inline">none</code>.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption">
+        <strong>Direct rule:</strong> connection settings live in <code class="inline">.env</code>;
+        behavior options are deliberate code choices with documented defaults. List what you inherit before you tune anything.
+      </p>
+    </div>
+    <div class="pager">19 / 21</div>
   </section>
 
   <!-- ================= Slide 19 · message shape and delivery ================= -->
@@ -2272,9 +2315,77 @@ producer.produce(
 
       <p class="caption">
         <strong>Direct rule:</strong> topic config came from Demo 01; message schema and bytes come from Demo 02 producer code.
+        Serialization means converting an object into bytes for network transfer and storage;
+        Demo 02D demonstrates the exact <code class="inline">TripEvent → JSON string → UTF-8 bytes</code> path.
       </p>
     </div>
-    <div class="pager">19 / 19</div>
+    <div class="pager">20 / 21</div>
+  </section>
+
+  <!-- ================= Slide 20 · producer batching ================= -->
+  <section class="slide" id="s20">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 2 · <b>Demo 02 · Producers</b></p>
+      <h1>Why async wins: the client batches internally</h1>
+      <p class="subtitle">True or false — the producer sends messages one by one to the broker?
+        <strong>False.</strong> <code class="inline">produce()</code> appends to a local buffer; whole batches cross the network.</p>
+
+      <div class="codegrid">
+        <div class="codecard tight"><pre>Your code            Producer library (in-process)      Broker
+   |                          |                            |
+produce(msg 1) ---&gt; [ buffer: 1       ]  returns           |
+produce(msg 2) ---&gt; [ buffer: 1 2     ]  immediately;      |
+produce(msg 3) ---&gt; [ buffer: 1 2 3   ]  local append,     |
+produce(msg 4) ---&gt; [ buffer: 1 2 3 4 ]  no network        |
+   |                          |                            |
+   |    batch closes when ANY limit is hit FIRST:          |
+   |      time : linger.ms          = 5 ms                 |
+   |      size : batch.size         = 1,000,000 bytes      |
+   |      count: batch.num.messages = 10,000               |
+   |                          |                            |
+   |     [ Batch: msg 1-4 ] == ProduceRequest ==&gt;  append  |
+   |                          |                   to log   |
+   |                          | &lt;====== ack ======         |
+   |                          |                            |
+poll(0) -&gt; serve ready callbacks; never waits              |
+flush() -&gt; serve callbacks until the queue drains          |</pre></div>
+
+        <div class="annlist">
+          <div class="ann accent">
+            <b>Not one by one</b>
+            <span>Only ProduceRequests carrying record batches cross the network.
+              A quiet partition may ship a one-record batch — it is still a batch.</span>
+          </div>
+          <div class="ann">
+            <b>librdkafka 2.15 defaults — our demos do not tune them</b>
+            <span><code class="inline">linger.ms=5</code>, <code class="inline">batch.size=1,000,000</code> bytes,
+              <code class="inline">batch.num.messages=10,000</code>. Whichever limit hits first closes the batch.
+              (The Java client differs: 16 KB default <code class="inline">batch.size</code>, no count trigger.)</span>
+          </div>
+          <div class="ann">
+            <b><code class="inline">poll(0)</code> vs <code class="inline">flush()</code>, precisely</b>
+            <span><code class="inline">poll(0)</code> runs callbacks that are already ready and never waits for
+              acknowledgements. <code class="inline">flush()</code> keeps serving callbacks until every queued and
+              in-flight message completes or the timeout expires.</span>
+          </div>
+          <div class="ann red">
+            <b>Three “batch sizes” — do not mix them</b>
+            <span>① Client config <code class="inline">batch.size</code> above: defaults, untouched in this course.
+              ② Assignment 1’s <code class="inline">--batch-size 500</code>: an application-level measurement group —
+              async flushes at each group boundary, sync-style flushes every message. It is not Kafka
+              <code class="inline">batch.size</code>.
+              ③ Demo 02 exposes no batch flag at all — batching happens silently inside the client.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="caption highlight">
+        <strong>Direct rule:</strong> batching is why the real run three slides back shows 1,893.55 vs 22.53 messages/sec.
+        Async lets the client fill batches while your loop continues; flushing after every message forces one full
+        network round trip per record.
+      </p>
+    </div>
+    <div class="pager">21 / 21</div>
   </section>
 
 

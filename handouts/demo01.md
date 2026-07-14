@@ -223,7 +223,7 @@ The sequence is:
 | Demo 02B async producer | Confluent topic `msds682.demo01.trip-events.v1` | Write trip events asynchronously |
 | Demo 02C async vs sync-style comparison | Confluent topic `msds682.demo01.trip-events.v1` | Compare producer wait patterns |
 | Demo 02D serialization producer | Confluent topic `msds682.demo01.trip-events.v1` | Serialize trip events before sending |
-| Demo 03 consumer offsets | Local topic named `msds682.demo01.trip-events.v1` | Replay trip events from offsets |
+| Demo 03A–03D consumers | Confluent topic `msds682.demo01.trip-events.v1` | Read, commit, replay, rebalance, and consume trip events with asyncio |
 
 Example message values used by producer/consumer demos look like:
 

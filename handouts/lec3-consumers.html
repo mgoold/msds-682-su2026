@@ -1,0 +1,2346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MSDS 682 Summer 2026 Lecture 3 HTML slides: Kafka consumers, offsets, groups, commits, replay, and native asyncio on Confluent Cloud.">
+  <title>MSDS 682 · Lecture 3 · Kafka Consumers</title>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #6f7480;
+      --line: #e4e5e1;
+      --accent: #3565f2;
+      --accent-soft: #eef1fe;
+      --green: #0e7f66;
+      --green-soft: #e7f3f0;
+      --amber: #a26706;
+      --amber-soft: #fff4dc;
+      --red: #d83b42;
+      --red-soft: #fdf0ef;
+      --log-a: #252a35;
+      --log-b: #171b24;
+      --panel: #ffffff;
+      --code-bg: #fafafa;
+      --code-line: #e9eae7;
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+      --shadow: 0 8px 28px rgba(22, 24, 29, .045);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    body { overflow-x: hidden; }
+
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      place-items: center;
+      padding: 3vh 3vw;
+      position: relative;
+    }
+
+    .frame {
+      width: min(1360px, 92vw);
+    }
+
+    .frame.narrow { width: min(1160px, 88vw); }
+
+    .kicker {
+      margin: 0 0 9px;
+      color: var(--muted);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 700;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    .kicker b { color: var(--accent); }
+
+    h1 {
+      margin: 0 0 7px;
+      font-size: clamp(32px, 2.4vw, 47px);
+      font-weight: 740;
+      letter-spacing: -.024em;
+      line-height: 1.08;
+    }
+
+    .hero h1 {
+      max-width: 1050px;
+      font-size: clamp(52px, 4.25vw, 82px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 1.45vw, 28px);
+      line-height: 1.18;
+    }
+
+    h3 {
+      margin: 0 0 7px;
+      font-size: clamp(16px, 1.12vw, 22px);
+      line-height: 1.25;
+    }
+
+    p, li, td, th {
+      font-size: clamp(16px, 1.05vw, 21px);
+      line-height: 1.48;
+    }
+
+    .subtitle {
+      margin: 0 0 2.5vh;
+      color: var(--muted);
+      font-size: clamp(17px, 1.25vw, 24px);
+      line-height: 1.45;
+    }
+
+    .subtitle strong { color: var(--ink); }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: clamp(18px, 1.8vw, 30px);
+      box-shadow: var(--shadow);
+    }
+
+    .card.flat { box-shadow: none; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(16px, 1.7vw, 28px);
+      align-items: stretch;
+    }
+
+    .grid2.wide-left { grid-template-columns: 1.45fr .85fr; }
+    .grid2.wide-right { grid-template-columns: .85fr 1.45fr; }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(14px, 1.45vw, 24px);
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(12px, 1.25vw, 20px);
+    }
+
+    .stack { display: grid; gap: clamp(12px, 1.4vh, 18px); }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .bodycopy {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .bodycopy strong { color: var(--ink); }
+
+    .compact-list {
+      margin: 10px 0 0;
+      padding-left: 1.15em;
+    }
+
+    .compact-list li { margin: 0 0 7px; color: var(--muted); }
+    .compact-list li:last-child { margin-bottom: 0; }
+    .compact-list strong { color: var(--ink); }
+
+    .callout {
+      margin-top: clamp(14px, 1.7vh, 22px);
+      border: 1px solid #d6ddfb;
+      border-radius: 11px;
+      background: var(--accent-soft);
+      padding: 13px 18px;
+      color: #2b3a67;
+      font-size: clamp(15px, .98vw, 19px);
+      line-height: 1.46;
+    }
+
+    .callout strong { color: var(--ink); }
+    .callout.green { background: var(--green-soft); border-color: #c6e3dc; color: #185c4d; }
+    .callout.amber { background: var(--amber-soft); border-color: #f0dca9; color: #714b0b; }
+    .callout.red { background: var(--red-soft); border-color: #f0c9c7; color: #8f292e; }
+
+    .caption {
+      margin: 2vh auto 0;
+      max-width: 1120px;
+      color: var(--muted);
+      text-align: center;
+      font-size: clamp(14px, .95vw, 18px);
+      line-height: 1.5;
+    }
+
+    .caption strong { color: var(--ink); }
+
+    /* Generated tooltip targets are synchronized from the professor-only
+       LECTURE3_HOVER_GLOSSARY.yaml authoring registry. */
+    .fx-term {
+      position: relative;
+      border-radius: 3px;
+      color: inherit;
+      cursor: help;
+      text-decoration-line: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: currentColor;
+      text-decoration-thickness: 1px;
+      text-underline-offset: .18em;
+    }
+
+    .fx-term::after {
+      content: attr(data-def);
+      position: absolute;
+      z-index: 50;
+      left: 50%;
+      bottom: calc(100% + 9px);
+      width: max-content;
+      max-width: min(46ch, 70vw);
+      transform: translateX(-50%);
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 8px;
+      background: #111722;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+      color: #f7f8fb;
+      padding: 8px 10px;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      font-size: clamp(12px, .76vw, 15px);
+      font-style: normal;
+      font-weight: 520;
+      letter-spacing: normal;
+      line-height: 1.35;
+      text-align: left;
+      text-transform: none;
+      white-space: normal;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .fx-term:hover::after,
+    .fx-term:focus::after {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .fx-term[data-tooltip-align="left"]::after {
+      left: 0;
+      transform: none;
+    }
+
+    .fx-term[data-tooltip-align="right"]::after {
+      right: 0;
+      left: auto;
+      transform: none;
+    }
+
+    .fx-term:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .fx-definitions {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .pager {
+      position: absolute;
+      right: 3vw;
+      bottom: 16px;
+      color: #a3a7af;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .12em;
+    }
+
+    .nav-hint {
+      position: fixed;
+      z-index: 10;
+      left: 18px;
+      bottom: 14px;
+      color: rgba(111, 116, 128, .78);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .04em;
+      pointer-events: none;
+    }
+
+    code, .mono { font-family: var(--mono); }
+
+    code.inline {
+      border-radius: 5px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 2px 7px;
+      font-size: .88em;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 6px 12px;
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .pill.green { background: var(--green-soft); color: var(--green); }
+    .pill.amber { background: var(--amber-soft); color: var(--amber); }
+    .pill.red { background: var(--red-soft); color: var(--red); }
+
+    .codecard {
+      overflow-x: auto;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #1f2430, #171b24);
+      padding: clamp(16px, 1.6vw, 25px);
+      box-shadow: 0 9px 26px rgba(22, 24, 29, .08);
+    }
+
+    .codecard pre {
+      margin: 0;
+      color: #ccd3de;
+      font-family: var(--mono);
+      font-size: clamp(13px, .88vw, 17px);
+      line-height: 1.62;
+      white-space: pre;
+    }
+
+    .codecard.tight pre { font-size: clamp(12px, .8vw, 15.5px); line-height: 1.5; }
+    .codecard .kw { color: #8fb0f7; }
+    .codecard .fn { color: #f7f8fa; font-weight: 700; }
+    .codecard .str { color: #8fd3b6; }
+    .codecard .cm { color: #737c8b; }
+    .codecard .num { color: #e2b878; }
+    .codecard .hi { color: #ff9a9d; font-weight: 700; }
+
+    .command {
+      border: 1px solid var(--code-line);
+      border-radius: 9px;
+      background: var(--code-bg);
+      padding: 10px 13px;
+      color: #3e4652;
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 16px);
+      line-height: 1.48;
+      overflow-wrap: anywhere;
+    }
+
+    .command strong { color: var(--accent); }
+
+    .flowline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: clamp(8px, .7vw, 12px);
+      margin: clamp(14px, 1.8vh, 22px) 0;
+    }
+
+    .flow-node {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 10px 14px;
+      color: #3c4350;
+      font-family: var(--mono);
+      font-size: clamp(12px, .86vw, 16.5px);
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(22, 24, 29, .035);
+    }
+
+    .flow-node.accent { border-color: #bfcdf8; background: #f5f8ff; color: var(--accent); }
+    .flow-node.green { border-color: #bddfd7; background: #f2faf8; color: var(--green); }
+    .flow-node.red { border-color: #efc5c3; background: #fff7f6; color: var(--red); }
+    .arrow { color: #a8acb4; font-size: clamp(18px, 1.4vw, 26px); }
+
+    .topic-log {
+      border-radius: 15px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: clamp(14px, 1.4vw, 22px);
+    }
+
+    .partition {
+      display: grid;
+      grid-template-columns: 86px repeat(7, 1fr);
+      gap: 7px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .partition:last-child { margin-bottom: 0; }
+
+    .partition-label {
+      color: #aeb6c4;
+      font-family: var(--mono);
+      font-size: clamp(11px, .78vw, 14px);
+      font-weight: 700;
+    }
+
+    .record {
+      min-height: 48px;
+      border-radius: 8px;
+      background: #f5f6f8;
+      display: grid;
+      place-items: center;
+      color: #424a57;
+      font-family: var(--mono);
+      font-size: clamp(11px, .76vw, 14px);
+      font-weight: 700;
+      position: relative;
+    }
+
+    .record.dim { opacity: .38; }
+    .record.processed { background: #dff3ed; color: var(--green); }
+    .record.current { box-shadow: inset 0 0 0 3px var(--accent); color: var(--accent); }
+    .record.replay { box-shadow: inset 0 0 0 3px var(--red); color: var(--red); }
+
+    .record small {
+      position: absolute;
+      top: 3px;
+      left: 5px;
+      color: #a0a5ae;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .owner-row {
+      display: grid;
+      grid-template-columns: 145px 1fr 145px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .owner-row:last-child { margin-bottom: 0; }
+
+    .member {
+      border: 1px solid #ccd5f5;
+      border-radius: 9px;
+      background: #f4f7ff;
+      padding: 9px 11px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(12px, .8vw, 15px);
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .member.idle { border-color: #e0e1de; background: #f7f7f5; color: #a0a4ac; }
+
+    .mini-partitions {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .mini-partitions span {
+      flex: 1;
+      border-radius: 7px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: 9px 6px;
+      color: #f4f5f8;
+      font-family: var(--mono);
+      font-size: clamp(11px, .78vw, 14px);
+      text-align: center;
+    }
+
+    .state-key {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .state-key div {
+      border-radius: 9px;
+      background: var(--code-bg);
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: clamp(14px, .92vw, 18px);
+    }
+
+    .state-key b { display: block; color: var(--ink); margin-bottom: 3px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border-radius: 13px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: clamp(9px, .85vw, 14px) clamp(10px, 1vw, 16px);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f0f1ee;
+      color: #555c67;
+      font-size: clamp(12px, .82vw, 15px);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    td { color: var(--muted); }
+    td strong { color: var(--ink); }
+    td code { color: var(--accent); font-size: .88em; }
+
+    .decision {
+      display: grid;
+      grid-template-columns: 1fr 70px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .decision-question {
+      border: 2px solid #cbd5f7;
+      border-radius: 16px;
+      background: #f7f9ff;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .decision-question b {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(17px, 1.2vw, 23px);
+    }
+
+    .decision-branches { display: grid; gap: 10px; }
+
+    .branch {
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--green);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 12px 15px;
+    }
+
+    .branch.no { border-left-color: var(--amber); }
+    .branch strong { display: block; margin-bottom: 2px; }
+    .branch span { color: var(--muted); font-size: clamp(14px, .92vw, 18px); }
+
+    .commit-card {
+      border-top: 5px solid var(--accent);
+      height: 100%;
+    }
+
+    .commit-card.green { border-top-color: var(--green); }
+    .commit-card.amber { border-top-color: var(--amber); }
+
+    .commit-card ul {
+      margin: 11px 0 0;
+      padding-left: 1.1em;
+    }
+
+    .commit-card li { margin-bottom: 7px; color: var(--muted); }
+
+    .step-list {
+      display: grid;
+      gap: 10px;
+      counter-reset: steps;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 11px;
+      align-items: start;
+      counter-increment: steps;
+    }
+
+    .step::before {
+      content: counter(steps);
+      width: 31px;
+      height: 31px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .step p { margin: 2px 0 0; color: var(--muted); }
+    .step strong { color: var(--ink); }
+
+    .env-stack {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    .env-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 13px 10px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: clamp(11px, .76vw, 14px);
+      color: #4b5260;
+    }
+
+    .env-box b { display: block; margin-bottom: 4px; color: var(--accent); }
+
+    .demo-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-card::after {
+      content: attr(data-demo);
+      position: absolute;
+      right: -5px;
+      top: -13px;
+      color: rgba(53, 101, 242, .07);
+      font-family: var(--mono);
+      font-size: 76px;
+      font-weight: 800;
+    }
+
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 13px;
+    }
+
+    .evidence {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .evidence h3 { color: var(--accent); font-family: var(--mono); }
+    .evidence p { margin: 0; color: var(--muted); font-size: clamp(14px, .92vw, 18px); }
+
+    .async-lanes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .lane {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    .lane h3 { display: flex; justify-content: space-between; align-items: center; }
+
+    .lane-flow {
+      display: grid;
+      grid-template-columns: 1fr 32px 1fr 32px 1fr;
+      gap: 6px;
+      align-items: center;
+      margin-top: 15px;
+    }
+
+    .lane-step {
+      min-height: 68px;
+      border-radius: 8px;
+      background: var(--code-bg);
+      display: grid;
+      place-items: center;
+      padding: 8px;
+      color: #505866;
+      font-family: var(--mono);
+      font-size: clamp(11px, .74vw, 14px);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .lane-step.green { background: var(--green-soft); color: var(--green); }
+
+    .source-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px 14px;
+      margin-top: 18px;
+    }
+
+    .source-row a {
+      color: var(--accent);
+      font-size: clamp(12px, .82vw, 15px);
+      text-decoration: none;
+    }
+
+    .source-row a:hover { text-decoration: underline; }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 20px;
+    }
+
+    .hero-visual {
+      margin-top: clamp(28px, 4.5vh, 52px);
+      display: grid;
+      grid-template-columns: 1fr 120px 1.1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .hero-box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 19px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-box strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: clamp(16px, 1.1vw, 21px);
+    }
+
+    .hero-box span { color: var(--muted); font-size: clamp(14px, .92vw, 18px); }
+    .hero-arrow { text-align: center; color: var(--accent); font-size: 48px; }
+
+    .final-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .final-q {
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 14px 17px;
+      box-shadow: var(--shadow);
+    }
+
+    .final-q b { display: block; margin-bottom: 3px; }
+    .final-q span { color: var(--muted); font-size: clamp(14px, .94vw, 18px); }
+
+    .qa-lead {
+      border-left: 5px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      background: var(--panel);
+      padding: 17px 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .qa-lead p { margin: 0; color: var(--muted); }
+    .qa-lead strong { color: var(--ink); }
+
+    .qa-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(14px, 1.45vw, 23px);
+      align-items: stretch;
+    }
+
+    .qa-list {
+      margin: 8px 0 0;
+      padding-left: 1.25em;
+    }
+
+    .qa-list li {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: clamp(15px, .96vw, 19px);
+      line-height: 1.42;
+    }
+
+    .qa-list li:last-child { margin-bottom: 0; }
+    .qa-list strong { color: var(--ink); }
+
+    .answer-banner {
+      margin: 10px 0 17px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      padding: 14px 19px;
+      color: #2b3a67;
+      font-size: clamp(17px, 1.12vw, 22px);
+      line-height: 1.4;
+    }
+
+    .answer-banner strong { color: var(--accent); }
+
+    .tool-answer {
+      max-width: 980px;
+      margin: 4vh auto 0;
+      border-top: 5px solid var(--accent);
+      border-radius: 15px;
+      background: var(--panel);
+      padding: clamp(28px, 3vw, 48px);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .tool-answer p {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(24px, 1.75vw, 34px);
+      line-height: 1.42;
+    }
+
+    .ai-role-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(12px, 1.2vw, 19px);
+    }
+
+    .ai-role-grid .card { padding: clamp(16px, 1.45vw, 23px); }
+    .ai-role-grid .bodycopy { font-size: clamp(14px, .9vw, 18px); }
+
+    .choice-table td:first-child {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .choice-table td:nth-child(2) { background: #f5f8ff; }
+    .choice-table tr:last-child td:nth-child(2) { color: var(--accent); font-weight: 750; }
+
+    .course-overview {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: clamp(17px, 1.8vw, 29px);
+      align-items: stretch;
+    }
+
+    .roadmap-phases {
+      display: grid;
+      gap: 10px;
+    }
+
+    .roadmap-phase {
+      border-left: 5px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      background: var(--panel);
+      padding: 12px 15px;
+      box-shadow: var(--shadow);
+    }
+
+    .roadmap-phase.green { border-left-color: var(--green); }
+    .roadmap-phase.amber { border-left-color: var(--amber); }
+    .roadmap-phase h3 { margin-bottom: 4px; }
+    .roadmap-phase p { margin: 0; color: var(--muted); font-size: clamp(13px, .84vw, 16.5px); line-height: 1.4; }
+
+    .schema-map {
+      display: grid;
+      grid-template-columns: 1fr 88px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .schema-app {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .schema-app h3 { color: var(--accent); text-align: center; }
+    .schema-app.consumer h3 { color: var(--green); }
+
+    .schema-step {
+      border-radius: 8px;
+      background: var(--code-bg);
+      padding: 8px 9px;
+      color: #4c5461;
+      font-family: var(--mono);
+      font-size: clamp(11px, .72vw, 13.5px);
+      font-weight: 700;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .schema-down { color: #9ca2ad; text-align: center; font-size: 19px; line-height: 1.05; }
+
+    .schema-kafka {
+      border-radius: 13px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: 19px 7px;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: clamp(12px, .78vw, 15px);
+      font-weight: 750;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    @media (max-width: 950px) {
+      section.slide { padding: 38px 24px 50px; }
+      .frame, .frame.narrow { width: 94vw; }
+      .grid4, .grid3, .evidence-grid, .env-stack { grid-template-columns: 1fr 1fr; }
+      .grid2, .grid2.wide-left, .grid2.wide-right, .async-lanes, .hero-visual, .qa-two-col, .course-overview { grid-template-columns: 1fr; }
+      .hero-arrow { transform: rotate(90deg); }
+      .decision { grid-template-columns: 1fr; }
+      .decision > .arrow { transform: rotate(90deg); text-align: center; }
+      .partition { grid-template-columns: 68px repeat(7, minmax(44px, 1fr)); }
+    }
+
+    @media print {
+      html { scroll-snap-type: none; }
+      section.slide { min-height: 100vh; break-after: page; }
+      .nav-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav-hint">↓ / PageDown / Space · ↑ / PageUp · Home / End</div>
+
+  <section class="slide hero" id="s01">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Summer 2026 · <b>Lecture 3</b></p>
+      <h1>Consumers turn logs<br>into progress</h1>
+      <p class="subtitle">Offsets, groups, commits, replay, and native asyncio on Confluent Cloud.</p>
+
+      <div class="hero-meta">
+        <span class="pill">Python 3.11.14</span>
+        <span class="pill green">confluent-kafka 2.15.0</span>
+        <span class="pill amber">July 13, 2026</span>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-box">
+          <strong>Kafka retains the record</strong>
+          <span><code class="inline">topic + partition + offset</code> is its address.</span>
+        </div>
+        <div class="hero-arrow">→</div>
+        <div class="hero-box">
+          <strong>A consumer group owns progress</strong>
+          <span>The committed offset says where that application resumes.</span>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-02-recap">
+    <div class="frame narrow">
+      <p class="kicker">Recap · Lecture 2</p>
+      <h1>Kafka topics, partitions, and producers</h1>
+      <p class="subtitle">Reconnect the producer side before we begin the consumer side.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Kafka</p>
+          <h2>Topics and partitions</h2>
+          <ul class="compact-list">
+            <li>Topics organize related event streams.</li>
+            <li>Partitions provide ordered logs and parallelism.</li>
+            <li>Producers can use synchronous-style or asynchronous delivery patterns.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Lecture 2 materials</p>
+          <h2>Review the producer path</h2>
+          <ul class="compact-list">
+            <li><a href="https://docs.google.com/presentation/d/1Z4BnBibYTy6Hwgvfc7IwidpbhqgmyrwSMtXLS--4eBw/edit?slide=id.g3f44cdb5d93_0_0#slide=id.g3f44cdb5d93_0_0" target="_blank" rel="noreferrer">Lecture 2 slides ↗</a></li>
+            <li><a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo01" target="_blank" rel="noreferrer">Demo 01: create the topic ↗</a></li>
+            <li><a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo02" target="_blank" rel="noreferrer">Demo 02: produce events ↗</a></li>
+            <li><a href="https://wgu9.github.io/msds-682-su2026/handouts/lec2-topic-vs-table.html" target="_blank" rel="noreferrer">Additional material: topics, partitions, and tables ↗</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-03-assignment">
+    <div class="frame narrow">
+      <p class="kicker">Course operation</p>
+      <h1>Assignment #1 is out</h1>
+      <p class="subtitle">Use the published assignment contract and submit the completed homework in Canvas.</p>
+
+      <div class="qa-two-col">
+        <div class="card">
+          <p class="eyebrow">Due date</p>
+          <h2>Tuesday, July 21, 2026</h2>
+          <p class="bodycopy"><strong>11:59 PM PDT</strong></p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Submission</p>
+          <h2>Canvas</h2>
+          <p class="bodycopy">Submit the required ZIP after completing the published checklist.</p>
+        </div>
+      </div>
+
+      <div class="source-row">
+        <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/assignment01" target="_blank" rel="noreferrer">Open Assignment #1 ↗</a>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-04-ai-skills">
+    <div class="frame">
+      <p class="kicker">Selected Q/A on AI Engineering and AI Tools</p>
+      <h1>Q1. Do we need “Skills” in Codex or Claude Code?</h1>
+      <p class="subtitle">Thanks to everyone who asked questions related to our course.</p>
+
+      <div class="answer-banner"><strong>Short answer:</strong> not on day one; <strong>yes once you repeat yourself.</strong></div>
+
+      <div class="qa-two-col">
+        <div class="card">
+          <p class="eyebrow">Start with project context</p>
+          <p class="bodycopy">A skill is packaged guidance that an agent loads on demand. The highest-leverage first step is a useful <code class="inline">CLAUDE.md</code> or <code class="inline">AGENTS.md</code> explaining how the repository is built, tested, and structured.</p>
+          <div class="callout"><strong>Rule of thumb:</strong> the third time you paste the same instructions into a session, turn them into a skill.</div>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Choose what deserves reuse</p>
+          <ul class="qa-list">
+            <li><strong>Good candidates:</strong> stable, repeatable workflows.</li>
+            <li><strong>Bad candidates:</strong> one-off tasks; an unused skill becomes maintenance debt.</li>
+            <li><strong>For SOTA models:</strong> post-training has commoditized much of the “how.” Procedure-only skills can regress as models improve; skills that declare intent and facts appreciate.</li>
+            <li><strong>Evaluate the skill:</strong> evidence is how you distinguish the two.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>What remains yours:</strong> private context, contracts, constraints, and the judgment to verify the result.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-05-ai-subagents">
+    <div class="frame">
+      <p class="kicker">Q/A on AI Engineering and AI Tools</p>
+      <h1>Q2. How should we manage subagents?</h1>
+      <div class="answer-banner"><strong>Rule of thumb:</strong> use isolated worktrees when multiple agents write to the same repository. Avoid conflicts.</div>
+
+      <p class="subtitle">Treat a subagent like an intern with no memory of your conversation: it starts cold, so the brief determines the result.</p>
+
+      <div class="qa-two-col">
+        <div class="card">
+          <p class="eyebrow">1–2 · Delegate deliberately</p>
+          <ul class="qa-list">
+            <li><strong>Define a deliverable.</strong> “Find every hardcoded topic name and report file:line” works; “help with the refactor” does not.</li>
+            <li><strong>Use fan-out selectively.</strong> Parallel searches, noisy test runs, and fresh review passes benefit; homework-scale work usually benefits more from one agent with strong context.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">3–4 · Control and verify</p>
+          <ul class="qa-list">
+            <li><strong>Keep write access visible.</strong> Let the main agent own writes; make research subagents read-only when possible.</li>
+            <li><strong>Verify before acting.</strong> A subagent summary is a claim, not a fact—the same evidence discipline required by <code class="inline">AI_USAGE.md</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout"><strong>Q3. Other coding tools?</strong> Try VS Code, OpenCode, and similar tools. Choose the one that works well with your workflow.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-06-ai-tools">
+    <div class="frame narrow">
+      <p class="kicker">Q/A on AI Engineering and AI Tools</p>
+      <h1>Q3. What other coding tools should we try?</h1>
+
+      <div class="tool-answer">
+        <p>Try <strong>VS Code</strong>, <strong>OpenCode</strong>, and other tools.<br>Find the one that works well with <strong>your workflow</strong>.</p>
+      </div>
+
+      <p class="caption">The tool is a choice; understanding, verification, and control remain your responsibility.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-07-ai-kafka">
+    <div class="frame">
+      <p class="kicker">Q/A on AI Engineering and AI Tools</p>
+      <h1>Q4. What is Kafka’s role in AI engineering?</h1>
+      <p class="subtitle">Many production AI systems are fed by streams: events, documents, predictions, features, traces, and evaluations.</p>
+
+      <div class="ai-role-grid">
+        <div class="card">
+          <p class="eyebrow">RAG</p>
+          <h2>RAG indexes need freshness</h2>
+          <p class="bodycopy">Continuously ship new documents and events into indexing pipelines.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Monitoring</p>
+          <h2>Model monitoring</h2>
+          <p class="bodycopy">Stream prediction logs for quality, latency, and drift analysis.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Features</p>
+          <h2>Feature stores for online inference</h2>
+          <p class="bodycopy">Build feature-update paths on streaming pipelines.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Agents</p>
+          <h2>Agent systems emit streams</h2>
+          <p class="bodycopy">Capture tool calls, traces, and evaluation results for analysis.</p>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>Kafka is a common durable backbone for this work.</strong> AI engineering interviews and jobs test throughput versus latency, batching, backpressure, delivery guarantees, schema contracts, and idempotency.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-08-uv-poetry">
+    <div class="frame narrow">
+      <p class="kicker">Q/A on AI Engineering and AI Tools</p>
+      <h1>Q5. Poetry or uv for homework?</h1>
+      <p class="subtitle">This question also came from the 2023 cohort. For this course, <strong>uv is the better default for student homework.</strong></p>
+
+      <table class="choice-table">
+        <thead><tr><th>Area</th><th>uv</th><th>Poetry</th></tr></thead>
+        <tbody>
+          <tr><td>Setup</td><td>Simpler</td><td>More concepts</td></tr>
+          <tr><td>Speed</td><td>Much faster</td><td>Slower</td></tr>
+          <tr><td>Python installation</td><td>Built in</td><td>Usually external</td></tr>
+          <tr><td>Virtual environments</td><td>Built in</td><td>Built in</td></tr>
+          <tr><td>Lockfile</td><td><code>uv.lock</code></td><td><code>poetry.lock</code></td></tr>
+          <tr><td>Packaging libraries</td><td>Good</td><td>More mature</td></tr>
+          <tr><td>Student homework</td><td>Better choice</td><td>Usually unnecessary</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pptx-09-course-overview">
+    <div class="frame">
+      <p class="kicker">Course roadmap</p>
+      <h1>Overview of Lectures 2–5</h1>
+      <p class="subtitle">Move from Python Kafka functions to shared, versioned data contracts.</p>
+
+      <div class="course-overview">
+        <div class="roadmap-phases">
+          <div class="roadmap-phase">
+            <h3>Lectures 2–3 · Kafka with Python</h3>
+            <p>Implement producers and consumers. Initial values may be free-form JSON or strings.</p>
+          </div>
+          <div class="roadmap-phase green">
+            <h3>Lecture 4 · Define data with Avro</h3>
+            <p><strong>Problem:</strong> how do applications share and coordinate a schema? <strong>Solution:</strong> Schema Registry, with a REST interface for storing and retrieving schemas by ID.</p>
+          </div>
+          <div class="roadmap-phase amber">
+            <h3>Lecture 5 · Deep dive into Schema Registry</h3>
+            <p>Produce Avro, store or fetch schemas, and use the registry to deserialize consumer data. Schema Registry integrates with Kafka and Kafka Connect.</p>
+          </div>
+        </div>
+
+        <div class="schema-map">
+          <div class="schema-app">
+            <h3>Producer application</h3>
+            <div class="schema-step">Basic Kafka Producer</div>
+            <div class="schema-down">↓</div>
+            <div class="schema-step">Serialize with Avro</div>
+            <div class="schema-down">↓</div>
+            <div class="schema-step">Fetch / store schema<br>Schema Registry</div>
+          </div>
+          <div class="schema-kafka">Kafka<br>Cluster<br>↔<br>Schema<br>Registry</div>
+          <div class="schema-app consumer">
+            <h3>Consumer application</h3>
+            <div class="schema-step">Basic Kafka Consumer</div>
+            <div class="schema-down">↓</div>
+            <div class="schema-step">Fetch schema<br>Schema Registry</div>
+            <div class="schema-down">↓</div>
+            <div class="schema-step">Deserialize with Avro</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-concurrency-vocabulary">
+    <div class="frame">
+      <p class="kicker">Restored and updated · concurrency vocabulary</p>
+      <h1>Async, concurrent, and parallel are not synonyms</h1>
+      <p class="subtitle">Use the word that describes the behavior you actually mean.</p>
+
+      <table>
+        <thead><tr><th>Term</th><th>What it describes</th><th>Concrete example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Synchronous</strong></td><td>The caller waits for the operation to finish.</td><td>Call <code>flush()</code> and wait for the producer queue to drain.</td></tr>
+          <tr><td><strong>Asynchronous</strong></td><td>The operation starts now; completion is observed later.</td><td><code>produce()</code> enqueues, then delivery is reported through a callback or future.</td></tr>
+          <tr><td><strong>Sequential</strong></td><td>Steps run in a required order.</td><td>Decode → validate → process → commit.</td></tr>
+          <tr><td><strong>Concurrent</strong></td><td>Tasks overlap in time and may interleave.</td><td>Kafka and async HTTP work share one event loop.</td></tr>
+          <tr><td><strong>Parallel</strong></td><td>Work executes at the same instant on multiple execution resources.</td><td>Independent partitions can be processed in parallel by separate consumer instances with separate execution resources.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid2" style="margin-top: 16px;">
+        <div class="callout" style="margin-top: 0;"><strong><code class="inline">asyncio</code>:</strong> best for cooperative, nonblocking I/O when the application already owns an event loop.</div>
+        <div class="callout amber" style="margin-top: 0;"><strong>Threads:</strong> useful for blocking I/O and native code that releases the GIL; pure-Python CPU work usually needs processes, vectorized/native code, or another execution strategy.</div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-tool-layers">
+    <div class="frame">
+      <p class="kicker">Restored and updated · environment management</p>
+      <h1>Different tools manage different layers</h1>
+      <p class="subtitle">The 2026 course path is intentionally small: <strong>uv + .venv + requirements.txt</strong>.</p>
+
+      <div class="grid4">
+        <div class="card">
+          <p class="eyebrow">Python version</p>
+          <h2>uv</h2>
+          <p class="bodycopy"><code class="inline">uv python install 3.11.14</code> installs the required interpreter. <strong>asdf</strong> remains an optional multi-language version manager.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Project isolation</p>
+          <h2>venv</h2>
+          <p class="bodycopy"><code class="inline">.venv</code> gives this project its own interpreter path and installed packages.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Dependencies</p>
+          <h2>uv pip / pip</h2>
+          <p class="bodycopy">Install the versions declared by the course <code class="inline">requirements.txt</code>; do not infer them from an old environment.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Project workflow</p>
+          <h2>Poetry</h2>
+          <p class="bodycopy">A valid packaging workflow, but optional here. Do not mix Poetry and the course’s uv/requirements workflow in one homework repository.</p>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>Other layers:</strong> Homebrew installs system tools on macOS; Docker packages an application runtime; Conda is a separate environment ecosystem. None replaces the published Python dependency contract.</div>
+      <div class="source-row"><a href="requirements.txt" target="_blank" rel="noreferrer">Summer 2026 requirements SSOT ↗</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-environment-isolation">
+    <div class="frame">
+      <p class="kicker">Restored and updated · version isolation</p>
+      <h1>One machine can host many isolated projects</h1>
+      <p class="subtitle">Isolation is the enduring idea; the old Python 3.10 and confluent-kafka 2.2 examples are not the course baseline.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">MSDS 682 · course project</p>
+          <h2>Python 3.11.14 · <code class="inline">.venv</code></h2>
+          <div class="command">confluent-kafka[avro,schemaregistry]==2.15.0</div>
+          <div class="command">pydantic==2.13.4</div>
+          <div class="command">python-dotenv==1.2.2</div>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Another project</p>
+          <h2>Its own Python · its own <code class="inline">.venv</code></h2>
+          <div class="command">different-package==different-version</div>
+          <div class="command">independent lock or requirements file</div>
+          <div class="command">no package leakage into MSDS 682</div>
+        </div>
+      </div>
+
+      <div class="flowline">
+        <div class="flow-node">uv python install 3.11.14</div><div class="arrow">→</div>
+        <div class="flow-node accent">uv venv --python 3.11.14 .venv</div><div class="arrow">→</div>
+        <div class="flow-node green">uv pip install -r requirements.txt</div>
+      </div>
+
+      <div class="callout"><strong>Verification:</strong> activate the environment, then run <code class="inline">python -c "import confluent_kafka; print(confluent_kafka.__version__)"</code>. Expected: <strong>2.15.0</strong>.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s02">
+    <div class="frame">
+      <p class="kicker">Lecture outcome</p>
+      <h1>By the end, predict the next record</h1>
+      <p class="subtitle">The goal is not to memorize methods. It is to explain what Kafka will do before you run the code.</p>
+
+      <div class="grid4">
+        <div class="card">
+          <p class="eyebrow">Address</p>
+          <h2>Trace one record</h2>
+          <p class="bodycopy">Read its topic, partition, offset, key, timestamp, and validated value.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Start</p>
+          <h2>Predict the position</h2>
+          <p class="bodycopy">Decide whether a group resumes, waits for new data, or replays retained history.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Scale</p>
+          <h2>Explain assignment</h2>
+          <p class="bodycopy">Show how partitions move across group members during joins, leaves, and rebalances.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Proof</p>
+          <h2>Run Demo 03A–03D</h2>
+          <p class="bodycopy">Use bounded real-Cloud runs and secret-free JSON evidence.</p>
+        </div>
+      </div>
+
+      <div class="callout"><strong>Core question:</strong> who owns the next offset—and when is it safe to advance it?</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s03">
+    <div class="frame">
+      <p class="kicker">Lecture 2 → Lecture 3</p>
+      <h1>Lecture 2 wrote the log; Lecture 3 reads it</h1>
+      <p class="subtitle">One topic and one <code class="inline">TripEvent</code> contract connect the two lectures.</p>
+
+      <div class="flowline">
+        <div class="flow-node">Python object</div><div class="arrow">→</div>
+        <div class="flow-node accent">Pydantic validation</div><div class="arrow">→</div>
+        <div class="flow-node">UTF-8 JSON bytes</div><div class="arrow">→</div>
+        <div class="flow-node green">Kafka topic</div><div class="arrow">→</div>
+        <div class="flow-node accent">Consumer decode</div><div class="arrow">→</div>
+        <div class="flow-node">Application work</div>
+      </div>
+
+      <div class="grid3">
+        <div class="card flat">
+          <p class="eyebrow">Demo 01</p>
+          <h2>Create the container</h2>
+          <p class="bodycopy">Creates the three-partition topic. It does not produce records.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Demo 02</p>
+          <h2>Write validated bytes</h2>
+          <p class="bodycopy">Producer key/value bytes land in <code class="inline">msds682.demo01.trip-events.v1</code>.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Demo 03</p>
+          <h2>Read and own progress</h2>
+          <p class="bodycopy">Consumers decode the same bytes and track progress independently by group.</p>
+        </div>
+      </div>
+
+      <p class="caption"><strong>SSOT:</strong> <code class="inline">demo02_producer_common.py</code> owns the topic, event schema, serialization, and connection settings.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s04">
+    <div class="frame narrow">
+      <p class="kicker">Course operation</p>
+      <h1>Assignment 1: extended to July 21</h1>
+      <p class="subtitle">The assignment remains producer-focused; Lecture 3 does not change its submission contract.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Deadline</p>
+          <h2>Tuesday, July 21 · 11:59 PM PDT</h2>
+          <ul class="compact-list">
+            <li><strong>20 base points</strong> + up to 3 extra-credit points.</li>
+            <li>Required evidence must come from <strong>real Confluent Cloud Kafka</strong>.</li>
+            <li>Upload one completed ZIP to Canvas.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Before upload</p>
+          <h2>Use the published contract</h2>
+          <ul class="compact-list">
+            <li>Start from <strong>assignment01-starter.zip</strong>.</li>
+            <li>Never include <code class="inline">.env</code> or credentials.</li>
+            <li>Declare AI assistance Yes/No; include <code class="inline">AI_USAGE.md</code> when Yes.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="source-row">
+        <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/assignment01" target="_blank" rel="noreferrer">Open the Assignment 1 contract ↗</a>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s05">
+    <div class="frame narrow">
+      <p class="kicker">Course operation</p>
+      <h1>Where we are: producers done, consumers today</h1>
+      <p class="subtitle">One warm-up question connects the Assignment 1 producer benchmark to today's consumer mental model.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Course position</p>
+          <h2>Producers → consumers → applications</h2>
+          <ul class="compact-list">
+            <li><strong>Lecture 2:</strong> topics and producers — Demo 02A–02D wrote real trip events.</li>
+            <li><strong>Today:</strong> consumers own progress — Demo 03A–03D read them. Assignment 1 due <strong>July 21</strong>.</li>
+            <li><strong>Lecture 4:</strong> FastAPI and data schemas. Assignment 2 due <strong>July 25</strong>.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Warm-up · True or false?</p>
+          <h2>“The producer sends messages one by one to the broker.”</h2>
+          <p class="bodycopy"><strong>False.</strong> <code class="inline"><span class="fx-term" tabindex="0" role="term" data-term-id="produce" data-def="Non-blocking local append to the client buffer; the network send happens later in batches." aria-describedby="fx-def-produce">produce()</span></code> appends to a local buffer;
+            the client ships whole batches across the network. That is why the Assignment 1 async strategy beats
+            flushing after every message.</p>
+        </div>
+      </div>
+
+      <div class="source-row">
+        <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec2-topic-vs-table" target="_blank" rel="noreferrer">Lecture 2 deck — producer batching on the final slide ↗</a>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-producer-configuration">
+    <div class="frame">
+      <p class="kicker">Restored and updated · producer configuration</p>
+      <h1>Know the knobs; keep credentials outside source code</h1>
+      <p class="subtitle">Demo 02 and Assignment 1 use the shared connection loader and intentionally leave production tuning at client defaults.</p>
+
+      <div class="grid2 wide-right">
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Identity</p><p class="bodycopy"><code class="inline">client.id</code> makes logs and broker metrics attributable to one application.</p></div>
+          <div class="card flat"><p class="eyebrow">Reliability</p><p class="bodycopy"><code class="inline">acks</code>, <code class="inline">retries</code>, and <code class="inline">enable.idempotence</code> shape acknowledgement, retry, ordering, and duplicate behavior.</p></div>
+          <div class="card flat"><p class="eyebrow">Efficiency</p><p class="bodycopy"><code class="inline">compression.type</code>, <code class="inline">linger.ms</code>, and batch limits trade latency for throughput.</p></div>
+        </div>
+        <div class="codecard tight"><pre><span class="cm"># Credentials are loaded by the shared course helper.</span>
+config = <span class="fn">require_producer_config</span>()
+
+producer_config = {
+    **config,
+    <span class="str">"client.id"</span>: <span class="str">"msds682-demo02"</span>,
+    <span class="cm"># Optional tuning belongs here only when measured.</span>
+}
+
+<span class="cm"># .env is ignored and never submitted.</span>
+BOOTSTRAP_SERVERS=
+SASL_USERNAME=
+SASL_PASSWORD=</pre></div>
+      </div>
+
+      <div class="callout red"><strong>Never restore the old <code class="inline">config.ini</code> example verbatim.</strong> It contained historical credentials and obsolete tuning values. Use blank environment placeholders plus the shared loader.</div>
+      <div class="source-row"><a href="https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md" target="_blank" rel="noreferrer">librdkafka configuration reference ↗</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-batching-question">
+    <div class="frame narrow">
+      <p class="kicker">Restored · producer batching 1 of 3</p>
+      <h1>True or false: each message crosses the network alone?</h1>
+      <p class="subtitle"><strong>False.</strong> The Python call handles one record; the client transports record batches.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Your Python loop</p>
+          <h2><code class="inline">produce(message)</code></h2>
+          <ul class="compact-list">
+            <li>The application prepares one serialized key/value record.</li>
+            <li>Appends it to a local, partition-specific queue.</li>
+            <li>Usually returns before the broker acknowledges delivery.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">The network request</p>
+          <h2>One ProduceRequest carries batches</h2>
+          <ul class="compact-list">
+            <li>A background librdkafka thread builds a batch per partition.</li>
+            <li>A quiet partition may send a one-record batch—it is still a batch.</li>
+            <li>Compression works on batches, not on isolated Python function calls.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>Why the sync-style benchmark is slow:</strong> calling <code class="inline">flush()</code> after every <code class="inline"><span class="fx-term" tabindex="0" role="term" data-term-id="produce" data-def="Non-blocking local append to the client buffer; the network send happens later in batches." aria-describedby="fx-def-produce">produce()</span></code> prevents useful accumulation and forces the application to wait for each record’s network completion.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-batching-mechanics">
+    <div class="frame">
+      <p class="kicker">Restored · producer batching 2 of 3</p>
+      <h1><span class="fx-term" tabindex="0" role="term" data-term-id="batch-limits" data-def="Limits batch accumulation by delay, bytes, and message count (defaults: 5 ms / 1 MB / 10,000)." aria-describedby="fx-def-batch-limits">Time, bytes, and count</span> bound batch accumulation</h1>
+      <p class="subtitle">librdkafka waits up to 5 ms to accumulate records unless the size or count limit is reached first.</p>
+
+      <div class="grid2 wide-left">
+        <div class="codecard tight"><pre>Your code          Producer library                  Broker
+   |                       |                           |
+produce(1) ------&gt; [ partition buffer: 1       ]      |
+produce(2) ------&gt; [ partition buffer: 1 2     ]      |
+produce(3) ------&gt; [ partition buffer: 1 2 3   ]      |
+   |                       |                           |
+   |  accumulation is bounded by these three values:  |
+   |    time  : linger.ms          = 5 ms             |
+   |    size  : batch.size         = 1,000,000 bytes  |
+   |    count : batch.num.messages = 10,000           |
+   |                       |                           |
+   |       [ batch 1 ] === ProduceRequest ==========&gt; |
+   |                       | &lt;========== ack ========= |
+   |                       |                           |
+poll(0)  serves callbacks that are already ready      |
+<span class="fx-term" tabindex="0" role="term" data-term-id="flush" data-def="Producer-only wait: serves callbacks until every queued and in-flight message completes or times out." aria-describedby="fx-def-flush">flush()</span>  serves callbacks until drained or timeout    |</pre></div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Time</p><p class="bodycopy"><code class="inline">linger.ms=5</code> allows a short accumulation window; more waiting may improve throughput but adds latency.</p></div>
+          <div class="card flat"><p class="eyebrow">Bytes</p><p class="bodycopy"><code class="inline">batch.size=1,000,000</code> limits the MessageSet size, including protocol overhead.</p></div>
+          <div class="card flat"><p class="eyebrow">Count</p><p class="bodycopy"><code class="inline">batch.num.messages=10,000</code> is a librdkafka-specific record-count ceiling.</p></div>
+          <div class="callout amber"><strong>Do not import Java defaults.</strong> The Java producer’s commonly cited 16 KB <code class="inline">batch.size</code> is not this Python client’s default.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-batching-tradeoff">
+    <div class="frame">
+      <p class="kicker">Restored · producer batching 3 of 3</p>
+      <h1>Batching amortizes overhead; waiting can add latency</h1>
+      <p class="subtitle">Fewer requests and better compression reduce overhead; waiting to accumulate records can delay an individual record.</p>
+
+      <table>
+        <thead><tr><th>Layer</th><th>“Batch” means</th><th>Course rule</th></tr></thead>
+        <tbody>
+          <tr><td><strong>librdkafka client</strong></td><td>Per-partition MessageSet bounded by time, bytes, and record count.</td><td>Defaults are internal; our demos expose no tuning flag.</td></tr>
+          <tr><td><strong>Assignment 1 CSV</strong></td><td><code>--batch-size 500</code> is an application-level measurement group.</td><td>Async flushes at each 500-record boundary; sync-style flushes every record.</td></tr>
+          <tr><td><strong>Consumer fetch</strong></td><td>The broker/client may transfer multiple records in one fetch response.</td><td>Demo 03 still processes and validates each returned message explicitly.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid2" style="margin-top: 16px;">
+        <div class="callout green" style="margin-top: 0;"><strong>Throughput:</strong> larger effective batches amortize network, protocol, compression, and broker I/O overhead.</div>
+        <div class="callout amber" style="margin-top: 0;"><strong>Latency:</strong> a record can wait for <code class="inline">linger.ms</code> or another trigger before its batch is sent.</div>
+      </div>
+
+      <div class="source-row">
+        <a href="https://docs.confluent.io/platform/current/clients/librdkafka/html/md_CONFIGURATION.html" target="_blank" rel="noreferrer">Official librdkafka configuration ↗</a>
+        <a href="https://docs.confluent.io/kafka/design/efficient-design.html" target="_blank" rel="noreferrer">Kafka efficiency design ↗</a>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-serialization-contract">
+    <div class="frame">
+      <p class="kicker">Restored and aligned · serialization</p>
+      <h1>The consumer must reverse the producer’s byte contract</h1>
+      <p class="subtitle">Kafka stores bytes. Applications agree on how keys and values become bytes—and how those bytes become validated data again.</p>
+
+      <div class="flowline">
+        <div class="flow-node"><span class="fx-term" tabindex="0" role="term" data-term-id="trip-event" data-def="The course Pydantic contract: validated fields, then serialized to UTF-8 JSON bytes." aria-describedby="fx-def-trip-event">TripEvent</span> object</div><div class="arrow">→</div>
+        <div class="flow-node accent">Pydantic validation</div><div class="arrow">→</div>
+        <div class="flow-node">JSON string</div><div class="arrow">→</div>
+        <div class="flow-node green">UTF-8 bytes</div><div class="arrow">→</div>
+        <div class="flow-node">Kafka record</div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Demo 02 producer</p>
+          <h2>Serialize</h2>
+          <ul class="compact-list">
+            <li><code class="inline">trip_id</code> becomes the UTF-8 key.</li>
+            <li><code class="inline">serialize_event()</code> emits JSON value bytes.</li>
+            <li>One topic carries one documented, compatible event contract.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Demo 03 consumer</p>
+          <h2>Decode and validate</h2>
+          <ul class="compact-list">
+            <li><code class="inline">message_to_record()</code> decodes UTF-8.</li>
+            <li><code class="inline">TripEvent.model_validate_json()</code> rejects invalid values.</li>
+            <li>Lecture 4 replaces implicit JSON coordination with Avro and Schema Registry.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout red"><strong>Commit only after decode, validation, and processing succeed.</strong> A byte payload that cannot satisfy the shared event contract is not completed work.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s06">
+    <div class="frame">
+      <p class="kicker">Consumer mental model</p>
+      <h1>Every record has a <span class="fx-term" tabindex="0" role="term" data-term-id="partition" data-def="An ordered, append-only slice of a topic; ordering and offsets exist only within it." aria-describedby="fx-def-partition">partition</span> address</h1>
+      <p class="subtitle">An <span class="fx-term" tabindex="0" role="term" data-term-id="offset" data-def="A record&#x27;s position inside one partition; there is no topic-wide sequence number." aria-describedby="fx-def-offset">offset</span> is meaningful only inside one partition; there is no topic-wide offset sequence.</p>
+
+      <div class="topic-log" aria-label="Three Kafka partitions with independent offset sequences">
+        <div class="partition">
+          <div class="partition-label">partition 0</div>
+          <div class="record"><small>offset</small>0</div><div class="record">1</div><div class="record">2</div><div class="record current">3</div><div class="record">4</div><div class="record dim">5</div><div class="record dim">6</div>
+        </div>
+        <div class="partition">
+          <div class="partition-label">partition 1</div>
+          <div class="record"><small>offset</small>0</div><div class="record">1</div><div class="record current">2</div><div class="record">3</div><div class="record dim">4</div><div class="record dim">5</div><div class="record dim">6</div>
+        </div>
+        <div class="partition">
+          <div class="partition-label">partition 2</div>
+          <div class="record"><small>offset</small>0</div><div class="record">1</div><div class="record">2</div><div class="record">3</div><div class="record current">4</div><div class="record">5</div><div class="record dim">6</div>
+        </div>
+      </div>
+
+      <div class="grid3" style="margin-top: 18px;">
+        <div class="card flat"><p class="eyebrow">Technical address</p><p class="bodycopy"><code class="inline">(topic, partition, offset)</code></p></div>
+        <div class="card flat"><p class="eyebrow">Ordering</p><p class="bodycopy">Offsets increase within a partition—not across the whole topic.</p></div>
+        <div class="card flat"><p class="eyebrow">Key connection</p><p class="bodycopy">A stable key can keep one entity on the same partition while partition count is unchanged.</p></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s07">
+    <div class="frame">
+      <p class="kicker">Retention</p>
+      <h1>Consumers read; <span class="fx-term" tabindex="0" role="term" data-term-id="retention" data-def="Broker cleanup policy: time/size retention removes old segments; compaction removes superseded keys." aria-describedby="fx-def-retention">retention</span> deletes</h1>
+      <p class="subtitle">Reading a record does not remove it from Kafka. Multiple applications can read the same retained history.</p>
+
+      <div class="grid3">
+        <div class="card">
+          <p class="eyebrow">Consumer</p>
+          <h2>Fetches a copy</h2>
+          <p class="bodycopy">The client receives record bytes and metadata. The topic log remains intact.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Consumer group</p>
+          <h2>Stores progress</h2>
+          <p class="bodycopy">Committed offsets record where one logical application should resume.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Broker policy</p>
+          <h2>Removes old data</h2>
+          <p class="bodycopy">Time/size retention—or compaction policy—controls what Kafka eventually deletes.</p>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>Why AI engineers care:</strong> feature pipelines, monitoring, audit, and RAG-index updates can use separate groups to read the same event stream independently.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s08">
+    <div class="frame">
+      <p class="kicker">Two positions</p>
+      <h1><span class="fx-term" tabindex="0" role="term" data-term-id="position" data-def="The next offset this consumer will return from a partition; local runtime state, not durable group progress." aria-describedby="fx-def-position">Position</span> and <span class="fx-term" tabindex="0" role="term" data-term-id="committed-offset" data-def="The group&#x27;s durable recovery point on the broker: the next offset to read after a restart." aria-describedby="fx-def-committed-offset">committed offset</span> are different</h1>
+      <p class="subtitle">One describes the current process; the other is the group’s durable recovery point.</p>
+
+      <div class="topic-log">
+        <div class="partition">
+          <div class="partition-label">partition 0</div>
+          <div class="record processed">0</div><div class="record processed">1</div><div class="record processed">2</div><div class="record current">3</div><div class="record">4</div><div class="record">5</div><div class="record dim">6</div>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top: 18px;">
+        <div class="card flat">
+          <p class="eyebrow">Committed offset = 3</p>
+          <h2>Recovery starts at offset 3</h2>
+          <p class="bodycopy">Offsets 0–2 are durably acknowledged as complete. Kafka stores the <strong>next</strong> offset to read.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Current position = 6</p>
+          <h2>This process has fetched through 5</h2>
+          <p class="bodycopy">If it crashes now, offsets 3–5 may be delivered again because the durable position is still 3.</p>
+        </div>
+      </div>
+
+      <div class="callout"><strong>Python convenience:</strong> <code class="inline">consumer.commit(message=msg)</code> commits <code class="inline">msg.offset() + 1</code>.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s09">
+    <div class="frame">
+      <p class="kicker">Progress ownership</p>
+      <h1><code class="mono"><span class="fx-term" tabindex="0" role="term" data-term-id="group-id" data-def="Names one logical consuming application; progress is stored per (group.id, topic, partition)." aria-describedby="fx-def-group-id">group.id</span></code> owns progress</h1>
+      <p class="subtitle">The same topic can support multiple logical applications without sharing a cursor.</p>
+
+      <div class="grid2 wide-left">
+        <div class="card">
+          <div class="owner-row">
+            <div class="member">analytics-A</div>
+            <div class="mini-partitions"><span>p0</span><span>p2</span></div>
+            <span class="pill">group analytics</span>
+          </div>
+          <div class="owner-row">
+            <div class="member">analytics-B</div>
+            <div class="mini-partitions"><span>p1</span></div>
+            <span class="pill">same group</span>
+          </div>
+          <div class="owner-row" style="margin-top: 18px;">
+            <div class="member">audit-A</div>
+            <div class="mini-partitions"><span>p0</span><span>p1</span><span>p2</span></div>
+            <span class="pill green">group audit</span>
+          </div>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Durable progress key</p>
+          <div class="command">(<strong>group.id</strong>, topic, partition) → committed offset</div>
+          <ul class="compact-list">
+            <li>Members of one group <strong>share work</strong>.</li>
+            <li>Different groups <strong>read independently</strong>.</li>
+            <li>Changing <code class="inline">group.id</code> creates a new progress history.</li>
+            <li>Kafka stores committed offsets durably in an internal broker topic:
+              <code class="inline"><span class="fx-term" tabindex="0" role="term" data-term-id="consumer-offsets-topic" data-def="Internal broker topic where Kafka durably stores every group&#x27;s committed offsets." aria-describedby="fx-def-consumer-offsets-topic">__consumer_offsets</span></code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s10">
+    <div class="frame">
+      <p class="kicker">Assignment &amp; <span class="fx-term" tabindex="0" role="term" data-term-id="rebalance" data-def="Kafka reassigns partitions after group membership or subscribed-partition changes." aria-describedby="fx-def-rebalance">rebalance</span></p>
+      <h1>Partitions cap group parallelism</h1>
+      <p class="subtitle">At a stable <span class="fx-term" tabindex="0" role="term" data-term-id="assignment" data-def="The set of partitions the broker gives one member; delivered through the on_assign callback." aria-describedby="fx-def-assignment">assignment</span>, one partition belongs to at most one active member of the same group.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Three partitions · two members</p>
+          <div class="owner-row"><div class="member">member-A</div><div class="mini-partitions"><span>p0</span><span>p2</span></div><span class="pill">active</span></div>
+          <div class="owner-row"><div class="member">member-B</div><div class="mini-partitions"><span>p1</span></div><span class="pill">active</span></div>
+          <div class="owner-row"><div class="member idle">member-C</div><div class="mini-partitions"></div><span class="pill red">idle</span></div>
+        </div>
+        <div class="card flat">
+          <div class="step-list">
+            <div class="step"><p><strong>A member joins or leaves.</strong><br>Kafka begins group coordination.</p></div>
+            <div class="step"><p><strong>Assignments change.</strong><br><code class="inline">on_revoke</code> and <code class="inline">on_assign</code> make ownership observable.</p></div>
+            <div class="step"><p><strong>Processing resumes.</strong><br>Each assigned partition starts from its group’s committed position.</p></div>
+          </div>
+          <div class="callout amber"><strong>Capacity rule:</strong> with 3 partitions, a group can have at most 3 actively assigned consumers.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s11">
+    <div class="frame narrow">
+      <p class="kicker">Starting position</p>
+      <h1><code class="mono"><span class="fx-term" tabindex="0" role="term" data-term-id="auto-offset-reset" data-def="Fallback used only when no valid committed offset exists: earliest, latest, or error." aria-describedby="fx-def-auto-offset-reset">auto.offset.reset</span></code> is only a fallback</h1>
+      <p class="subtitle">Kafka checks for a valid committed position first.</p>
+
+      <div class="decision">
+        <div class="decision-question">
+          <b>Valid <span class="fx-term" tabindex="0" role="term" data-term-id="committed-offset" data-def="The group&#x27;s durable recovery point on the broker: the next offset to read after a restart." aria-describedby="fx-def-committed-offset">committed offset</span>?</b>
+          <span class="bodycopy">For this group, topic, and partition</span>
+        </div>
+        <div class="arrow">→</div>
+        <div class="decision-branches">
+          <div class="branch"><strong>Yes → resume there</strong><span><code class="inline">auto.offset.reset</code> is ignored.</span></div>
+          <div class="branch no"><strong>No → apply the reset policy</strong><span><code class="inline">earliest</code>, <code class="inline">latest</code>, or <code class="inline">error</code>.</span></div>
+        </div>
+      </div>
+
+      <div class="grid3" style="margin-top: 20px;">
+        <div class="card flat"><span class="pill green">earliest</span><p class="bodycopy" style="margin-top: 9px;">Start at the oldest retained record.</p></div>
+        <div class="card flat"><span class="pill amber">latest</span><p class="bodycopy" style="margin-top: 9px;">Start at the current log end and wait for future records.</p></div>
+        <div class="card flat"><span class="pill red">error</span><p class="bodycopy" style="margin-top: 9px;">Raise an error so the application decides what to do.</p></div>
+      </div>
+
+      <div class="callout red"><strong>Direct rule:</strong> <code class="inline">earliest</code> is not a rewind button. Use explicit replay when you intend to override normal group progress.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s12">
+    <div class="frame">
+      <p class="kicker">Four start modes</p>
+      <h1>Resume, new-group reads, and replay differ</h1>
+      <p class="subtitle">Name the operation before choosing a group ID or offset policy.</p>
+
+      <table>
+        <thead><tr><th>Intent</th><th>Group state</th><th>Where reading starts</th><th>Demo</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Normal resume</strong></td><td>Same group with a valid commit</td><td>At the committed next offset</td><td><code>03B</code></td></tr>
+          <tr><td><strong>Read retained history independently</strong></td><td>New group + <code>earliest</code></td><td>Oldest retained offset</td><td><code>03A</code> with a fresh group</td></tr>
+          <tr><td><strong>Read only future records</strong></td><td>New group + <code>latest</code></td><td>Current log end</td><td><code>03C</code> group mode</td></tr>
+          <tr><td><strong>Explicit replay</strong></td><td>Visible replay command</td><td><code><span class="fx-term" tabindex="0" role="term" data-term-id="offset-beginning" data-def="Explicit request to start a partition from its oldest retained record; replay mode only." aria-describedby="fx-def-offset-beginning">OFFSET_BEGINNING</span></code> on assignment</td><td><code>03C --force-beginning</code></td></tr>
+        </tbody>
+      </table>
+
+      <p class="caption"><strong>Do not hide replay inside normal assignment callbacks.</strong> It destroys the distinction between resuming saved work and intentionally reprocessing history.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s13">
+    <div class="frame">
+      <p class="kicker">Delivery semantics</p>
+      <h1>Process successfully, then commit</h1>
+      <p class="subtitle">The commit point is an application decision about completed work—not merely fetched bytes.</p>
+
+      <div class="flowline">
+        <div class="flow-node">poll</div><div class="arrow">→</div>
+        <div class="flow-node">check error</div><div class="arrow">→</div>
+        <div class="flow-node accent">decode UTF-8</div><div class="arrow">→</div>
+        <div class="flow-node accent">validate TripEvent</div><div class="arrow">→</div>
+        <div class="flow-node green">process successfully</div><div class="arrow">→</div>
+        <div class="flow-node green">commit offset + 1</div>
+      </div>
+
+      <div class="grid2">
+        <div class="card flat">
+          <p class="eyebrow">Commit too early</p>
+          <h2>A crash can skip unfinished work</h2>
+          <p class="bodycopy">The next consumer starts after a record that never completed application processing.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Commit after success</p>
+          <h2>A crash may repeat work</h2>
+          <p class="bodycopy">Reprocessing is visible and manageable; idempotent application logic handles duplicates.</p>
+        </div>
+      </div>
+
+      <div class="callout green"><strong>Demo 03B contract:</strong> disable automatic offset storage, decode and validate first, then request the commit.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s14">
+    <div class="frame">
+      <p class="kicker">Offset management</p>
+      <h1>Three commit paths, three trade-offs</h1>
+      <p class="subtitle">Automatic versus manual controls <em>when</em> progress becomes eligible; sync versus async controls whether the caller waits for the broker response.</p>
+
+      <div class="grid3">
+        <div class="card commit-card">
+          <span class="pill">Auto commit</span>
+          <ul>
+            <li><code class="inline"><span class="fx-term" tabindex="0" role="term" data-term-id="enable-auto-commit" data-def="true: commits stored offsets periodically and on close(); false: no automatic commit occurs." aria-describedby="fx-def-enable-auto-commit">enable.auto.commit</span>=true</code></li>
+            <li>Stored offsets commit periodically in the background.</li>
+            <li>Simple, but processing may still be unfinished.</li>
+            <li><strong>Demo 03A</strong> makes this behavior observable.</li>
+          </ul>
+        </div>
+        <div class="card commit-card green">
+          <span class="pill green"><span class="fx-term" tabindex="0" role="term" data-term-id="sync-commit" data-def="commit() waits for the broker&#x27;s acknowledgement before your loop continues." aria-describedby="fx-def-sync-commit">Manual sync</span></span>
+          <ul>
+            <li>Disable auto commit and auto offset store.</li>
+            <li><code class="inline">commit(..., asynchronous=False)</code></li>
+            <li>The call waits and returns partition results.</li>
+            <li>Clear acknowledgement; more blocking.</li>
+          </ul>
+        </div>
+        <div class="card commit-card amber">
+          <span class="pill amber"><span class="fx-term" tabindex="0" role="term" data-term-id="async-commit" data-def="commit() returns immediately; the result arrives later through the on_commit callback." aria-describedby="fx-def-async-commit">Manual async</span></span>
+          <ul>
+            <li>Same post-processing commit point.</li>
+            <li><code class="inline">commit(..., asynchronous=True)</code></li>
+            <li>The call returns before acknowledgement.</li>
+            <li><code class="inline">on_commit</code> records success/failure.</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="caption"><strong>All three store the next offset to consume.</strong> The difference is when progress is selected and whether your code waits for confirmation.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s15">
+    <div class="frame">
+      <p class="kicker">Consumer lifecycle</p>
+      <h1>The <span class="fx-term" tabindex="0" role="term" data-term-id="poll" data-def="Returns one message, None, or an error event; also serves callbacks and satisfies max.poll.interval." aria-describedby="fx-def-poll">poll</span> loop is small—but the order matters</h1>
+      <p class="subtitle">The course demos are intentionally bounded so every run finishes and writes inspectable evidence.</p>
+
+      <div class="grid2 wide-left">
+        <div class="codecard">
+<pre><span class="kw">consumer</span>.subscribe([TOPIC_NAME], on_assign=...)
+
+<span class="kw">try</span>:
+    <span class="kw">while</span> len(records) &lt; max_messages:
+        message = consumer.poll(poll_timeout)
+        <span class="kw">if</span> message <span class="kw">is</span> <span class="kw">None</span>:
+            <span class="kw">continue</span>
+        <span class="kw">if</span> message.error():
+            handle_or_raise(message.error())
+
+        record = <span class="fn">message_to_record</span>(message)
+        <span class="fn">process</span>(record)
+        <span class="kw">if</span> manual_commit:
+            <span class="fn">commit_after_success</span>(message)
+<span class="kw">finally</span>:
+    consumer.close()</pre>
+        </div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">poll()</p><p class="bodycopy">Returns one message, no message before timeout, or a consumer error/event.</p></div>
+          <div class="card flat"><p class="eyebrow">Finite limits</p><p class="bodycopy"><code class="inline">max_messages</code>, idle timeout, and run timeout prevent classroom hangs.</p></div>
+          <div class="card flat"><p class="eyebrow">close()</p><p class="bodycopy">Stops consuming, leaves the group, releases resources, and commits stored offsets only when auto commit is enabled.</p></div>
+          <div class="callout red"><strong>Consumer close is not producer flush.</strong> Consumers have no outgoing delivery queue to drain.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="restored-subscribe-poll-close">
+    <div class="frame">
+      <p class="kicker">Restored and aligned · consumer API</p>
+      <h1>Subscribe, retrieve, process, and close deliberately</h1>
+      <p class="subtitle">The old API overview remains useful once its infinite loop and forced-replay behavior are removed.</p>
+
+      <table>
+        <thead><tr><th>Operation</th><th>What it does</th><th>Demo 03 contract</th></tr></thead>
+        <tbody>
+          <tr><td><strong><code><span class="fx-term" tabindex="0" role="term" data-term-id="subscribe" data-def="Declares wanted topics; actual partitions arrive later via the assignment callback." data-tooltip-align="left" aria-describedby="fx-def-subscribe">subscribe()</span></code></strong></td><td>Joins the group and lets Kafka assign partitions for an exact topic list or a topic pattern.</td><td>03A–03D subscribe to the exact shared topic; assignment/revocation callbacks become evidence.</td></tr>
+          <tr><td><strong><code>poll(timeout)</code></strong></td><td>Returns one message, <code>None</code> on timeout, or an error/event that the application must inspect.</td><td>Preferred for the demos because every record and stop condition remains visible.</td></tr>
+          <tr><td><strong><code>consume(n, timeout)</code></strong></td><td>Returns a list of up to <code>n</code> messages and is useful when application code wants a batch-shaped retrieval call.</td><td>Valid API, but not used in Demo 03; do not confuse it with producer batching.</td></tr>
+          <tr><td><strong><code><span class="fx-term" tabindex="0" role="term" data-term-id="close" data-def="Stops consuming, leaves the group, frees resources, and commits stored offsets only when auto-commit is enabled." data-tooltip-align="left" aria-describedby="fx-def-close">close()</span></code></strong></td><td>Stops consuming, leaves the group, and releases resources; auto-commit behavior depends on configuration.</td><td>Always called in <code>finally</code>. It is not producer <code>flush()</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid2" style="margin-top: 16px;">
+        <div class="callout green" style="margin-top: 0;"><strong>Normal assignment:</strong> respect Kafka’s committed position. Do not force <code class="inline">OFFSET_BEGINNING</code> inside every <code class="inline">on_assign</code>.</div>
+        <div class="callout red" style="margin-top: 0;"><strong>Explicit replay only:</strong> Demo 03C changes assigned offsets when the user supplies <code class="inline">--force-beginning</code>.</div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s16">
+    <div class="frame">
+      <p class="kicker">Summer 2026 runtime</p>
+      <h1>One pinned environment, one real Cloud cluster</h1>
+      <p class="subtitle">The deployment target and the Python client are different layers—name both precisely.</p>
+
+      <div class="env-stack">
+        <div class="env-box"><b>Deployment</b>Confluent Cloud Kafka</div>
+        <div class="env-box"><b>Runtime</b>Python 3.11.14</div>
+        <div class="env-box"><b>Environment</b>project-local .venv</div>
+        <div class="env-box"><b>Client</b>confluent-kafka 2.15.0</div>
+      </div>
+
+      <div class="grid2">
+        <div class="codecard tight">
+<pre><span class="cm"># requirements.txt is the package-version SSOT</span>
+uv python install <span class="num">3.11.14</span>
+uv venv --python <span class="num">3.11.14</span> .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+
+python -c <span class="str">"import confluent_kafka; \
+print(confluent_kafka.__version__)"</span>
+<span class="cm"># expected: 2.15.0</span></pre>
+        </div>
+        <div class="codecard tight">
+<pre><span class="cm"># ignored .env — values stay local</span>
+BOOTSTRAP_SERVERS=
+SECURITY_PROTOCOL=SASL_SSL
+SASL_MECHANISMS=PLAIN
+SASL_USERNAME=
+SASL_PASSWORD=
+DEMO01_TOPIC_NAME=<span class="str">msds682.demo01.trip-events.v1</span>
+CONSUMER_GROUP_ID_PREFIX=<span class="str">msds682-su2026</span></pre>
+        </div>
+      </div>
+
+      <div class="callout amber"><strong>Security boundary:</strong> use a Kafka cluster API key/secret. Never copy a historical credential, Confluent website password, or populated <code class="inline">.env</code> into slides, reports, or submissions.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s17">
+    <div class="frame">
+      <p class="kicker">Direct prerequisites</p>
+      <h1>Run only the prerequisites each demo needs</h1>
+      <p class="subtitle">You do not need to rerun every earlier demo.</p>
+
+      <div class="grid2">
+        <div class="card demo-card" data-demo="A/B">
+          <p class="eyebrow">03A · 03B · replay</p>
+          <h2>Need retained <code class="mono">TripEvent</code> data</h2>
+          <div class="command">python demo02b_confluent_async_producer.py<br><strong>--run-id lec3-seed --count 12</strong></div>
+          <p class="bodycopy" style="margin-top: 9px;">Run only when the topic lacks enough valid events.</p>
+        </div>
+        <div class="card demo-card" data-demo="C">
+          <p class="eyebrow">03C group mode</p>
+          <h2>Needs fresh data after both members start</h2>
+          <div class="command">python demo02b_confluent_async_producer.py<br><strong>--run-id lec3-group-input --count 12</strong></div>
+          <p class="bodycopy" style="margin-top: 9px;">Run in a third terminal while both consumers overlap.</p>
+        </div>
+        <div class="card demo-card" data-demo="D">
+          <p class="eyebrow">03D</p>
+          <h2>Needs no previous records</h2>
+          <p class="bodycopy">It waits for its own consumer assignment, then produces and consumes six new records.</p>
+        </div>
+        <div class="card demo-card" data-demo="01">
+          <p class="eyebrow">Only if the topic is missing</p>
+          <h2>Create the shared three-partition topic</h2>
+          <div class="command">python demo01_create_topic.py<br><strong>--run-id lec3-topic-setup</strong></div>
+        </div>
+      </div>
+
+      <p class="caption">Keep <code class="inline">demo02_producer_common.py</code> beside the scripts; it remains the topic, schema, serialization, and connection owner.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s18">
+    <div class="frame">
+      <p class="kicker">Demo 03A</p>
+      <h1>03A proves the basic consumer lifecycle</h1>
+      <p class="subtitle">Can you trace one <span class="fx-term" tabindex="0" role="term" data-term-id="bounded-run" data-def="Course scripts use visible message and time limits so normal demo runs end predictably." aria-describedby="fx-def-bounded-run">bounded record</span> from group assignment to validated application data?</p>
+
+      <div class="flowline">
+        <div class="flow-node">config</div><div class="arrow">→</div>
+        <div class="flow-node">subscribe</div><div class="arrow">→</div>
+        <div class="flow-node accent">poll</div><div class="arrow">→</div>
+        <div class="flow-node accent">decode + validate</div><div class="arrow">→</div>
+        <div class="flow-node green">report</div><div class="arrow">→</div>
+        <div class="flow-node green">close</div>
+      </div>
+
+      <div class="grid2">
+        <div class="codecard tight">
+<pre>python demo03a_confluent_basic_consumer.py \
+  --run-id lec3-demo03a \
+  --max-messages <span class="num">8</span></pre>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Inspect the report</p>
+          <ul class="compact-list">
+            <li>topic, partition, and offset;</li>
+            <li>decoded UTF-8 key;</li>
+            <li>validated <code class="inline">TripEvent</code> value;</li>
+            <li>assignment/revocation evidence;</li>
+            <li>safe config with no credentials.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout"><strong>Rerun insight:</strong> the default group ID is stable. A later run may consume zero because the group already reached the end—that is saved progress, not necessarily a bug.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s19">
+    <div class="frame">
+      <p class="kicker">Demo 03B</p>
+      <h1>03B proves same-group resume</h1>
+      <p class="subtitle">Use one stable group ID twice; change the run ID, not the progress owner.</p>
+
+      <div class="grid2 wide-left">
+        <div class="card">
+          <p class="eyebrow">One-partition illustration</p>
+          <div class="state-key">
+            <div><b>First run</b>read p0:N … N+3<br>commit p0:N+4</div>
+            <div><b>Second run</b>p0 starts at N+4<br>not at earliest</div>
+          </div>
+          <div class="flowline">
+            <div class="flow-node accent">same group.id</div><div class="arrow">→</div>
+            <div class="flow-node green">committed next offset</div><div class="arrow">→</div>
+            <div class="flow-node">resume</div>
+          </div>
+          <div class="command">--group-id <strong>msds682-demo03b-&lt;usf_username&gt;</strong> --commit-mode sync --max-messages 4</div>
+          <p class="caption">Actual runs may touch multiple partitions; compare each partition independently.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Then compare commit modes</p>
+          <ul class="compact-list">
+            <li><strong>Sync:</strong> waits for broker response and records returned offsets.</li>
+            <li><strong>Async:</strong> returns immediately and records callback acknowledgements.</li>
+            <li><strong>Both:</strong> commit only after decode, validation, and processing.</li>
+          </ul>
+          <div class="callout green"><strong>Pass evidence:</strong> second-run offsets advance; async commit failures remain empty.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s20">
+    <div class="frame">
+      <p class="kicker">Demo 03C</p>
+      <h1>03C proves sharing—and makes replay explicit</h1>
+      <p class="subtitle">Group coordination and replay answer different questions, so the commands keep them separate.</p>
+
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Group mode · two terminals</p>
+          <div class="owner-row"><div class="member">member-a</div><div class="mini-partitions"><span>p0</span><span>p1</span></div><span class="pill">same group</span></div>
+          <div class="owner-row"><div class="member">member-b</div><div class="mini-partitions"><span>p2</span></div><span class="pill">same group</span></div>
+          <p class="caption">Illustrative assignment only; Kafka may choose a different non-overlapping mapping.</p>
+          <p class="bodycopy">Start both for 20 seconds, then produce 12 fresh records in a third terminal.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Replay mode · visible override</p>
+          <div class="command">python demo03c_confluent_groups_replay.py<br><strong>--force-beginning --max-messages 8 --run-seconds 10</strong></div>
+          <ul class="compact-list">
+            <li>assignment explicitly requests <code class="inline"><span class="fx-term" tabindex="0" role="term" data-term-id="offset-beginning" data-def="Explicit request to start a partition from its oldest retained record; replay mode only." aria-describedby="fx-def-offset-beginning">OFFSET_BEGINNING</span></code>;</li>
+            <li>auto commit is disabled for the replay;</li>
+            <li>the run remains bounded.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout amber"><strong>Expected group evidence:</strong> active members have non-overlapping partition assignments; joining or leaving produces assignment/revocation history.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s21">
+    <div class="frame">
+      <p class="kicker">Concurrency decision</p>
+      <h1>Kafka asynchrony is not Python <code class="mono">asyncio</code></h1>
+      <p class="subtitle">They solve different waiting problems.</p>
+
+      <div class="async-lanes">
+        <div class="lane">
+          <h3>Standard Producer <span class="pill">librdkafka</span></h3>
+          <div class="lane-flow">
+            <div class="lane-step">produce()<br>enqueue</div><div class="arrow">→</div>
+            <div class="lane-step green">background<br>I/O threads</div><div class="arrow">→</div>
+            <div class="lane-step">broker +<br>delivery result</div>
+          </div>
+          <p class="bodycopy" style="margin-top: 13px;"><code class="inline">poll()</code>/<code class="inline">flush()</code> serve Python <span class="fx-term" tabindex="0" role="term" data-term-id="delivery-callback" data-def="Function the client calls with success or failure per message; it runs during poll() or flush()." aria-describedby="fx-def-delivery-callback">delivery callbacks</span>. No event loop is required.</p>
+        </div>
+        <div class="lane">
+          <h3>Python application <span class="pill green">asyncio</span></h3>
+          <div class="lane-flow">
+            <div class="lane-step">Kafka AIO<br>task</div><div class="arrow">↔</div>
+            <div class="lane-step green">one event<br>loop</div><div class="arrow">↔</div>
+            <div class="lane-step">HTTP / DB /<br>other async I/O</div>
+          </div>
+          <p class="bodycopy" style="margin-top: 13px;">Use native AIO clients when Kafka must coexist with other nonblocking work in an existing event loop.</p>
+        </div>
+      </div>
+
+      <div class="callout red"><strong>Never claim:</strong> putting blocking <code class="inline">Consumer.poll()</code> inside <code class="inline">async def</code> makes it nonblocking. Ordinary CLI consumers should use the standard API.</div>
+      <p class="caption">For CPython 3.11, threads are mainly useful for blocking I/O or libraries that release the GIL; pure-Python CPU parallelism usually needs processes or native/vectorized code.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s22">
+    <div class="frame">
+      <p class="kicker">Demo 03D · Native AIO</p>
+      <h1>03D waits for <span class="fx-term" tabindex="0" role="term" data-term-id="assignment" data-def="The set of partitions the broker gives one member; delivered through the on_assign callback." aria-describedby="fx-def-assignment">assignment</span>, not a guessed sleep</h1>
+      <p class="subtitle">The producer starts only after Kafka confirms the consumer’s partition assignment.</p>
+
+      <div class="grid2 wide-right">
+        <div class="codecard tight">
+<pre><span class="kw">from</span> confluent_kafka.aio <span class="kw">import</span> \
+    <span class="fx-term" tabindex="0" role="term" data-term-id="aio-clients" data-def="Native asyncio Kafka clients (non-experimental since 2.13) for apps that already run an event loop." data-tooltip-align="left" aria-describedby="fx-def-aio-clients">AIOConsumer, AIOProducer</span>
+
+assignment_ready = asyncio.Event()
+
+<span class="kw">async def</span> <span class="fn">on_assign</span>(consumer, partitions):
+    <span class="kw">await</span> consumer.assign(partitions)
+    assignment_ready.set()
+
+<span class="kw">await</span> asyncio.wait_for(
+    assignment_ready.wait(), timeout=<span class="num">15</span>
+)</pre>
+        </div>
+        <div class="card">
+          <div class="step-list">
+            <div class="step"><p><strong>AIOConsumer subscribes.</strong><br>The group coordinator assigns partitions.</p></div>
+            <div class="step"><p><strong><code class="inline">on_assign</code> sets the event.</strong><br>Assignment evidence is recorded first.</p></div>
+            <div class="step"><p><strong>AIOProducer begins.</strong><br>It produces six records, then both tasks finish through <code class="inline">asyncio.gather()</code>.</p></div>
+            <div class="step"><p><strong>Both clients close.</strong><br>Timeout and cancellation paths still release resources.</p></div>
+          </div>
+          <div class="command" style="margin-top: 14px;">python demo03d_confluent_asyncio_produce_consume.py<br><strong>--count 6 --assignment-timeout 15</strong></div>
+        </div>
+      </div>
+
+      <p class="caption">Confluent removed the AsyncIO experimental module designation in 2.13; this course pins 2.15.0 and imports from <code class="inline">confluent_kafka.aio</code>.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s23">
+    <div class="frame">
+      <p class="kicker">Observable evidence</p>
+      <h1>Evidence should explain what Kafka did</h1>
+      <p class="subtitle">A successful command is not enough; each report captures the state needed to interpret the run.</p>
+
+      <div class="evidence-grid">
+        <div class="evidence"><h3>03A</h3><p>records, partition/offset, decoded key, validated event, assignment, stop reason</p></div>
+        <div class="evidence"><h3>03B</h3><p>same group ID, commit mode, requests/results, async acknowledgements and failures</p></div>
+        <div class="evidence"><h3>03C</h3><p>member ID, group mode versus replay, assignment/revocation history, bounded records</p></div>
+        <div class="evidence"><h3>03D</h3><p>requested = delivered = consumed, assignment timing, partitions, classic group protocol</p></div>
+      </div>
+
+      <div class="grid2" style="margin-top: 18px;">
+        <div class="callout green" style="margin-top: 0;"><strong>Safe to include:</strong> topic, group/client IDs, partition, offset, timestamps, counts, and credential-presence booleans.</div>
+        <div class="callout red" style="margin-top: 0;"><strong>Never include:</strong> <code class="inline">sasl.username</code>, <code class="inline">sasl.password</code>, populated <code class="inline">.env</code>, or screenshots exposing credentials.</div>
+      </div>
+
+      <p class="caption">Reports live under <code class="inline">outputs/runs/&lt;run-id&gt;/...</code> and remain outside version control.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s24">
+    <div class="frame">
+      <p class="kicker">Troubleshooting</p>
+      <h1>Troubleshoot from observable state</h1>
+      <p class="subtitle">Start with group state, topic data, assignments, and version—not random configuration changes.</p>
+
+      <table>
+        <thead><tr><th>Symptom</th><th>Likely state</th><th>Direct action</th></tr></thead>
+        <tbody>
+          <tr><td><strong>03A consumes 0</strong></td><td>Topic empty, or stable group already reached the end</td><td>Seed 12 events or use a fresh group ID</td></tr>
+          <tr><td><strong>03B restarts at beginning</strong></td><td>Group ID changed, or first run did not commit</td><td>Reuse the exact group ID; inspect commit evidence</td></tr>
+          <tr><td><strong>03C does not split</strong></td><td>Runs did not overlap, or topic has one partition</td><td>Overlap both members; confirm three partitions</td></tr>
+          <tr><td><strong>Assignment timeout</strong></td><td>Topic access, cluster connection, or Kafka API credentials failed</td><td>Verify ignored <code>.env</code> and topic existence</td></tr>
+          <tr><td><strong>No <code>confluent_kafka.aio</code></strong></td><td>Wrong environment or client version</td><td>Install the published requirements; verify 2.15.0</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout amber"><strong>A waiting consumer is not necessarily hung.</strong> It may be correctly waiting for future records; the course scripts use visible time/message limits so the run still ends.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s25">
+    <div class="frame narrow">
+      <p class="kicker">Exit ticket</p>
+      <h1>If you can predict the next offset, you are ready</h1>
+      <p class="subtitle">Answer these four questions before every consumer run.</p>
+
+      <div class="final-grid">
+        <div class="final-q"><b>Where will this group start?</b><span>Use a valid commit first; otherwise apply the reset policy or explicit replay.</span></div>
+        <div class="final-q"><b>Who reads each partition?</b><span>At most one active member per partition inside one group; other groups are independent.</span></div>
+        <div class="final-q"><b>When is progress safe?</b><span>After decode, validation, and successful processing; commit the next offset.</span></div>
+        <div class="final-q"><b>Which Python API fits?</b><span>Standard Consumer for ordinary scripts; native AIO when Kafka shares an event loop.</span></div>
+      </div>
+
+      <div class="callout green"><strong>Now run Demo 03A → 03B → 03C → 03D.</strong> Predict first, run second, then use the secret-free report to explain whether your prediction was correct.</div>
+
+      <div class="source-row">
+        <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo03" target="_blank" rel="noreferrer">Demo 03 handout ↗</a>
+        <a href="https://docs.confluent.io/kafka-clients/python/current/overview.html" target="_blank" rel="noreferrer">Confluent Python client ↗</a>
+        <a href="https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html" target="_blank" rel="noreferrer">2.15 API reference ↗</a>
+        <a href="https://docs.confluent.io/kafka-clients/python/current/changelog.html" target="_blank" rel="noreferrer">Client changelog ↗</a>
+        <a href="https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md" target="_blank" rel="noreferrer">librdkafka behavior ↗</a>
+        <a href="https://www.confluent.io/resources/ebook/kafka-the-definitive-guide/" target="_blank" rel="noreferrer">Further reading: Kafka — The Definitive Guide, Ch. 4 ↗</a>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+  <!-- LEC3_GLOSSARY_DEFINITIONS_START -->
+  <!-- Generated from LECTURE3_HOVER_GLOSSARY.yaml; do not hand-edit. -->
+  <div class="fx-definitions">
+    <span id="fx-def-offset">A record's position inside one partition; there is no topic-wide sequence number.</span>
+    <span id="fx-def-partition">An ordered, append-only slice of a topic; ordering and offsets exist only within it.</span>
+    <span id="fx-def-retention">Broker cleanup policy: time/size retention removes old segments; compaction removes superseded keys.</span>
+    <span id="fx-def-position">The next offset this consumer will return from a partition; local runtime state, not durable group progress.</span>
+    <span id="fx-def-committed-offset">The group's durable recovery point on the broker: the next offset to read after a restart.</span>
+    <span id="fx-def-group-id">Names one logical consuming application; progress is stored per (group.id, topic, partition).</span>
+    <span id="fx-def-consumer-offsets-topic">Internal broker topic where Kafka durably stores every group's committed offsets.</span>
+    <span id="fx-def-rebalance">Kafka reassigns partitions after group membership or subscribed-partition changes.</span>
+    <span id="fx-def-assignment">The set of partitions the broker gives one member; delivered through the on_assign callback.</span>
+    <span id="fx-def-auto-offset-reset">Fallback used only when no valid committed offset exists: earliest, latest, or error.</span>
+    <span id="fx-def-offset-beginning">Explicit request to start a partition from its oldest retained record; replay mode only.</span>
+    <span id="fx-def-enable-auto-commit">true: commits stored offsets periodically and on close(); false: no automatic commit occurs.</span>
+    <span id="fx-def-sync-commit">commit() waits for the broker's acknowledgement before your loop continues.</span>
+    <span id="fx-def-async-commit">commit() returns immediately; the result arrives later through the on_commit callback.</span>
+    <span id="fx-def-poll">Returns one message, None, or an error event; also serves callbacks and satisfies max.poll.interval.</span>
+    <span id="fx-def-close">Stops consuming, leaves the group, frees resources, and commits stored offsets only when auto-commit is enabled.</span>
+    <span id="fx-def-subscribe">Declares wanted topics; actual partitions arrive later via the assignment callback.</span>
+    <span id="fx-def-produce">Non-blocking local append to the client buffer; the network send happens later in batches.</span>
+    <span id="fx-def-delivery-callback">Function the client calls with success or failure per message; it runs during poll() or flush().</span>
+    <span id="fx-def-batch-limits">Limits batch accumulation by delay, bytes, and message count (defaults: 5 ms / 1 MB / 10,000).</span>
+    <span id="fx-def-flush">Producer-only wait: serves callbacks until every queued and in-flight message completes or times out.</span>
+    <span id="fx-def-trip-event">The course Pydantic contract: validated fields, then serialized to UTF-8 JSON bytes.</span>
+    <span id="fx-def-aio-clients">Native asyncio Kafka clients (non-experimental since 2.13) for apps that already run an event loop.</span>
+    <span id="fx-def-bounded-run">Course scripts use visible message and time limits so normal demo runs end predictably.</span>
+  </div>
+  <!-- LEC3_GLOSSARY_DEFINITIONS_END -->
+
+  <script>
+    const slides = [...document.querySelectorAll("section.slide")];
+    const pageWidth = String(slides.length).length;
+    slides.forEach((slide, pageIndex) => {
+      const pager = slide.querySelector(".pager");
+      if (pager) {
+        const current = String(pageIndex + 1).padStart(pageWidth, "0");
+        pager.textContent = `${current} / ${slides.length}`;
+      }
+    });
+    let index = 0;
+    const clamp = value => Math.max(0, Math.min(slides.length - 1, value));
+    const dismissGlossary = () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.classList.contains("fx-term")) {
+        active.blur();
+      }
+    };
+    const go = value => {
+      dismissGlossary();
+      index = clamp(value);
+      slides[index].scrollIntoView({ behavior: "smooth", block: "start" });
+      history.replaceState(null, "", `#${slides[index].id}`);
+    };
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        dismissGlossary();
+        return;
+      }
+      if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(event.key)) go(index + 1);
+      else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(event.key)) go(index - 1);
+      else if (event.key === "Home") go(0);
+      else if (event.key === "End") go(slides.length - 1);
+      else return;
+      event.preventDefault();
+    });
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) index = slides.indexOf(entry.target);
+      });
+    }, { threshold: .6 });
+    slides.forEach(slide => observer.observe(slide));
+
+    const initial = slides.findIndex(slide => `#${slide.id}` === location.hash);
+    if (initial >= 0) {
+      index = initial;
+      requestAnimationFrame(() => slides[index].scrollIntoView({ block: "start" }));
+    }
+  </script>
+</body>
+</html>
