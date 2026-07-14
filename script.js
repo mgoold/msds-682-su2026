@@ -341,6 +341,17 @@ const handouts = [
     summary: "Canonical Summer 2026 Lecture 2 HTML slides: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, serialization, inherited producer options, and client-side batching."
   },
   {
+    slug: "lec3-consumers",
+    title: "Lecture 3: Kafka Consumers",
+    kind: "html",
+    file: "handouts/lec3-consumers.html",
+    createdAt: "Created at 4:09 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 5:20 PM PDT on July 13, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Canonical Summer 2026 Lecture 3 HTML slides: consumer offsets and groups, commit and replay, Demo 03A–03D alignment, AI engineering Q&A, environment layers, producer batching, and native asyncio."
+  },
+  {
     slug: "syllabus",
     title: "Final Syllabus",
     kind: "pdf",

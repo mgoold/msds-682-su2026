@@ -1025,7 +1025,7 @@
     <div class="frame">
       <p class="kicker">Q/A on AI Engineering and AI Tools</p>
       <h1>Q4. What is Kafka’s role in AI engineering?</h1>
-      <p class="subtitle">Every production AI system you will touch is fed by streams: events, documents, predictions, features, traces, and evaluations.</p>
+      <p class="subtitle">Many production AI systems are fed by streams: events, documents, predictions, features, traces, and evaluations.</p>
 
       <div class="ai-role-grid">
         <div class="card">
@@ -1050,7 +1050,7 @@
         </div>
       </div>
 
-      <div class="callout green"><strong>Kafka is the de facto backbone for all of that.</strong> AI engineering interviews and jobs test throughput versus latency, batching, backpressure, delivery guarantees, schema contracts, and idempotency.</div>
+      <div class="callout green"><strong>Kafka is a common durable backbone for this work.</strong> AI engineering interviews and jobs test throughput versus latency, batching, backpressure, delivery guarantees, schema contracts, and idempotency.</div>
     </div>
     <div class="pager"></div>
   </section>
@@ -1136,7 +1136,7 @@
           <tr><td><strong>Asynchronous</strong></td><td>The operation starts now; completion is observed later.</td><td><code>produce()</code> enqueues, then delivery is reported through a callback or future.</td></tr>
           <tr><td><strong>Sequential</strong></td><td>Steps run in a required order.</td><td>Decode → validate → process → commit.</td></tr>
           <tr><td><strong>Concurrent</strong></td><td>Tasks overlap in time and may interleave.</td><td>Kafka and async HTTP work share one event loop.</td></tr>
-          <tr><td><strong>Parallel</strong></td><td>Work executes at the same instant on multiple execution resources.</td><td>Independent partitions are processed by separate consumer instances.</td></tr>
+          <tr><td><strong>Parallel</strong></td><td>Work executes at the same instant on multiple execution resources.</td><td>Independent partitions can be processed in parallel by separate consumer instances with separate execution resources.</td></tr>
         </tbody>
       </table>
 
@@ -1399,7 +1399,7 @@ SASL_PASSWORD=</pre></div>
           <p class="eyebrow">Your Python loop</p>
           <h2><code class="inline">produce(message)</code></h2>
           <ul class="compact-list">
-            <li>Serializes one key/value record.</li>
+            <li>The application prepares one serialized key/value record.</li>
             <li>Appends it to a local, partition-specific queue.</li>
             <li>Usually returns before the broker acknowledges delivery.</li>
           </ul>
@@ -1423,8 +1423,8 @@ SASL_PASSWORD=</pre></div>
   <section class="slide" id="restored-batching-mechanics">
     <div class="frame">
       <p class="kicker">Restored · producer batching 2 of 3</p>
-      <h1>The first limit reached closes the batch</h1>
-      <p class="subtitle">These are librdkafka 2.15 defaults; Demo 02 and Assignment 1 do not tune them.</p>
+      <h1>Time, bytes, and count bound batch accumulation</h1>
+      <p class="subtitle">librdkafka waits up to 5 ms to accumulate records unless the size or count limit is reached first.</p>
 
       <div class="grid2 wide-left">
         <div class="codecard tight"><pre>Your code          Producer library                  Broker
@@ -1433,7 +1433,7 @@ produce(1) ------&gt; [ partition buffer: 1       ]      |
 produce(2) ------&gt; [ partition buffer: 1 2     ]      |
 produce(3) ------&gt; [ partition buffer: 1 2 3   ]      |
    |                       |                           |
-   |  batch closes when any limit is reached first:   |
+   |  accumulation is bounded by these three values:  |
    |    time  : linger.ms          = 5 ms             |
    |    size  : batch.size         = 1,000,000 bytes  |
    |    count : batch.num.messages = 10,000           |
@@ -1457,7 +1457,7 @@ flush()  serves callbacks until drained or timeout    |</pre></div>
   <section class="slide" id="restored-batching-tradeoff">
     <div class="frame">
       <p class="kicker">Restored · producer batching 3 of 3</p>
-      <h1>Batching trades a little latency for throughput</h1>
+      <h1>Batching amortizes overhead; waiting can add latency</h1>
       <p class="subtitle">Fewer requests and better compression reduce overhead; waiting to accumulate records can delay an individual record.</p>
 
       <table>
@@ -1986,9 +1986,10 @@ CONSUMER_GROUP_ID_PREFIX=<span class="str">msds682-su2026</span></pre>
 
       <div class="grid2 wide-left">
         <div class="card">
+          <p class="eyebrow">One-partition illustration</p>
           <div class="state-key">
-            <div><b>First run</b>read N … N+3<br>commit N+4</div>
-            <div><b>Second run</b>start at N+4<br>not at earliest</div>
+            <div><b>First run</b>read p0:N … N+3<br>commit p0:N+4</div>
+            <div><b>Second run</b>p0 starts at N+4<br>not at earliest</div>
           </div>
           <div class="flowline">
             <div class="flow-node accent">same group.id</div><div class="arrow">→</div>
@@ -1996,6 +1997,7 @@ CONSUMER_GROUP_ID_PREFIX=<span class="str">msds682-su2026</span></pre>
             <div class="flow-node">resume</div>
           </div>
           <div class="command">--group-id <strong>msds682-demo03b-&lt;usf_username&gt;</strong> --commit-mode sync --max-messages 4</div>
+          <p class="caption">Actual runs may touch multiple partitions; compare each partition independently.</p>
         </div>
         <div class="card flat">
           <p class="eyebrow">Then compare commit modes</p>
@@ -2022,6 +2024,7 @@ CONSUMER_GROUP_ID_PREFIX=<span class="str">msds682-su2026</span></pre>
           <p class="eyebrow">Group mode · two terminals</p>
           <div class="owner-row"><div class="member">member-a</div><div class="mini-partitions"><span>p0</span><span>p1</span></div><span class="pill">same group</span></div>
           <div class="owner-row"><div class="member">member-b</div><div class="mini-partitions"><span>p2</span></div><span class="pill">same group</span></div>
+          <p class="caption">Illustrative assignment only; Kafka may choose a different non-overlapping mapping.</p>
           <p class="bodycopy">Start both for 20 seconds, then produce 12 fresh records in a third terminal.</p>
         </div>
         <div class="card">
