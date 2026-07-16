@@ -28,140 +28,102 @@ const pages = {
     title: "Schedule",
     body: `
       <p class="lede">Each lecture meets 5:30–7:20pm PDT. Monday sessions are on Zoom; Thursday sessions are in person at 101 Howard, Classroom 529.</p>
-      <div class="table-wrap">
-        <table>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Summer 2026 course schedule">
+        <table class="schedule-table">
+          <caption class="sr-only">Summer 2026 course schedule</caption>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Date</th>
-              <th>Day</th>
-              <th>Time</th>
-              <th>Mode</th>
-              <th>Location</th>
-              <th>Topic</th>
-              <th>Notes</th>
+              <th scope="col">#</th>
+              <th scope="col">Date</th>
+              <th scope="col">Format</th>
+              <th scope="col">Topic</th>
+              <th scope="col">Work and deadlines</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>1</td>
-              <td>Jul 06, 2026</td>
-              <td>Monday</td>
-              <td>5:30–7:20pm</td>
+              <td><strong>Mon · Jul 06</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Zoom</td>
-              <td>Intro and data streaming</td>
-              <td>Course setup and Demo 01</td>
+              <td>Course Introduction and Environment Setup</td>
+              <td>Course introduction and Demo 00 environment setup</td>
             </tr>
             <tr>
               <td>2</td>
-              <td>Jul 09, 2026</td>
-              <td>Thursday</td>
-              <td>5:30–7:20pm</td>
-              <td><span class="tag in-person">In person</span></td>
-              <td>101 Howard, Classroom 529</td>
-              <td>Apache Kafka Pt. 1</td>
-              <td>Architecture, setup, topics, producers</td>
+              <td><strong>Thu · Jul 09</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
+              <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
+              <td>Kafka Topics and Producers</td>
+              <td>Demo 01 topic creation and Demo 02 producers</td>
             </tr>
             <tr>
               <td>3</td>
-              <td>Jul 13, 2026</td>
-              <td>Monday</td>
-              <td>5:30–7:20pm</td>
+              <td><strong>Mon · Jul 13</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Zoom</td>
-              <td>Apache Kafka Pt. 2</td>
-              <td>Consumers; Demo 03A–03D on Confluent Cloud</td>
+              <td>Kafka Consumers</td>
+              <td>Consumer concepts and Demo 03A–03D on Confluent Cloud</td>
             </tr>
             <tr>
               <td>4</td>
-              <td>Jul 16, 2026</td>
-              <td>Thursday</td>
-              <td>5:30–7:20pm</td>
-              <td><span class="tag in-person">In person</span></td>
-              <td>101 Howard, Classroom 529</td>
-              <td>Apache Kafka Pt. 3</td>
-              <td>Data contracts, Pydantic validation, Avro, Schema Registry, and Demo 04A–04D; Assignment 1 extended deadline Jul 21, 11:59pm</td>
+              <td><strong>Thu · Jul 16</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
+              <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
+              <td>Data Contracts and Streaming Architecture</td>
+              <td>Pydantic, Avro, Schema Registry, and Demo 04A–04D; Assignment 1 extended to Jul 21, 11:59pm PDT</td>
             </tr>
             <tr>
               <td>5</td>
-              <td>Jul 20, 2026</td>
-              <td>Monday</td>
-              <td>5:30–7:20pm</td>
+              <td><strong>Mon · Jul 20</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Zoom</td>
               <td>Streaming APIs and Data Schemas Pt. 2</td>
               <td>FastAPI, REST API, and schema-aware producer/consumer integration</td>
             </tr>
             <tr>
               <td>6</td>
-              <td>Jul 23, 2026</td>
-              <td>Thursday</td>
-              <td>5:30–7:20pm</td>
-              <td><span class="tag in-person">In person</span></td>
-              <td>101 Howard, Classroom 529</td>
+              <td><strong>Thu · Jul 23</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
+              <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
               <td>Kafka Connect and stream processing</td>
-              <td>Connectors, demo; Assignment 2 due Jul 25, 11:59pm</td>
+              <td>Connectors and demo; Assignment 2 due Jul 25, 11:59pm PDT</td>
             </tr>
             <tr>
               <td>7</td>
-              <td>Jul 27, 2026</td>
-              <td>Monday</td>
-              <td>5:30–7:20pm</td>
+              <td><strong>Mon · Jul 27</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Zoom</td>
               <td>Stream processing and final project requirements</td>
               <td>Demo, ksqlDB Pt. 1, joins, tables, streams</td>
             </tr>
             <tr>
               <td>8</td>
-              <td>Jul 30, 2026</td>
-              <td>Thursday</td>
-              <td>5:30–7:20pm</td>
-              <td><span class="tag in-person">In person</span></td>
-              <td>101 Howard, Classroom 529</td>
+              <td><strong>Thu · Jul 30</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
+              <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
               <td>ksqlDB Pt. 2</td>
-              <td>Windowing, aggregation, querying basics; project proposal due Aug 01, 11:59pm</td>
+              <td>Windowing, aggregation, querying basics; project proposal due Aug 01, 11:59pm PDT</td>
             </tr>
             <tr>
               <td>9</td>
-              <td>Aug 03, 2026</td>
-              <td>Monday</td>
-              <td>5:30–7:20pm</td>
+              <td><strong>Mon · Aug 03</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Zoom</td>
-              <td>Data pipelines / Airflow</td>
-              <td>Orchestration concepts and Airflow demo</td>
+              <td>Data pipelines / optional Airflow</td>
+              <td>Orchestration concepts and an optional Airflow demo</td>
             </tr>
             <tr>
               <td>10</td>
-              <td>Aug 06, 2026</td>
-              <td>Thursday</td>
-              <td>5:30–7:20pm</td>
-              <td><span class="tag in-person">In person</span></td>
-              <td>101 Howard, Classroom 529</td>
+              <td><strong>Thu · Aug 06</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
+              <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
               <td>Kafka + AI systems</td>
               <td>RAG, memory, evals, guardrails, project examples</td>
             </tr>
             <tr>
               <td>11</td>
-              <td>Aug 10, 2026</td>
-              <td>Monday</td>
-              <td>5:30–7:20pm</td>
+              <td><strong>Mon · Aug 10</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Zoom</td>
               <td>Final review and project workshop</td>
               <td>Course review, project troubleshooting, begin presentations if needed</td>
             </tr>
             <tr>
               <td>12</td>
-              <td>Aug 13, 2026</td>
-              <td>Thursday</td>
-              <td>5:30–7:20pm</td>
-              <td><span class="tag in-person">In person</span></td>
-              <td>101 Howard, Classroom 529</td>
-              <td>Project presentation</td>
-              <td>In-person presentations, concluding remarks; report/code due Aug 14, 11:59pm</td>
+              <td><strong>Thu · Aug 13</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
+              <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
+              <td>Final class and project presentations</td>
+              <td>Presentation timing will be confirmed on Canvas; report/code due Aug 14, 11:59pm PDT</td>
             </tr>
           </tbody>
         </table>
@@ -171,26 +133,26 @@ const pages = {
   "/assignments": {
     title: "Assignments",
     body: `
-      <p class="lede">There are two individual assignments and one final project. Canvas is the official submission platform; the Canvas link will be provided at the first class. Homework, projects, and final project materials must be submitted as ZIP files on Canvas.</p>
+      <p class="lede">There are two individual assignments and one final project. <a href="https://usfca.instructure.com/courses/1633704" target="_blank" rel="noopener">Canvas</a> is the official submission platform; submit homework and final-project materials there as ZIP files.</p>
       <div class="assignment-list">
         <article class="assignment-card">
           <h3>Assignment 1</h3>
-          <p>Use real Confluent Cloud Kafka to complete Demo 02A–02D: sync-style producer, async producer, performance comparison, and serialization. The base assignment is 20 points, with up to 3 extra-credit points. Disclose AI assistance if used.</p>
-          <p><span class="tag">Extended deadline: Tue Jul 21, 2026 · 11:59pm PDT · 20 + up to 3 extra credit</span></p>
+          <p>Use real Confluent Cloud Kafka to complete Demo 02A–02D: sync-style producer, async producer, performance comparison, and serialization. The assignment is worth 20% of the course grade and is graded out of 20 base points, with up to 3 extra-credit points. Disclose AI assistance if used.</p>
+          <p><span class="tag">Extended deadline: Tue Jul 21, 2026 · 11:59pm PDT · 20 points + up to 3 extra credit · 20% course weight</span></p>
           <p><a class="download-link" href="#/handouts/assignment01">Open Assignment 1</a> · <a href="handouts/assignment01-starter.zip">Download student starter</a></p>
         </article>
         <article class="assignment-card">
           <h3>Assignment 2</h3>
-          <p>Individual assignment worth 20% of the course grade. Focus: FastAPI routes, Pydantic models, multiple logical streams, a replay or scheduler entrypoint, and a local processor output.</p>
-          <p><span class="tag">Due Jul 25, 2026 · 11:59pm</span></p>
+          <p>Individual assignment graded out of 20 points and worth 20% of the course grade. Focus: FastAPI routes, Pydantic models, multiple logical streams, a replay or scheduler entrypoint, and a local processor output.</p>
+          <p><span class="tag">Due Jul 25, 2026 · 11:59pm PDT · 20 points · 20% course weight</span></p>
         </article>
         <article class="assignment-card">
           <h3>Final Project</h3>
           <p>Final project worth 50% total: proposal 10%, written report/code 20%, presentation 20%. Projects may be completed individually or in two-person teams; individual projects are always allowed.</p>
           <div class="milestone-list">
-            <div><strong>Proposal</strong><span>Due Aug 01, 2026 · 11:59pm</span></div>
-            <div><strong>Report/code</strong><span>Due Aug 14, 2026 · 11:59pm</span></div>
-            <div><strong>Presentation</strong><span>Date TBA</span></div>
+            <div><strong>Proposal</strong><span>Due Aug 01, 2026 · 11:59pm PDT</span></div>
+            <div><strong>Report/code</strong><span>Due Aug 14, 2026 · 11:59pm PDT</span></div>
+            <div><strong>Presentation</strong><span>Timing will be announced on Canvas</span></div>
           </div>
         </article>
       </div>
@@ -200,7 +162,7 @@ const pages = {
         <li><a href="https://usfca.instructure.com/courses/1633704" target="_blank" rel="noopener">Canvas course page</a>; USF login may be required.</li>
         <li>Late submissions are not accepted unless prior approval has been granted by the instructor.</li>
         <li>GitHub is used for code management, collaboration, and portfolio development.</li>
-        <li>AI tools, coding agents, open-source resources, and online references are permitted with clear attribution and explanation.</li>
+        <li>AI tools, coding agents, open-source resources, and online references are permitted with clear attribution. Students must understand and verify submitted work and use another method when an AI tool cannot resolve the problem reliably.</li>
         <li>For two-person final projects, each student must document individual contributions and be able to explain the design, code, AI usage, and evaluation results.</li>
       </ul>
     `
@@ -253,7 +215,7 @@ const pages = {
         <div class="meta-row"><strong>Attendance</strong><span>Mandatory attendance for every lecture.</span></div>
         <div class="meta-row"><strong>Laptops</strong><span>Please keep laptops closed during lecture unless instructed otherwise. During demos, exercises, or Python practice, laptops may be required.</span></div>
         <div class="meta-row"><strong>Late work</strong><span>Late submissions are not accepted unless prior approval has been granted by the instructor.</span></div>
-        <div class="meta-row"><strong>Generative AI</strong><span>Comprehensive use of generative AI tools is permitted with appropriate attribution and explanation.</span></div>
+        <div class="meta-row"><strong>Generative AI</strong><span>AI tools are permitted with appropriate attribution. Students remain responsible for understanding and verifying the work, recognizing unreliable output, and switching prompts, context, tools, or non-AI methods when needed.</span></div>
       </div>
     `
   },
@@ -272,7 +234,7 @@ const pages = {
           <h3>Annie Chiu</h3>
           <p>Course assistant</p>
           <p><a href="mailto:ychiu14@usfca.edu">ychiu14@usfca.edu</a></p>
-          <p>Office hours: N/A.</p>
+          <p>Office hours: not currently scheduled; email for assistance.</p>
         </article>
       </div>
     `
@@ -322,111 +284,123 @@ const handouts = [
   {
     slug: "syllabus",
     section: "course",
+    category: "Syllabus",
     title: "Final Syllabus",
     kind: "pdf",
     file: "assets/msds-682-syllabus.pdf",
     createdAt: "Created at 4:36 PM PDT on July 3, 2026",
     lastUpdatedAt: "Last updated at 4:36 PM PDT on July 3, 2026",
-    summary: "Official Simple Syllabus PDF for MSDS 682-01 Data Stream Processing."
+    summary: "Official syllabus covering course outcomes, grading, policies, and schedule."
   },
   {
     slug: "demo00",
     section: "lec1",
+    category: "Demo",
     title: "Demo 00: Environment Setup",
     kind: "md",
     file: "handouts/demo00.md",
     createdAt: "Created at 3:17 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 3:17 AM PDT on July 9, 2026",
-    summary: "Step-by-step first local run: create a Python environment, install packages, run the environment check, and inspect the JSON artifact."
+    lastUpdatedAt: "Last updated at 2:06 PM PDT on July 13, 2026",
+    summary: "Create the Python environment, install dependencies, and verify the first local run."
   },
   {
     slug: "demo01",
     section: "lec2",
+    category: "Demo",
     title: "Demo 01: Create a Kafka Topic",
     kind: "md",
     file: "handouts/demo01.md",
     createdAt: "Created at 4:46 PM PDT on July 6, 2026",
-    lastUpdatedAt: "Last updated at 1:32 PM PDT on July 9, 2026",
-    summary: "Step-by-step Confluent Cloud topic creation with Python AdminClient, .env credentials, idempotent topic creation, and a safe JSON report."
+    lastUpdatedAt: "Last updated at 2:06 PM PDT on July 13, 2026",
+    summary: "Create the shared Confluent Cloud topic safely with AdminClient and secret-free evidence."
   },
   {
     slug: "demo02",
     section: "lec2",
+    category: "Demo",
     title: "Demo 02: Kafka Producer",
     kind: "md",
     file: "handouts/demo02.md",
     createdAt: "Created at 3:49 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 1:32 PM PDT on July 9, 2026",
-    summary: "Producer core demos over the Demo 01 trip topic: sync-style producer, async producer, async-vs-sync comparison, and serialization."
+    lastUpdatedAt: "Last updated at 2:06 PM PDT on July 13, 2026",
+    summary: "Run sync-style and async producers, benchmark delivery, and serialize trip events."
   },
   {
     slug: "lec2-topic-vs-table",
     section: "lec2",
+    category: "Slides",
     title: "Lecture 2: Kafka Topics and Producers",
     kind: "html",
     file: "handouts/lec2-topic-vs-table.html",
     createdAt: "Created at 1:48 AM PDT on July 9, 2026",
-    lastUpdatedAt: "Last updated at 4:55 PM PDT on July 13, 2026",
+    lastUpdatedAt: "Last updated at 4:40 PM PDT on July 13, 2026",
     wide: true,
     standalone: true,
-    summary: "Canonical Summer 2026 Lecture 2 HTML slides: topic vs table, topic creation, producer behavior, sync vs async, real Confluent results, serialization, inherited producer options, and client-side batching."
+    summary: "Topics, producers, serialization, real Confluent results, and client-side batching."
   },
   {
     slug: "assignment01",
     section: "lec2",
+    category: "Assignment",
     title: "Assignment 1: Confluent Cloud Kafka Producer Performance Analysis",
     kind: "md",
     file: "handouts/assignment01.md",
     createdAt: "Created at 12:24 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 1:23 PM PDT on July 13, 2026",
-    summary: "Required real-Confluent producer assignment with a student starter, Demo 02A–02D, a 2,000-message-per-strategy benchmark designed for a shorter run, strategic AI-use disclosure, and up to 3 extra-credit points."
+    lastUpdatedAt: "Last updated at 1:31 PM PDT on July 13, 2026",
+    summary: "Real-Confluent producer benchmark using Demo 02A–02D, plus AI-use disclosure."
   },
   {
     slug: "lec3-consumers",
     section: "lec3",
+    category: "Slides",
     title: "Lecture 3: Kafka Consumers",
     kind: "html",
     file: "handouts/lec3-consumers.html",
     createdAt: "Created at 4:09 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 4:33 PM PDT on July 16, 2026",
+    lastUpdatedAt: "Last updated at 4:36 PM PDT on July 16, 2026",
     wide: true,
     standalone: true,
-    summary: "Canonical Summer 2026 Lecture 3 HTML slides: consumer offsets and groups, commit and replay, Demo 03A–03D alignment, AI engineering Q&A, environment layers, producer batching, and native asyncio."
+    summary: "Consumers, offsets, commits, groups, replay, batching, and native asyncio."
   },
   {
     slug: "demo03",
     section: "lec3",
+    category: "Demo",
     title: "Demo 03: Kafka Consumers on Confluent Cloud",
     kind: "md",
     file: "handouts/demo03.md",
     createdAt: "Created at 1:57 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 2:48 PM PDT on July 16, 2026",
-    summary: "Real Confluent consumer sequence over the shared trip topic: bounded poll loop, manual offset commits and resume, consumer groups and replay, plus native asyncio producer/consumer clients."
+    lastUpdatedAt: "Last updated at 2:55 PM PDT on July 16, 2026",
+    summary: "Bounded consumers, manual commits, group replay, and native asyncio on Confluent Cloud."
   },
   {
     slug: "demo04",
     section: "lec4",
+    category: "Demo",
     title: "Demo 04: Data Contracts, Avro, and Schema Registry",
     kind: "md",
     file: "handouts/demo04.md",
     createdAt: "Created at 2:35 PM PDT on July 16, 2026",
-    lastUpdatedAt: "Last updated at 2:48 PM PDT on July 16, 2026",
-    summary: "Pydantic validation, local Avro and mock Registry resolution, plus bounded real-Confluent standard-client and native-async extensions."
+    lastUpdatedAt: "Last updated at 3:53 PM PDT on July 16, 2026",
+    summary: "Pydantic validation, Avro serialization, Schema Registry, and bounded Cloud extensions."
   },
   {
     slug: "lec4-ridesharing-architecture",
     section: "lec4",
+    category: "Supplement",
     title: "Lecture 4 Supplement: Ridesharing Streaming Architecture",
     kind: "md",
     file: "handouts/lec4-ridesharing-architecture-supplement.md",
     createdAt: "Created at 2:35 PM PDT on July 16, 2026",
-    lastUpdatedAt: "Last updated at 2:48 PM PDT on July 16, 2026",
+    lastUpdatedAt: "Last updated at 2:55 PM PDT on July 16, 2026",
     wide: true,
-    summary: "Optional architecture case study connecting consumer groups, data contracts, derived topics, stateful joins, replay, and production trade-offs."
+    summary: "Ridesharing case study on groups, derived topics, joins, replay, and trade-offs."
   }
   // PDF example (uncomment and add the file to publish):
   // {
   //   slug: "week1-slides",
+  //   section: "lec1",
+  //   category: "Slides",
   //   title: "Week 1 Slides",
   //   kind: "pdf",
   //   file: "handouts/week1-slides.pdf",
@@ -449,32 +423,50 @@ function handoutMetaHtml(h) {
     .join("");
 }
 
-function handoutCardHtml(h, section, position, total) {
+function handoutListMeta(h) {
+  const full = [h.createdAt, h.lastUpdatedAt].filter(Boolean).join(" · ");
+  const compact = h.lastUpdatedAt
+    ? h.lastUpdatedAt.replace(/^Last updated at .* on /, "Updated ")
+    : "";
+  return {
+    compact,
+    full
+  };
+}
+
+function handoutCardHtml(h) {
   const href = h.kind === "pdf" ? h.file : `#/handouts/${h.slug}`;
   const target = h.kind === "pdf" ? ' target="_blank" rel="noopener"' : "";
-  const badge = h.kind === "pdf" ? "PDF" : h.kind === "html" ? "HTML" : "Markdown";
-  const action = h.kind === "pdf" ? "Download PDF" : "Open handout";
-  const orderLabel = section.id === "course"
-    ? "Course document"
-    : `${section.label} · ${position + 1} of ${total}`;
+  const titleId = `handout-title-${h.slug}`;
+  const summaryId = `handout-summary-${h.slug}`;
+  const targetNoteId = `handout-target-${h.slug}`;
+  const describedBy = h.kind === "pdf" ? `${summaryId} ${targetNoteId}` : summaryId;
+  const listMeta = handoutListMeta(h);
+  const arrow = h.kind === "pdf" ? "↗" : "→";
   return `
-    <article class="handout-card">
-      <p class="handout-order">${escapeHtml(orderLabel)}</p>
-      <div class="handout-card-head">
-        <h4><a href="${href}"${target}>${escapeHtml(h.title)}</a></h4>
-        <span class="tag">${badge}</span>
-      </div>
-      <p>${escapeHtml(h.summary)}</p>
-      <p class="handout-meta">${handoutMetaHtml(h)}</p>
-      <p class="handout-actions"><a class="download-link" href="${href}"${target}>${action}</a></p>
-    </article>`;
+    <li class="handout-card">
+      <a class="handout-card-link" href="${href}"${target}
+         aria-labelledby="${escapeHtml(titleId)}"
+         aria-describedby="${escapeHtml(describedBy)}">
+        <span class="handout-type">${escapeHtml(h.category)}</span>
+        <div class="handout-copy">
+          <h4 class="handout-title" id="${escapeHtml(titleId)}">${escapeHtml(h.title)}</h4>
+          <span class="handout-summary" id="${escapeHtml(summaryId)}">${escapeHtml(h.summary)}</span>
+          ${h.kind === "pdf" ? `<span class="sr-only" id="${escapeHtml(targetNoteId)}">Opens PDF in a new tab.</span>` : ""}
+        </div>
+        <span class="handout-tail">
+          <time class="handout-updated" title="${escapeHtml(listMeta.full)}" aria-label="${escapeHtml(listMeta.full)}">${escapeHtml(listMeta.compact)}</time>
+          <span class="handout-arrow" aria-hidden="true">${arrow}</span>
+        </span>
+      </a>
+    </li>`;
 }
 
 function handoutSectionHtml(section) {
   const sectionHandouts = handouts.filter((h) => h.section === section.id);
   if (!sectionHandouts.length) return "";
   const cards = sectionHandouts
-    .map((h, index) => handoutCardHtml(h, section, index, sectionHandouts.length))
+    .map(handoutCardHtml)
     .join("");
   return `
     <section class="handout-section" aria-labelledby="handout-section-${escapeHtml(section.id)}">
@@ -485,7 +477,7 @@ function handoutSectionHtml(section) {
           <p>${escapeHtml(section.summary)}</p>
         </div>
       </header>
-      <div class="handout-list">${cards}</div>
+      <ol class="handout-list">${cards}</ol>
     </section>`;
 }
 
@@ -500,7 +492,14 @@ function handoutsListBody() {
 
 const fallbackRoute = "/";
 const content = document.querySelector("#content");
+const skipLink = document.querySelector(".skip-link");
 const navLinks = [...document.querySelectorAll(".nav a")];
+
+skipLink.addEventListener("click", (event) => {
+  event.preventDefault();
+  content.scrollIntoView({ block: "start" });
+  content.focus({ preventScroll: true });
+});
 
 function parseRoute() {
   const hash = window.location.hash.replace(/^#/, "") || fallbackRoute;
@@ -533,7 +532,7 @@ function renderStatic(route) {
   const page = route === "/handouts"
     ? { title: "Handouts", body: handoutsListBody() }
     : pages[route];
-  content.className = route === "/schedule" ? "content wide" : "content";
+  content.className = ["/schedule", "/handouts"].includes(route) ? "content wide" : "content";
   content.innerHTML = `<h2>${page.title}</h2>${page.body}`;
   document.title = `${page.title} - MSDS 682`;
 }
@@ -571,6 +570,40 @@ function addCopyCodeButtons(root) {
   });
 }
 
+function headingSlug(text) {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[’'`]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "section";
+}
+
+function prepareHandoutNavigation(root) {
+  const used = new Map();
+  root.querySelectorAll("h1, h2, h3, h4").forEach((heading) => {
+    if (!heading.id) {
+      const base = headingSlug(heading.textContent.trim());
+      const count = used.get(base) || 0;
+      used.set(base, count + 1);
+      heading.id = count ? `${base}-${count + 1}` : base;
+    }
+  });
+
+  root.querySelectorAll('a[href^="#"]:not([href^="#/"])').forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const rawId = link.getAttribute("href").slice(1);
+      const target = document.getElementById(decodeURIComponent(rawId));
+      if (!target || !root.contains(target)) return;
+      event.preventDefault();
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      target.setAttribute("tabindex", "-1");
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      target.focus({ preventScroll: true });
+    });
+  });
+}
+
 async function renderHandout(slug) {
   const meta = handouts.find((h) => h.slug === slug);
   const backLink = '<p class="back-link"><a href="#/handouts">&larr; All handouts</a></p>';
@@ -604,6 +637,7 @@ async function renderHandout(slug) {
       : window.marked ? window.marked.parse(source) : `<pre>${escapeHtml(source)}</pre>`;
     const articleClass = meta.wide ? "handout handout-wide" : "handout";
     content.innerHTML = `${backLink}<article class="${articleClass}">${html}</article>`;
+    prepareHandoutNavigation(content);
     if (window.hljs) {
       content.querySelectorAll("pre code").forEach((el) => window.hljs.highlightElement(el));
     }
@@ -617,6 +651,9 @@ async function renderHandout(slug) {
 
 async function render() {
   const parsed = parseRoute();
+  const isHome = parsed.kind === "static" && parsed.route === "/";
+  document.body.classList.toggle("route-home", isHome);
+  document.body.classList.toggle("route-internal", !isHome);
   setActiveNav(parsed.nav);
 
   if (parsed.kind === "handout") {
