@@ -83,6 +83,11 @@ def run_validation() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for case in validation_cases():
         try:
+            # ====================================================================
+            # KEY CONCEPT
+            # Test every payload at the same JSON -> Pydantic boundary used by an
+            # application. A plain Python dictionary does not prove the contract.
+            # ====================================================================
             event = TripEventV1.model_validate_json(json.dumps(case["payload"]))
             actual_pass = True
             errors: list[dict[str, Any]] = []
