@@ -1,11 +1,13 @@
-apscheduler
-confluent-kafka[avro,schemaregistry]
-fastmcp
-fastapi
-httpx
-matplotlib
-pandas
-pydantic
-python-dotenv
-pytest
-uvicorn
+# MSDS 682 Summer 2026 public demo baseline
+# Python baseline: 3.11.14
+apscheduler==3.11.3
+confluent-kafka[avro,schemaregistry]==2.15.0
+fastmcp==3.4.2
+fastapi==0.139.0
+httpx==0.28.1
+matplotlib==3.11.0
+pandas==3.0.3
+pydantic==2.13.4
+python-dotenv==1.2.2
+pytest==9.1.1
+uvicorn==0.50.0
