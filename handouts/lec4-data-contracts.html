@@ -1,0 +1,2539 @@
+<!doctype html>
+<!-- Derived concise teaching variant. Content baseline SHA-256: d12b7ff5a5c8f9f6baf6cbed30db06ca8907b8d2985f49eeb033c591ec845240. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MSDS 682 Summer 2026 Lecture 4 slides: data contracts, Pydantic validation, Avro, Schema Registry, compatibility, and modern Python serdes.">
+  <title>MSDS 682 · Lecture 4 · Data Contracts · Concise</title>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #6f7480;
+      --line: #e4e5e1;
+      --accent: #3565f2;
+      --accent-soft: #eef1fe;
+      --green: #0e7f66;
+      --green-soft: #e7f3f0;
+      --amber: #a26706;
+      --amber-soft: #fff4dc;
+      --red: #d83b42;
+      --red-soft: #fdf0ef;
+      --log-a: #252a35;
+      --log-b: #171b24;
+      --panel: #ffffff;
+      --code-bg: #fafafa;
+      --code-line: #e9eae7;
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+      --shadow: 0 8px 28px rgba(22, 24, 29, .045);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    body { overflow-x: hidden; }
+
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      place-items: center;
+      padding: 3vh 3vw;
+      position: relative;
+    }
+
+    .frame {
+      width: min(1360px, 92vw);
+    }
+
+    .frame.narrow { width: min(1160px, 88vw); }
+
+    .kicker {
+      margin: 0 0 9px;
+      color: var(--muted);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 700;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    .kicker b { color: var(--accent); }
+
+    h1 {
+      margin: 0 0 7px;
+      font-size: clamp(32px, 2.4vw, 47px);
+      font-weight: 740;
+      letter-spacing: -.024em;
+      line-height: 1.08;
+    }
+
+    .hero h1 {
+      max-width: 1050px;
+      font-size: clamp(52px, 4.25vw, 82px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 1.45vw, 28px);
+      line-height: 1.18;
+    }
+
+    h3 {
+      margin: 0 0 7px;
+      font-size: clamp(16px, 1.12vw, 22px);
+      line-height: 1.25;
+    }
+
+    p, li, td, th {
+      font-size: clamp(16px, 1.05vw, 21px);
+      line-height: 1.48;
+    }
+
+    .subtitle {
+      margin: 0 0 2.5vh;
+      color: var(--muted);
+      font-size: clamp(17px, 1.25vw, 24px);
+      line-height: 1.45;
+    }
+
+    .subtitle strong { color: var(--ink); }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: clamp(18px, 1.8vw, 30px);
+      box-shadow: var(--shadow);
+    }
+
+    .card.flat { box-shadow: none; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(16px, 1.7vw, 28px);
+      align-items: stretch;
+    }
+
+    .grid2.wide-left { grid-template-columns: 1.45fr .85fr; }
+    .grid2.wide-right { grid-template-columns: .85fr 1.45fr; }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(14px, 1.45vw, 24px);
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(12px, 1.25vw, 20px);
+    }
+
+    .stack { display: grid; gap: clamp(12px, 1.4vh, 18px); }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .bodycopy {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .bodycopy strong { color: var(--ink); }
+
+    .compact-list {
+      margin: 10px 0 0;
+      padding-left: 1.15em;
+    }
+
+    .compact-list li { margin: 0 0 7px; color: var(--muted); }
+    .compact-list li:last-child { margin-bottom: 0; }
+    .compact-list strong { color: var(--ink); }
+
+    .callout {
+      margin-top: clamp(14px, 1.7vh, 22px);
+      border: 1px solid #d6ddfb;
+      border-radius: 11px;
+      background: var(--accent-soft);
+      padding: 13px 18px;
+      color: #2b3a67;
+      font-size: clamp(15px, .98vw, 19px);
+      line-height: 1.46;
+    }
+
+    .callout strong { color: var(--ink); }
+    .callout.green { background: var(--green-soft); border-color: #c6e3dc; color: #185c4d; }
+    .callout.amber { background: var(--amber-soft); border-color: #f0dca9; color: #714b0b; }
+    .callout.red { background: var(--red-soft); border-color: #f0c9c7; color: #8f292e; }
+
+    .caption {
+      margin: 2vh auto 0;
+      max-width: 1120px;
+      color: var(--muted);
+      text-align: center;
+      font-size: clamp(14px, .95vw, 18px);
+      line-height: 1.5;
+    }
+
+    .caption strong { color: var(--ink); }
+
+    .pager {
+      position: absolute;
+      right: 3vw;
+      bottom: 16px;
+      color: #a3a7af;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .12em;
+    }
+
+    .nav-hint {
+      position: fixed;
+      z-index: 10;
+      left: 18px;
+      bottom: 14px;
+      color: rgba(111, 116, 128, .78);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .04em;
+      pointer-events: none;
+    }
+
+    code, .mono { font-family: var(--mono); }
+
+    code.inline {
+      border-radius: 5px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 2px 7px;
+      font-size: .88em;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 6px 12px;
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .pill.green { background: var(--green-soft); color: var(--green); }
+    .pill.amber { background: var(--amber-soft); color: var(--amber); }
+    .pill.red { background: var(--red-soft); color: var(--red); }
+
+    .codecard {
+      overflow-x: auto;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #1f2430, #171b24);
+      padding: clamp(16px, 1.6vw, 25px);
+      box-shadow: 0 9px 26px rgba(22, 24, 29, .08);
+    }
+
+    .codecard pre {
+      margin: 0;
+      color: #ccd3de;
+      font-family: var(--mono);
+      font-size: clamp(13px, .88vw, 17px);
+      line-height: 1.62;
+      white-space: pre;
+    }
+
+    .codecard.tight pre { font-size: clamp(12px, .8vw, 15.5px); line-height: 1.5; }
+    .codecard .kw { color: #8fb0f7; }
+    .codecard .fn { color: #f7f8fa; font-weight: 700; }
+    .codecard .str { color: #8fd3b6; }
+    .codecard .cm { color: #737c8b; }
+    .codecard .num { color: #e2b878; }
+    .codecard .hi { color: #ff9a9d; font-weight: 700; }
+
+    .command {
+      border: 1px solid var(--code-line);
+      border-radius: 9px;
+      background: var(--code-bg);
+      padding: 10px 13px;
+      color: #3e4652;
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 16px);
+      line-height: 1.48;
+      overflow-wrap: anywhere;
+    }
+
+    .command strong { color: var(--accent); }
+
+    .flowline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: clamp(8px, .7vw, 12px);
+      margin: clamp(14px, 1.8vh, 22px) 0;
+    }
+
+    .flow-node {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 10px 14px;
+      color: #3c4350;
+      font-family: var(--mono);
+      font-size: clamp(12px, .86vw, 16.5px);
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(22, 24, 29, .035);
+    }
+
+    .flow-node.accent { border-color: #bfcdf8; background: #f5f8ff; color: var(--accent); }
+    .flow-node.green { border-color: #bddfd7; background: #f2faf8; color: var(--green); }
+    .flow-node.red { border-color: #efc5c3; background: #fff7f6; color: var(--red); }
+    .arrow { color: #a8acb4; font-size: clamp(18px, 1.4vw, 26px); }
+
+    .topic-log {
+      border-radius: 15px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: clamp(14px, 1.4vw, 22px);
+    }
+
+    .partition {
+      display: grid;
+      grid-template-columns: 86px repeat(7, 1fr);
+      gap: 7px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .partition:last-child { margin-bottom: 0; }
+
+    .partition-label {
+      color: #aeb6c4;
+      font-family: var(--mono);
+      font-size: clamp(11px, .78vw, 14px);
+      font-weight: 700;
+    }
+
+    .record {
+      min-height: 48px;
+      border-radius: 8px;
+      background: #f5f6f8;
+      display: grid;
+      place-items: center;
+      color: #424a57;
+      font-family: var(--mono);
+      font-size: clamp(11px, .76vw, 14px);
+      font-weight: 700;
+      position: relative;
+    }
+
+    .record.dim { opacity: .38; }
+    .record.processed { background: #dff3ed; color: var(--green); }
+    .record.current { box-shadow: inset 0 0 0 3px var(--accent); color: var(--accent); }
+    .record.replay { box-shadow: inset 0 0 0 3px var(--red); color: var(--red); }
+
+    .record small {
+      position: absolute;
+      top: 3px;
+      left: 5px;
+      color: #a0a5ae;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .owner-row {
+      display: grid;
+      grid-template-columns: 145px 1fr 145px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .owner-row:last-child { margin-bottom: 0; }
+
+    .member {
+      border: 1px solid #ccd5f5;
+      border-radius: 9px;
+      background: #f4f7ff;
+      padding: 9px 11px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(12px, .8vw, 15px);
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .member.idle { border-color: #e0e1de; background: #f7f7f5; color: #a0a4ac; }
+
+    .mini-partitions {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .mini-partitions span {
+      flex: 1;
+      border-radius: 7px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: 9px 6px;
+      color: #f4f5f8;
+      font-family: var(--mono);
+      font-size: clamp(11px, .78vw, 14px);
+      text-align: center;
+    }
+
+    .state-key {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .state-key div {
+      border-radius: 9px;
+      background: var(--code-bg);
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: clamp(14px, .92vw, 18px);
+    }
+
+    .state-key b { display: block; color: var(--ink); margin-bottom: 3px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border-radius: 13px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: clamp(9px, .85vw, 14px) clamp(10px, 1vw, 16px);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f0f1ee;
+      color: #555c67;
+      font-size: clamp(12px, .82vw, 15px);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    td { color: var(--muted); }
+    td strong { color: var(--ink); }
+    td code { color: var(--accent); font-size: .88em; }
+
+    .decision {
+      display: grid;
+      grid-template-columns: 1fr 70px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .decision-question {
+      border: 2px solid #cbd5f7;
+      border-radius: 16px;
+      background: #f7f9ff;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .decision-question b {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(17px, 1.2vw, 23px);
+    }
+
+    .decision-branches { display: grid; gap: 10px; }
+
+    .branch {
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--green);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 12px 15px;
+    }
+
+    .branch.no { border-left-color: var(--amber); }
+    .branch strong { display: block; margin-bottom: 2px; }
+    .branch span { color: var(--muted); font-size: clamp(14px, .92vw, 18px); }
+
+    .commit-card {
+      border-top: 5px solid var(--accent);
+      height: 100%;
+    }
+
+    .commit-card.green { border-top-color: var(--green); }
+    .commit-card.amber { border-top-color: var(--amber); }
+
+    .commit-card ul {
+      margin: 11px 0 0;
+      padding-left: 1.1em;
+    }
+
+    .commit-card li { margin-bottom: 7px; color: var(--muted); }
+
+    .step-list {
+      display: grid;
+      gap: 10px;
+      counter-reset: steps;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 11px;
+      align-items: start;
+      counter-increment: steps;
+    }
+
+    .step::before {
+      content: counter(steps);
+      width: 31px;
+      height: 31px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .step p { margin: 2px 0 0; color: var(--muted); }
+    .step strong { color: var(--ink); }
+
+    .env-stack {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    .env-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 13px 10px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: clamp(11px, .76vw, 14px);
+      color: #4b5260;
+    }
+
+    .env-box b { display: block; margin-bottom: 4px; color: var(--accent); }
+
+    .demo-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-card::after {
+      content: attr(data-demo);
+      position: absolute;
+      right: -5px;
+      top: -13px;
+      color: rgba(53, 101, 242, .07);
+      font-family: var(--mono);
+      font-size: 76px;
+      font-weight: 800;
+    }
+
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 13px;
+    }
+
+    .evidence {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .evidence h3 { color: var(--accent); font-family: var(--mono); }
+    .evidence p { margin: 0; color: var(--muted); font-size: clamp(14px, .92vw, 18px); }
+
+    .async-lanes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .lane {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    .lane h3 { display: flex; justify-content: space-between; align-items: center; }
+
+    .lane-flow {
+      display: grid;
+      grid-template-columns: 1fr 32px 1fr 32px 1fr;
+      gap: 6px;
+      align-items: center;
+      margin-top: 15px;
+    }
+
+    .lane-step {
+      min-height: 68px;
+      border-radius: 8px;
+      background: var(--code-bg);
+      display: grid;
+      place-items: center;
+      padding: 8px;
+      color: #505866;
+      font-family: var(--mono);
+      font-size: clamp(11px, .74vw, 14px);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .lane-step.green { background: var(--green-soft); color: var(--green); }
+
+    .source-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px 14px;
+      margin-top: 18px;
+    }
+
+    .source-row a {
+      color: var(--accent);
+      font-size: clamp(12px, .82vw, 15px);
+      text-decoration: none;
+    }
+
+    .source-row a:hover { text-decoration: underline; }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 20px;
+    }
+
+    .hero-visual {
+      margin-top: clamp(28px, 4.5vh, 52px);
+      display: grid;
+      grid-template-columns: 1fr 120px 1.1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .hero-box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 19px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-box strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: clamp(16px, 1.1vw, 21px);
+    }
+
+    .hero-box span { color: var(--muted); font-size: clamp(14px, .92vw, 18px); }
+    .hero-arrow { text-align: center; color: var(--accent); font-size: 48px; }
+
+    .final-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .final-q {
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 14px 17px;
+      box-shadow: var(--shadow);
+    }
+
+    .final-q b { display: block; margin-bottom: 3px; }
+    .final-q span { color: var(--muted); font-size: clamp(14px, .94vw, 18px); }
+
+    .qa-lead {
+      border-left: 5px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      background: var(--panel);
+      padding: 17px 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .qa-lead p { margin: 0; color: var(--muted); }
+    .qa-lead strong { color: var(--ink); }
+
+    .qa-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(14px, 1.45vw, 23px);
+      align-items: stretch;
+    }
+
+    .qa-list {
+      margin: 8px 0 0;
+      padding-left: 1.25em;
+    }
+
+    .qa-list li {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: clamp(15px, .96vw, 19px);
+      line-height: 1.42;
+    }
+
+    .qa-list li:last-child { margin-bottom: 0; }
+    .qa-list strong { color: var(--ink); }
+
+    .answer-banner {
+      margin: 10px 0 17px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      padding: 14px 19px;
+      color: #2b3a67;
+      font-size: clamp(17px, 1.12vw, 22px);
+      line-height: 1.4;
+    }
+
+    .answer-banner strong { color: var(--accent); }
+
+    .tool-answer {
+      max-width: 980px;
+      margin: 4vh auto 0;
+      border-top: 5px solid var(--accent);
+      border-radius: 15px;
+      background: var(--panel);
+      padding: clamp(28px, 3vw, 48px);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .tool-answer p {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(24px, 1.75vw, 34px);
+      line-height: 1.42;
+    }
+
+    .ai-role-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(12px, 1.2vw, 19px);
+    }
+
+    .ai-role-grid .card { padding: clamp(16px, 1.45vw, 23px); }
+    .ai-role-grid .bodycopy { font-size: clamp(14px, .9vw, 18px); }
+
+    .choice-table td:first-child {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .choice-table td:nth-child(2) { background: #f5f8ff; }
+    .choice-table tr:last-child td:nth-child(2) { color: var(--accent); font-weight: 750; }
+
+    .course-overview {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: clamp(17px, 1.8vw, 29px);
+      align-items: stretch;
+    }
+
+    .roadmap-phases {
+      display: grid;
+      gap: 10px;
+    }
+
+    .roadmap-phase {
+      border-left: 5px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      background: var(--panel);
+      padding: 12px 15px;
+      box-shadow: var(--shadow);
+    }
+
+    .roadmap-phase.green { border-left-color: var(--green); }
+    .roadmap-phase.amber { border-left-color: var(--amber); }
+    .roadmap-phase h3 { margin-bottom: 4px; }
+    .roadmap-phase p { margin: 0; color: var(--muted); font-size: clamp(13px, .84vw, 16.5px); line-height: 1.4; }
+
+    .schema-map {
+      display: grid;
+      grid-template-columns: 1fr 88px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .schema-app {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .schema-app h3 { color: var(--accent); text-align: center; }
+    .schema-app.consumer h3 { color: var(--green); }
+
+    .schema-step {
+      border-radius: 8px;
+      background: var(--code-bg);
+      padding: 8px 9px;
+      color: #4c5461;
+      font-family: var(--mono);
+      font-size: clamp(11px, .72vw, 13.5px);
+      font-weight: 700;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .schema-down { color: #9ca2ad; text-align: center; font-size: 19px; line-height: 1.05; }
+
+    .schema-kafka {
+      border-radius: 13px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: 19px 7px;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: clamp(12px, .78vw, 15px);
+      font-weight: 750;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    @media (max-width: 950px) {
+      section.slide { padding: 38px 24px 50px; }
+      .frame, .frame.narrow { width: 94vw; }
+      .grid4, .grid3, .evidence-grid, .env-stack { grid-template-columns: 1fr 1fr; }
+      .grid2, .grid2.wide-left, .grid2.wide-right, .async-lanes, .hero-visual, .qa-two-col, .course-overview { grid-template-columns: 1fr; }
+      .hero-arrow { transform: rotate(90deg); }
+      .decision { grid-template-columns: 1fr; }
+      .decision > .arrow { transform: rotate(90deg); text-align: center; }
+      .partition { grid-template-columns: 68px repeat(7, minmax(44px, 1fr)); }
+    }
+
+    @media print {
+      html { scroll-snap-type: none; }
+      section.slide { min-height: 100vh; break-after: page; }
+      .nav-hint { display: none; }
+    }
+
+
+    /* ---------- Lecture 4 additions ---------- */
+    .contract-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+    .contract-step {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--panel);
+      padding: 14px 12px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .contract-step b {
+      display: block;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(12px, .8vw, 15px);
+      margin-bottom: 5px;
+    }
+    .contract-step span {
+      color: var(--muted);
+      font-size: clamp(13px, .88vw, 17px);
+      line-height: 1.42;
+    }
+    .wire {
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--log-a), var(--log-b));
+      padding: 17px;
+      display: grid;
+      grid-template-columns: 90px 170px 1fr;
+      gap: 9px;
+      align-items: stretch;
+      color: #f7f8fa;
+      font-family: var(--mono);
+    }
+    .wire > div {
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 9px;
+      padding: 14px 10px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: clamp(12px, .84vw, 16px);
+    }
+    .wire .magic { background: #2d477e; }
+    .wire .id { background: #315a50; }
+    .wire .body { background: #303541; }
+    .schema-code {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: clamp(16px, 1.7vw, 28px);
+      align-items: stretch;
+    }
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(12px, 1.25vw, 20px);
+    }
+    .layer-card {
+      border-top: 5px solid var(--accent);
+      min-height: 100%;
+    }
+    .layer-card.green { border-top-color: var(--green); }
+    .layer-card.amber { border-top-color: var(--amber); }
+    .layer-card.red { border-top-color: var(--red); }
+    .compare-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: clamp(24px, 2vw, 38px);
+      font-weight: 800;
+    }
+    .version-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .version-box h3 { color: var(--accent); font-family: var(--mono); }
+    .version-box.new h3 { color: var(--green); }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr 1fr;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: clamp(12px, .78vw, 15px);
+      color: var(--muted);
+    }
+    .field-row:last-child { border-bottom: 0; }
+    .field-row b { color: var(--ink); }
+    .field-row.added { background: var(--green-soft); border-radius: 7px; padding: 8px; color: var(--green); }
+    .tiny { font-size: clamp(12px, .78vw, 15px); line-height: 1.42; }
+    .api-label {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 750;
+      margin-bottom: 8px;
+    }
+    .demo-sequence {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 13px;
+    }
+    .demo-sequence .card { min-height: 240px; }
+    .demo-sequence .eyebrow { font-size: 13px; }
+    .demo-sequence .bodycopy { font-size: clamp(14px, .9vw, 18px); }
+    .source-small a { font-size: 12px; }
+
+    .module-toc {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(10px, 1.1vw, 17px);
+      align-items: stretch;
+    }
+    .module-toc-card {
+      --module-color: var(--accent);
+      position: relative;
+      display: flex;
+      min-height: 250px;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-top: 6px solid var(--module-color);
+      border-radius: 15px;
+      background: var(--panel);
+      padding: clamp(17px, 1.55vw, 24px);
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      transition: transform .16s ease, box-shadow .16s ease;
+    }
+    .module-toc-card:hover,
+    .module-toc-card:focus-visible {
+      transform: translateY(-3px);
+      box-shadow: 0 13px 32px rgba(22, 24, 29, .09);
+      outline: none;
+    }
+    .module-toc-card[data-module-number="2"] { --module-color: var(--green); }
+    .module-toc-card[data-module-number="3"] { --module-color: var(--amber); }
+    .module-toc-card[data-module-number="4"] { --module-color: var(--red); }
+    .module-toc-card[data-module-number="5"] { --module-color: #6b4bc4; }
+    .module-toc-number {
+      color: var(--module-color);
+      font-family: var(--mono);
+      font-size: clamp(22px, 1.7vw, 31px);
+      font-weight: 800;
+      line-height: 1;
+    }
+    .module-toc-title {
+      margin: 0;
+      font-size: clamp(18px, 1.25vw, 24px);
+      line-height: 1.14;
+    }
+    .module-toc-subsections {
+      display: grid;
+      gap: 5px;
+      margin: 3px 0 0;
+      padding: 10px 0 0;
+      border-top: 1px solid var(--line);
+      list-style: none;
+    }
+    .module-toc-subsections li {
+      color: var(--muted);
+      font-size: clamp(11px, .7vw, 13px);
+      line-height: 1.28;
+    }
+    .module-toc-subsections b {
+      color: var(--module-color);
+      font-family: var(--mono);
+      font-size: .92em;
+    }
+
+    section.module-divider {
+      --module-color: var(--accent);
+      --module-soft: var(--accent-soft);
+      background: linear-gradient(135deg, var(--module-soft), var(--bg) 66%);
+    }
+    section.module-divider[data-module-number="2"] {
+      --module-color: var(--green);
+      --module-soft: var(--green-soft);
+    }
+    section.module-divider[data-module-number="3"] {
+      --module-color: var(--amber);
+      --module-soft: var(--amber-soft);
+    }
+    section.module-divider[data-module-number="4"] {
+      --module-color: var(--red);
+      --module-soft: var(--red-soft);
+    }
+    section.module-divider[data-module-number="5"] {
+      --module-color: #6b4bc4;
+      --module-soft: #f2eefe;
+    }
+    .module-divider .frame { width: min(1220px, 90vw); }
+    .module-divider-shell {
+      display: grid;
+      grid-template-columns: minmax(190px, .34fr) 1fr;
+      gap: clamp(28px, 4vw, 66px);
+      align-items: center;
+    }
+    .module-marker {
+      display: grid;
+      align-content: center;
+      min-height: 330px;
+      border-right: 1px solid color-mix(in srgb, var(--module-color) 25%, transparent);
+    }
+    .module-index {
+      color: var(--module-color);
+      font-family: var(--mono);
+      font-size: clamp(70px, 8vw, 132px);
+      font-weight: 850;
+      letter-spacing: -.08em;
+      line-height: .82;
+    }
+    .module-label {
+      margin-top: 18px;
+      color: var(--module-color);
+      font-family: var(--mono);
+      font-size: clamp(12px, .85vw, 16px);
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .module-divider h1 {
+      max-width: 900px;
+      color: var(--ink);
+      font-size: clamp(43px, 4vw, 74px);
+      letter-spacing: -.042em;
+      line-height: 1;
+    }
+    .module-question {
+      max-width: 930px;
+      margin-bottom: clamp(19px, 2.2vh, 30px);
+      color: var(--module-color);
+      font-size: clamp(20px, 1.48vw, 29px);
+      font-weight: 650;
+    }
+    .module-outcomes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(11px, 1.2vw, 18px);
+    }
+    .module-outcome {
+      border: 1px solid color-mix(in srgb, var(--module-color) 22%, var(--line));
+      border-radius: 11px;
+      background: rgba(255, 255, 255, .82);
+      padding: 14px 16px;
+      color: var(--muted);
+      font-size: clamp(13px, .88vw, 17px);
+      line-height: 1.42;
+    }
+    .module-outcome strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: .82em;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .module-subsection-list {
+      display: grid;
+      grid-template-columns: repeat(var(--subsection-count, 3), minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .module-subsection-chip {
+      border-radius: 9px;
+      background: color-mix(in srgb, var(--module-color) 9%, white);
+      padding: 9px 11px;
+      color: var(--muted);
+      font-size: clamp(11px, .73vw, 14px);
+      line-height: 1.32;
+    }
+    .module-subsection-chip b {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--module-color);
+      font-family: var(--mono);
+      font-size: .88em;
+    }
+    .recap-loop {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 9px;
+      margin: 2.2vh 0;
+    }
+    .recap-step {
+      position: relative;
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--accent);
+      border-radius: 11px;
+      background: var(--panel);
+      padding: 15px 10px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .recap-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -13px;
+      z-index: 2;
+      color: var(--accent);
+      font-weight: 850;
+      transform: translateY(-50%);
+    }
+    .recap-step b {
+      display: block;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: clamp(13px, .9vw, 17px);
+    }
+    .recap-step span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: clamp(11px, .72vw, 14px);
+      line-height: 1.3;
+    }
+    .presentation-table td,
+    .presentation-table th {
+      padding: clamp(8px, .72vw, 12px);
+    }
+    .presentation-table td {
+      font-size: clamp(13px, .86vw, 17px);
+      line-height: 1.34;
+    }
+    .presentation-table tr.recommended td { background: #eaf7f2; }
+    .proposal-keyword {
+      display: inline-block;
+      margin-bottom: 4px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      padding: 3px 8px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: .78em;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .recommended .proposal-keyword {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+    .arch-flow {
+      display: grid;
+      gap: 10px;
+      align-items: stretch;
+      margin: 2vh 0;
+    }
+    .arch-flow.three { grid-template-columns: 1fr 42px 1.4fr 42px 1fr; }
+    .arch-flow.five { grid-template-columns: 1fr 30px 1.2fr 30px 1fr 30px 1.15fr 30px 1fr; }
+    .arch-node {
+      display: grid;
+      align-content: center;
+      min-height: 132px;
+      border: 1px solid var(--line);
+      border-top: 6px solid var(--accent);
+      border-radius: 13px;
+      background: var(--panel);
+      padding: 15px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .arch-node.group { border-top-color: var(--green); }
+    .arch-node.output { border-top-color: var(--amber); }
+    .arch-node.registry { border-top-color: #6b4bc4; background: #f7f4ff; }
+    .arch-node.join { border-top-color: var(--red); }
+    .arch-label {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: clamp(10px, .66vw, 12px);
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .arch-node h3 { margin: 5px 0; font-size: clamp(15px, 1vw, 19px); }
+    .arch-node p { margin: 0; color: var(--muted); font-size: clamp(12px, .78vw, 15px); line-height: 1.34; }
+    .arch-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      font-size: clamp(22px, 1.8vw, 34px);
+      font-weight: 850;
+    }
+    .arch-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .arch-chip {
+      border-radius: 999px;
+      background: var(--accent-soft);
+      padding: 6px 11px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(10px, .66vw, 12px);
+      font-weight: 800;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+    .arch-chip.good { background: var(--green-soft); color: var(--green); }
+    .arch-chip.warn { background: var(--amber-soft); color: var(--amber); }
+    .arch-chip.risk { background: var(--red-soft); color: var(--red); }
+    .branch-flow { display: grid; gap: 9px; margin: 1.5vh auto; max-width: 1180px; }
+    .branch-flow > .arch-node { min-height: 86px; }
+    .branch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .branch-lane {
+      display: grid;
+      grid-template-columns: 1fr 34px 1fr;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .branch-lane .arch-node { min-height: 108px; }
+    .arch-down {
+      color: var(--accent);
+      font-size: 25px;
+      font-weight: 850;
+      line-height: 1;
+      text-align: center;
+    }
+    .registry-bridge {
+      display: grid;
+      grid-template-columns: minmax(220px, .55fr) 1.45fr;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 13px;
+    }
+    .registry-bridge .arch-node { min-height: 96px; }
+    @media (max-width: 950px) {
+      .contract-strip, .layer-grid, .demo-sequence, .module-toc { grid-template-columns: 1fr 1fr; }
+      .schema-code { grid-template-columns: 1fr; }
+      .wire { grid-template-columns: 1fr; }
+      .module-divider-shell { grid-template-columns: 1fr; gap: 20px; }
+      .module-marker {
+        min-height: auto;
+        border-right: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--module-color) 25%, transparent);
+        padding-bottom: 18px;
+      }
+      .module-index { font-size: 58px; }
+      .module-label { margin-top: 9px; }
+      .module-outcomes { grid-template-columns: 1fr; }
+      .module-subsection-list, .recap-loop { grid-template-columns: 1fr 1fr; }
+      .branch-grid { grid-template-columns: 1fr; }
+      .arch-flow.three, .arch-flow.five, .branch-lane, .registry-bridge { grid-template-columns: 1fr; }
+      .arch-arrow { transform: rotate(90deg); }
+    }
+    @media (max-width: 620px) {
+      .module-toc { grid-template-columns: 1fr; }
+      .module-toc-card { min-height: 0; }
+    }
+</style>
+</head>
+<body>
+  <div class="nav-hint">↓ / PageDown / Space · ↑ / PageUp · Home / End</div>
+
+  <section class="slide" id="course-arc-lec2-5">
+    <div class="frame">
+      <p class="kicker">Course arc · Lectures 2 to 5</p>
+      <h1>Four lectures, one data path</h1>
+      <p class="subtitle">Write bytes. Read them. Govern their meaning. Build an application.</p>
+      <div class="grid4">
+        <div class="card"><p class="eyebrow">Lecture 2</p><h2>Produce</h2><p class="bodycopy">Python object → Kafka bytes</p></div>
+        <div class="card"><p class="eyebrow">Lecture 3</p><h2>Consume</h2><p class="bodycopy">poll → process → commit</p></div>
+        <div class="card"><p class="eyebrow">Lecture 4</p><h2>Contract</h2><p class="bodycopy">Pydantic → Avro → Registry</p></div>
+        <div class="card"><p class="eyebrow">Lecture 5</p><h2>Integrate</h2><p class="bodycopy">FastAPI + schema-aware Kafka</p></div>
+      </div>
+      <div class="callout green"><strong>Today:</strong> define meaning, encode it, evolve it safely, prove it, then design with it.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lecture-path">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 4</p>
+      <h1>Today&rsquo;s map: five modules, one story</h1>
+      <p class="subtitle">From bytes to contracts to architecture.</p>
+      <nav class="module-toc" data-module-toc aria-label="Lecture 4 modules"></nav>
+      <div class="callout green"><strong>Path:</strong> define → encode → change safely → prove → design.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="recap-lecture3">
+    <div class="frame">
+      <p class="kicker">Prerequisite recap · Lecture 3</p>
+      <h1>Consumers turn Kafka records into durable progress</h1>
+      <p class="subtitle">The processing loop still applies when schemas are added.</p>
+      <div class="recap-loop">
+        <div class="recap-step"><b>subscribe</b><span>join group</span></div>
+        <div class="recap-step"><b>poll</b><span>receive</span></div>
+        <div class="recap-step"><b>decode</b><span>bytes → data</span></div>
+        <div class="recap-step"><b>validate</b><span>trust boundary</span></div>
+        <div class="recap-step"><b>process</b><span>business logic</span></div>
+        <div class="recap-step"><b>commit</b><span>restart point</span></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Work ownership</p>
+          <h2>Groups divide partitions</h2>
+          <p class="bodycopy">One active group member per partition. Different groups progress independently.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Progress</p>
+          <h2>Position is not committed offset</h2>
+          <p class="bodycopy">Position is current-session progress. Committed offset is the durable restart point.</p>
+        </div>
+      </div>
+      <div class="callout green"><strong>Lecture 4 adds:</strong> what the record means and how that meaning survives change.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-1-contracts"
+    data-module-number="1"
+    data-module-title="From Bytes to Contracts"
+    data-module-question="Why does a durable Kafka log still need an explicit data contract?"
+    data-module-start="s01"
+    data-module-end="s10">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div class="module-marker">
+          <div class="module-index" data-module-index>01</div>
+          <div class="module-label" data-module-label>Module</div>
+        </div>
+        <div>
+          <p class="kicker">Lecture 4 learning path</p>
+          <h1 id="module-1-title" data-module-heading>Module title</h1>
+          <p class="subtitle module-question" data-module-question-text>Module question</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Bridge</strong>Move from Kafka data flow to explicit data meaning.</div>
+            <div class="module-outcome"><strong>Layers</strong>Name the distinct jobs owned by Pydantic, Avro, Registry, and Kafka.</div>
+            <div class="module-outcome"><strong>Contract</strong>Document topic, key, value, time semantics, and ownership together.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide hero" id="s01" data-subsection-title="From data flow to data meaning">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · <b>Lecture 4</b></p>
+      <h1>Schemas turn bytes<br>into contracts</h1>
+      <p class="subtitle">Application validation, Avro, Schema Registry, compatibility, and modern Python serdes.</p>
+      <div class="hero-meta"><span class="pill">Python 3.11.14</span><span class="pill green">confluent-kafka 2.15.0</span></div>
+    <div class="hero-visual">
+      <div class="hero-box"><strong>Kafka retains bytes</strong><span>Topic, partition, offset, key, value, headers.</span></div>
+      <div class="hero-arrow">→</div>
+      <div class="hero-box"><strong>A contract gives those bytes meaning</strong><span>Fields, types, versions, compatibility, and application rules.</span></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s02">
+    <div class="frame">
+      <p class="kicker">Lecture 2 → Lecture 3 → Lecture 4</p>
+      <h1>We can move records; now we must agree on meaning</h1>
+      <p class="subtitle">Lecture 4 makes the producer-consumer data agreement explicit.</p>
+      <div class="grid3">
+      <div class="card"><p class="eyebrow">Lecture 2</p><h2>Write the log</h2><p class="bodycopy">Validate, encode, key, and produce.</p></div>
+      <div class="card"><p class="eyebrow">Lecture 3</p><h2>Read and own progress</h2><p class="bodycopy">Decode, validate, process, then commit.</p></div>
+      <div class="card"><p class="eyebrow">Lecture 4</p><h2>Publish a contract</h2><p class="bodycopy">Register Avro and evolve it safely.</p></div>
+    </div>
+    <div class="callout"><strong>Core question:</strong> how can independent deployments change without misreading data?</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s03">
+    <div class="frame">
+      <p class="kicker">Lecture outcome</p>
+      <h1>By the end, explain every layer of one event</h1>
+      <p class="subtitle">The goal is prediction and diagnosis, not memorizing Avro syntax.</p>
+      <div class="grid4">
+      <div class="card"><p class="eyebrow">Validate</p><h2>Application meaning</h2><p class="bodycopy">Identify what Pydantic accepts or rejects before Kafka.</p></div>
+      <div class="card"><p class="eyebrow">Encode</p><h2>Wire bytes</h2><p class="bodycopy">Trace object → Avro binary → Confluent framing.</p></div>
+      <div class="card"><p class="eyebrow">Coordinate</p><h2>Registry metadata</h2><p class="bodycopy">Distinguish topic, subject, schema ID, and version.</p></div>
+      <div class="card"><p class="eyebrow">Change safely</p><h2>Compatibility</h2><p class="bodycopy">Predict whether a previous writer schema and current reader schema can resolve.</p></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s04" data-subsection-title="Contract responsibilities and validation layers">
+    <div class="frame">
+      <p class="kicker">Implementation map</p>
+      <h1>One contract, four responsibilities</h1>
+      <p class="subtitle">The classroom stack uses explicit application validation, Avro bytes, Registry metadata, and clients suited to the host application.</p>
+      <table>
+      <thead><tr><th>Responsibility</th><th>Course implementation</th></tr></thead>
+      <tbody>
+        <tr><td>Application meaning</td><td>Strict <strong>Pydantic</strong> model plus lifecycle rules.</td></tr>
+        <tr><td>Wire contract</td><td><strong>.avsc schema</strong> plus Confluent-framed Avro binary.</td></tr>
+        <tr><td>Schema governance</td><td>Schema Registry subjects, IDs, versions, and compatibility; this lecture uses Avro.</td></tr>
+        <tr><td>Standard CLI path</td><td><code>Producer</code>/<code>Consumer</code> with explicit <code>AvroSerializer</code>/<code>AvroDeserializer</code>.</td></tr>
+        <tr><td>Existing event loop</td><td>Native <code>AIOProducer</code>/<code>AIOConsumer</code> plus async Registry serdes.</td></tr>
+        <tr><td>Event time</td><td>Timezone-aware UTC instants and Avro <code>timestamp-millis</code>.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s05">
+    <div class="frame">
+      <p class="kicker">The broker boundary</p>
+      <h1>Kafka sees bytes; applications see events</h1>
+      <p class="subtitle">A broker can route, retain, replicate, and return a value without knowing whether it represents a trip, payment, or model prediction.</p>
+      <div class="flowline">
+      <div class="flow-node">TripEvent object</div><div class="arrow">→</div>
+      <div class="flow-node accent">validated fields</div><div class="arrow">→</div>
+      <div class="flow-node green">serialized bytes</div><div class="arrow">→</div>
+      <div class="flow-node">Kafka record</div><div class="arrow">→</div>
+      <div class="flow-node accent">deserialized object</div>
+    </div>
+    <div class="grid3">
+      <div class="card flat"><p class="eyebrow">Kafka guarantees</p><p class="bodycopy">Record address, partition order, retention, replication, and delivery mechanics.</p></div>
+      <div class="card flat"><p class="eyebrow">Schema guarantees</p><p class="bodycopy">Field names, wire types, defaults, and reader/writer resolution.</p></div>
+      <div class="card flat"><p class="eyebrow">Application guarantees</p><p class="bodycopy">Business rules such as nonnegative fare and legal lifecycle transitions.</p></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s06">
+    <div class="frame">
+      <p class="kicker">Why free-form JSON becomes fragile</p>
+      <h1>An implicit contract works until teams deploy independently</h1>
+      <p class="subtitle">JSON syntax can be valid while the producer and consumer disagree on field name, type, or meaning.</p>
+      <div class="grid2">
+      <div class="codecard tight"><pre><span class="cm"># producer version A</span>
+{
+  <span class="str">"trip_id"</span>: <span class="str">"trip_1001"</span>,
+  <span class="str">"fare"</span>: <span class="num">23.40</span>,
+  <span class="str">"event_time"</span>: <span class="str">"2026-07-16T17:00:00Z"</span>
+}</pre></div>
+      <div class="codecard tight"><pre><span class="cm"># consumer silently assumes</span>
+{
+  <span class="str">"tripId"</span>: <span class="str">"..."</span>,
+  <span class="str">"fare"</span>: <span class="str">"23.40"</span>,
+  <span class="str">"event_time"</span>: <span class="num">epoch_seconds</span>
+}</pre></div>
+    </div>
+    <div class="callout red"><strong>Valid JSON is not enough.</strong> Without an explicit contract, drift may appear only after production data reaches a consumer.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s07">
+    <div class="frame">
+      <p class="kicker">Contract thinking</p>
+      <h1>A schema is a contract between producers and consumers</h1>
+      <p class="subtitle">The contract is useful because it makes assumptions inspectable, testable, versioned, and rejectable before deployment.</p>
+      <div class="contract-strip">
+      <div class="contract-step"><b>Names</b><span><code>trip_id</code>, not an undocumented alias</span></div>
+      <div class="contract-step"><b>Types</b><span>string, enum, timestamp, nullable double</span></div>
+      <div class="contract-step"><b>Presence</b><span>required fields and fields with defaults</span></div>
+      <div class="contract-step"><b>Evolution</b><span>which old/new reader-writer pairs resolve</span></div>
+      <div class="contract-step"><b>Governance</b><span>who may register or reject a version</span></div>
+    </div>
+    <div class="callout green"><strong>Schema does not update application code.</strong> It gives the team a compatibility gate and the client enough structure to decode bytes.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s08">
+    <div class="frame">
+      <p class="kicker">Four distinct layers</p>
+      <h1>“Schema validation” is not one operation</h1>
+      <p class="subtitle">Name the layer that accepted or rejected the data.</p>
+      <div class="layer-grid">
+      <div class="card layer-card"><p class="eyebrow">1 · Domain model</p><h2>Pydantic</h2><p class="bodycopy">Strict JSON input, patterns, ranges, cross-field rules, timezone awareness.</p></div>
+      <div class="card layer-card green"><p class="eyebrow">2 · Wire schema</p><h2>Avro</h2><p class="bodycopy">Record fields, Avro types, unions, logical types, writer/reader resolution.</p></div>
+      <div class="card layer-card amber"><p class="eyebrow">3 · Schema service</p><h2>Registry</h2><p class="bodycopy">Subjects, IDs, versions, compatibility configuration, lookup, cache support.</p></div>
+      <div class="card layer-card red"><p class="eyebrow">4 · Transport</p><h2>Kafka</h2><p class="bodycopy">Key/value bytes and metadata in a durable partitioned log.</p></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s09" data-subsection-title="Complete record and topic contracts">
+    <div class="frame">
+      <p class="kicker">Event contract surface</p>
+      <h1>The value schema is only one part of the record contract</h1>
+      <p class="subtitle">Document the topic, key, value, correlation, and time.</p>
+      <table>
+      <thead><tr><th>Part</th><th>Demo 04 decision</th><th>Why it matters</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Topic</strong></td><td><code>msds682.demo04.trip-events-avro.v1</code></td><td>Avro only; no JSON mixing.</td></tr>
+        <tr><td><strong>Key</strong></td><td>UTF-8 <code>trip_id</code></td><td>Routing and per-trip order, not deduplication.</td></tr>
+        <tr><td><strong>Value</strong></td><td>Confluent-framed Avro</td><td>Typed binary plus schema ID.</td></tr>
+        <tr><td><strong>Run correlation</strong></td><td>04C header; 04D expected <code>trip_id</code> keys</td><td>Find the current bounded run.</td></tr>
+        <tr><td><strong>Event time</strong></td><td>Aware UTC instant</td><td>No ambiguous local time.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s10">
+    <div class="frame">
+      <p class="kicker">Topic discipline</p>
+      <h1>Use one stable wire contract per teaching topic</h1>
+      <p class="subtitle">Kafka does not enforce this rule; engineering discipline does.</p>
+      <div class="grid2">
+      <div class="card"><p class="eyebrow">Good</p><h2>Dedicated Avro topic</h2><div class="command">msds682.demo04.trip-events-avro.v1</div><ul class="compact-list"><li>Every value uses the same framing family.</li><li>The subject follows the topic-name strategy.</li><li>Consumers know which deserializer belongs here.</li></ul></div>
+      <div class="card"><p class="eyebrow">Failure mode</p><h2>JSON and Avro mixed together</h2><div class="command">same topic: JSON bytes + Avro bytes</div><ul class="compact-list"><li>Broker accepts both because both are bytes.</li><li>One configured deserializer cannot interpret every value.</li><li>Operational diagnosis becomes much harder.</li></ul></div>
+    </div>
+    <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> Kafka stores bytes; the team defines and enforces one stable contract for each topic.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-2-avro-registry"
+    data-module-number="2"
+    data-module-title="Avro and Schema Registry"
+    data-module-question="How does a validated application object become governed bytes?"
+    data-module-start="s11"
+    data-module-end="s22">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div class="module-marker">
+          <div class="module-index" data-module-index>02</div>
+          <div class="module-label" data-module-label>Module</div>
+        </div>
+        <div>
+          <p class="kicker">Lecture 4 learning path</p>
+          <h1 id="module-2-title" data-module-heading>Module title</h1>
+          <p class="subtitle module-question" data-module-question-text>Module question</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Schema</strong>Read records, enums, unions, logical timestamps, and defaults.</div>
+            <div class="module-outcome"><strong>Wire</strong>Explain the magic byte, schema ID, and Avro binary body.</div>
+            <div class="module-outcome"><strong>Registry</strong>Distinguish topic, subject, schema ID, version, and naming strategy.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s11" data-subsection-title="Why Avro and Registry">
+    <div class="frame">
+      <p class="kicker">Format landscape</p>
+      <h1>Schema Registry is not “the Avro Registry”</h1>
+      <p class="subtitle">Avro, Protobuf, and JSON Schema are all valid Registry formats; Pydantic remains an application-validation tool.</p>
+      <table>
+      <thead><tr><th>Choice</th><th>Wire form</th><th>Strength</th><th>Typical trade-off</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Avro</strong></td><td>Binary; schema written as JSON</td><td>Writer/reader resolution and compact records</td><td>Less human-readable on the wire</td></tr>
+        <tr><td><strong>Protobuf</strong></td><td>Binary; <code>.proto</code></td><td>Strong code generation and gRPC ecosystem</td><td>Field-number discipline and generated types</td></tr>
+        <tr><td><strong>JSON Schema</strong></td><td>JSON text</td><td>Readable payloads and formal validation</td><td>Larger records and different evolution semantics</td></tr>
+        <tr><td><strong>Pydantic</strong></td><td>Application object / JSON boundary</td><td>Python business validation and normalization</td><td>Not a cross-language Kafka wire protocol by itself</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s12">
+    <div class="frame">
+      <p class="kicker">Why Avro in this lecture</p>
+      <h1>Avro makes schema evolution visible</h1>
+      <p class="subtitle">The learning objective is the writer/reader model, not claiming that every production team must choose Avro.</p>
+      <div class="grid4">
+      <div class="card flat"><p class="eyebrow">Compact</p><p class="bodycopy">Field names are not repeated in every binary record.</p></div>
+      <div class="card flat"><p class="eyebrow">Typed</p><p class="bodycopy">The reader knows whether data is a string, enum, logical timestamp, union, or double.</p></div>
+      <div class="card flat"><p class="eyebrow">Resolvable</p><p class="bodycopy">Writer and reader schemas can differ under defined rules.</p></div>
+      <div class="card flat"><p class="eyebrow">Registry-friendly</p><p class="bodycopy">A small schema ID connects Kafka bytes to a versioned schema service.</p></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s13" data-subsection-title="Read an Avro contract">
+    <div class="frame">
+      <p class="kicker">Correct representation</p>
+      <h1>The schema and the record are separate artifacts</h1>
+      <p class="subtitle">The schema is registered metadata; the Kafka value is Confluent framing plus Avro binary.</p>
+      <div class="grid2">
+      <div class="codecard tight"><pre><span class="cm">// trip_event_v1.avsc: registered schema</span>
+{
+  <span class="str">"type"</span>: <span class="str">"record"</span>,
+  <span class="str">"name"</span>: <span class="str">"TripEventV1"</span>,
+  <span class="str">"fields"</span>: [ ... ]
+}</pre></div>
+      <div class="codecard tight"><pre><span class="cm"># application record before serialization</span>
+{
+  <span class="str">"trip_id"</span>: <span class="str">"trip_1003"</span>,
+  <span class="str">"event_type"</span>: <span class="str">"trip_completed"</span>,
+  <span class="str">"fare"</span>: <span class="num">21.75</span>
+}</pre></div>
+    </div>
+    <div class="callout"><strong>Kafka value:</strong> Confluent framing + Avro binary. The complete <code>.avsc</code> text remains in Schema Registry.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s14">
+    <div class="frame">
+      <p class="kicker">Avro anatomy</p>
+      <h1>Read the schema as a record contract</h1>
+      <p class="subtitle">Focus on names, types, logical types, unions, and defaults.</p>
+      <div class="schema-code">
+      <div class="codecard tight"><pre>{
+  <span class="str">"type"</span>: <span class="str">"record"</span>,
+  <span class="str">"name"</span>: <span class="str">"TripEventV1"</span>,
+  <span class="str">"namespace"</span>: <span class="str">"edu.usf.msds682"</span>,
+  <span class="str">"fields"</span>: [
+    {<span class="str">"name"</span>: <span class="str">"trip_id"</span>, <span class="str">"type"</span>: <span class="str">"string"</span>},
+    {<span class="str">"name"</span>: <span class="str">"event_type"</span>, <span class="str">"type"</span>: {<span class="str">"type"</span>: <span class="str">"enum"</span>, ...}},
+    {<span class="str">"name"</span>: <span class="str">"event_time"</span>,
+     <span class="str">"type"</span>: {<span class="str">"type"</span>: <span class="str">"long"</span>, <span class="str">"logicalType"</span>: <span class="str">"timestamp-millis"</span>}},
+    {<span class="str">"name"</span>: <span class="str">"fare"</span>, <span class="str">"type"</span>: [<span class="str">"null"</span>, <span class="str">"double"</span>], <span class="str">"default"</span>: <span class="kw">null</span>}
+  ]
+}</pre></div>
+      <div class="stack">
+        <div class="card flat"><p class="eyebrow">Full name</p><p class="bodycopy"><code>edu.usf.msds682.TripEventV1</code></p></div>
+        <div class="card flat"><p class="eyebrow">Enum</p><p class="bodycopy">Finite event symbols prevent arbitrary strings on the wire.</p></div>
+        <div class="card flat"><p class="eyebrow">Logical type</p><p class="bodycopy">A numeric encoding with timestamp meaning.</p></div>
+        <div class="card flat"><p class="eyebrow">Union + default</p><p class="bodycopy">Supports nullable data and compatible reader resolution.</p></div>
+      </div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s15">
+    <div class="frame">
+      <p class="kicker">Optional fields</p>
+      <h1>Nullable, omittable, and defaulted are related, not identical</h1>
+      <p class="subtitle">Be precise about what the writer sends and what a reader does when a field is absent.</p>
+      <div class="grid2">
+      <div class="card"><p class="eyebrow">Nullable union</p><div class="command">"type": ["null", "string"]</div><p class="bodycopy" style="margin-top:10px;">The value may be <code>null</code> or a string. Union branch order matters when a default is supplied.</p></div>
+      <div class="card"><p class="eyebrow">Reader default</p><div class="command">"default": null</div><p class="bodycopy" style="margin-top:10px;">A reader can supply <code>null</code> when an older writer schema did not contain the new field.</p></div>
+    </div>
+    <div class="callout red"><strong>Do not teach:</strong> “adding <code>default</code> makes every producer rule optional.” The active writer schema and application model still determine what may be written.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s16">
+    <div class="frame">
+      <p class="kicker">Event time</p>
+      <h1>Use timezone-aware instants</h1>
+      <p class="subtitle">Streaming systems compare events from machines and regions; naive local time is ambiguous.</p>
+      <div class="grid2 wide-left">
+      <div class="codecard"><pre><span class="kw">from</span> datetime <span class="kw">import</span> UTC, datetime
+
+now = datetime.now(UTC)
+<span class="cm"># 2026-07-16T17:00:00+00:00</span>
+
+<span class="cm"># Pydantic: AwareDatetime</span>
+<span class="cm"># Avro: timestamp-millis logical type</span></pre></div>
+      <div class="stack">
+        <div class="card flat"><p class="eyebrow">Input</p><p class="bodycopy"><code>2026-07-16T17:05:00-07:00</code></p></div>
+        <div class="card flat"><p class="eyebrow">Normalized UTC</p><p class="bodycopy"><code>2026-07-17T00:05:00Z</code></p></div>
+        <div class="card flat"><p class="eyebrow">Derived downstream</p><p class="bodycopy">date = 2026-07-17 · hour = 0 · weekday = Friday</p></div>
+      </div>
+    </div>
+    <div class="callout amber"><strong>Python context:</strong> create timezone-aware instants with <code>datetime.now(UTC)</code> and preserve the offset at every application boundary.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s17" data-subsection-title="Object-to-wire transformation">
+    <div class="frame">
+      <p class="kicker">Serialization</p>
+      <h1>Objects become bytes; bytes become objects</h1>
+      <p class="subtitle">Producer and consumer must use compatible transformations.</p>
+      <div class="flowline">
+      <div class="flow-node">TripEventV1</div><div class="arrow">→</div>
+      <div class="flow-node accent">Pydantic validation</div><div class="arrow">→</div>
+      <div class="flow-node accent">to Avro dict</div><div class="arrow">→</div>
+      <div class="flow-node green">AvroSerializer</div><div class="arrow">→</div>
+      <div class="flow-node">Kafka bytes</div>
+    </div>
+    <div class="flowline">
+      <div class="flow-node">Kafka bytes</div><div class="arrow">→</div>
+      <div class="flow-node green">AvroDeserializer</div><div class="arrow">→</div>
+      <div class="flow-node accent">reader resolution</div><div class="arrow">→</div>
+      <div class="flow-node accent">Pydantic validation</div><div class="arrow">→</div>
+      <div class="flow-node">TripEventV1</div>
+    </div>
+    <div class="callout red"><strong>Serializer mismatch:</strong> an Avro producer plus a JSON/string consumer is a contract error, not a Kafka broker error.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s18">
+    <div class="frame">
+      <p class="kicker">Confluent wire format</p>
+      <h1>The payload references a schema ID</h1>
+      <p class="subtitle">Default framing keeps each record small while allowing the consumer to retrieve the writer schema.</p>
+      <div class="wire">
+      <div class="magic"><strong>magic byte</strong><br>0</div>
+      <div class="id"><strong>schema ID</strong><br>32-bit integer</div>
+      <div class="body"><strong>Avro binary body</strong><br>record encoded with the writer schema</div>
+    </div>
+    <div class="grid3" style="margin-top:18px;">
+      <div class="card flat"><p class="eyebrow">Not included</p><p class="bodycopy">The full schema text is not repeated in every Kafka record.</p></div>
+      <div class="card flat"><p class="eyebrow">Consumer action</p><p class="bodycopy">Read schema ID, use cache or Registry, then decode the Avro body.</p></div>
+      <div class="card flat"><p class="eyebrow">Kafka action</p><p class="bodycopy">Store and return the bytes without interpreting the header.</p></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s19" data-subsection-title="Registry identity and governance">
+    <div class="frame">
+      <p class="kicker">Schema Registry</p>
+      <h1>Registry manages schemas, not event data</h1>
+      <p class="subtitle">Kafka holds records. Registry holds contracts and governance metadata.</p>
+      <div class="grid2">
+      <div class="card"><p class="eyebrow">Schema Registry stores</p><ul class="compact-list"><li>schema text and schema type;</li><li>subject and version history;</li><li>schema IDs and lookups;</li><li>compatibility configuration;</li><li>references, metadata, and rules where used.</li></ul></div>
+      <div class="card"><p class="eyebrow">Schema Registry does not store</p><ul class="compact-list"><li>Kafka topic records;</li><li>consumer offsets;</li><li>producer delivery acknowledgements;</li><li>business processing results;</li><li>automatic application-code updates.</li></ul></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s20">
+    <div class="frame">
+      <p class="kicker">Vocabulary</p>
+      <h1>Topic, subject, schema ID, and version are different</h1>
+      <p class="subtitle">A correct diagram names each object precisely.</p>
+      <table>
+      <thead><tr><th>Term</th><th>Demo 04 example</th><th>Scope</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Topic</strong></td><td><code>msds682.demo04.trip-events-avro.v1</code></td><td>Kafka log</td></tr>
+        <tr><td><strong>Subject</strong></td><td><code>msds682.demo04.trip-events-avro.v1-value</code></td><td>Versioned Registry name</td></tr>
+        <tr><td><strong>Version</strong></td><td><code>1</code>, then <code>2</code></td><td>Position inside one subject</td></tr>
+        <tr><td><strong>Schema ID</strong></td><td>Registry-assigned integer</td><td>Identifier written into payload framing</td></tr>
+        <tr><td><strong>Record address</strong></td><td><code>(topic, partition, offset)</code></td><td>One Kafka record</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s21">
+    <div class="frame">
+      <p class="kicker">Subject naming</p>
+      <h1>The naming strategy controls where versions accumulate</h1>
+      <p class="subtitle">Demo 04 sets the strategy explicitly so the contract is visible.</p>
+      <div class="grid3">
+      <div class="card"><p class="eyebrow">TopicNameStrategy</p><h2><code>&lt;topic&gt;-value</code></h2><p class="bodycopy">One value subject per topic. Simple and common for a stable topic contract.</p></div>
+      <div class="card"><p class="eyebrow">RecordNameStrategy</p><h2><code>&lt;record-full-name&gt;</code></h2><p class="bodycopy">Subject follows the Avro record name; useful when records move across topics.</p></div>
+      <div class="card"><p class="eyebrow">TopicRecordNameStrategy</p><h2><code>&lt;topic&gt;-&lt;record&gt;</code></h2><p class="bodycopy">Separates multiple record names within a topic while preserving topic scope.</p></div>
+    </div>
+    <div class="callout"><strong>Demo 04:</strong> explicit <code>topic_subject_name_strategy</code> → <code>msds682.demo04.trip-events-avro.v1-value</code>.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s22">
+    <div class="frame">
+      <p class="kicker">Registration path</p>
+      <h1>Registration is not a per-record full-schema upload</h1>
+      <p class="subtitle">The serializer registers or looks up the schema, remembers the result, and writes the ID into subsequent values.</p>
+      <div class="contract-strip">
+      <div class="contract-step"><b>1</b><span>Compute subject from topic and field</span></div>
+      <div class="contract-step"><b>2</b><span>Register or look up writer schema</span></div>
+      <div class="contract-step"><b>3</b><span>Receive schema ID</span></div>
+      <div class="contract-step"><b>4</b><span>Cache subject/schema metadata</span></div>
+      <div class="contract-step"><b>5</b><span>Frame and encode each record</span></div>
+    </div>
+    <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> Schema Registry coordinates schema identity and evolution; each record carries a schema ID plus Avro bytes, not the full schema.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-3-evolution-validation"
+    data-module-number="3"
+    data-module-title="Evolution and Boundary Validation"
+    data-module-question="How can a contract change without silently changing meaning?"
+    data-module-start="s23"
+    data-module-end="s34">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div class="module-marker">
+          <div class="module-index" data-module-index>03</div>
+          <div class="module-label" data-module-label>Module</div>
+        </div>
+        <div>
+          <p class="kicker">Lecture 4 learning path</p>
+          <h1 id="module-3-title" data-module-heading>Module title</h1>
+          <p class="subtitle module-question" data-module-question-text>Module question</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Compatibility</strong>Predict BACKWARD and FORWARD reader/writer relationships.</div>
+            <div class="module-outcome"><strong>Resolution</strong>Explain how a V2 reader supplies a default for a V1 writer record.</div>
+            <div class="module-outcome"><strong>Boundary</strong>Separate Avro structure from Pydantic rules, then choose standard or AIO clients.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s23" data-subsection-title="Compatibility as a deployment gate">
+    <div class="frame">
+      <p class="kicker">Compatibility</p>
+      <h1>Compatibility is a deployment gate</h1>
+      <p class="subtitle">Before accepting a new schema version, Registry compares it with the configured history.</p>
+      <div class="decision">
+      <div class="decision-question"><b>New schema proposed</b><span class="bodycopy">subject version N+1</span></div>
+      <div class="arrow">→</div>
+      <div class="decision-branches">
+        <div class="branch"><strong>Compatible → register</strong><span>Clients can deploy under the chosen reader/writer promise.</span></div>
+        <div class="branch no"><strong>Incompatible → reject</strong><span>Change the schema, migration, subject, or rollout plan.</span></div>
+      </div>
+    </div>
+    <div class="callout amber"><strong>Compatibility is structural.</strong> A type-preserving change in business meaning may pass the Registry and still break users.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s24">
+    <div class="frame">
+      <p class="kicker">Compatibility modes</p>
+      <h1>Ask who must read whose data</h1>
+      <p class="subtitle">Backward and forward name reader/writer relationships.</p>
+      <table>
+      <thead><tr><th>Mode</th><th>Question</th><th>Typical rollout implication</th></tr></thead>
+      <tbody>
+        <tr><td><strong>BACKWARD</strong></td><td>New reader reads previous writer data?</td><td>Readers first, then writers.</td></tr>
+        <tr><td><strong>FORWARD</strong></td><td>Previous reader reads new writer data?</td><td>New writers may coexist with old readers.</td></tr>
+        <tr><td><strong>FULL</strong></td><td>Do both directions resolve?</td><td>Stricter mixed-version coexistence.</td></tr>
+        <tr><td><strong>TRANSITIVE</strong></td><td>Compare against all earlier versions?</td><td>Protect longer retention and replay.</td></tr>
+      </tbody>
+    </table>
+    <p class="caption">Inspect the effective subject setting; do not assume a default.</p>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s25" data-subsection-title="Writer and reader resolution">
+    <div class="frame">
+      <p class="kicker">Writer and reader schemas</p>
+      <h1>The bytes were written with one schema and may be read with another</h1>
+      <p class="subtitle">Avro resolution is what makes compatible evolution concrete.</p>
+      <div class="grid2">
+      <div class="version-box"><h3>Writer schema V1</h3><div class="field-row"><b>trip_id</b><span>string</span><span>required</span></div><div class="field-row"><b>event_type</b><span>enum</span><span>required</span></div><div class="field-row"><b>fare</b><span>null | double</span><span>default null</span></div></div>
+      <div class="version-box new"><h3>Reader schema V2</h3><div class="field-row"><b>trip_id</b><span>string</span><span>from writer</span></div><div class="field-row"><b>event_type</b><span>enum</span><span>from writer</span></div><div class="field-row"><b>fare</b><span>null | double</span><span>from writer</span></div><div class="field-row added"><b>vehicle_type</b><span>null | string</span><span>reader default null</span></div></div>
+    </div>
+    <div class="callout green"><strong>Result:</strong> a V2 reader can reconstruct <code>vehicle_type=None</code> from a V1 record that never contained that field.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s26">
+    <div class="frame">
+      <p class="kicker">Safe evolution example</p>
+      <h1>Add an optional field with a usable default</h1>
+      <p class="subtitle">This is the version-1 writer / version-2 reader case used by Demo 04B.</p>
+      <div class="grid2 wide-left">
+      <div class="codecard tight"><pre><span class="cm">// V2 reader addition</span>
+{
+  <span class="str">"name"</span>: <span class="str">"vehicle_type"</span>,
+  <span class="str">"type"</span>: [<span class="str">"null"</span>, <span class="str">"string"</span>],
+  <span class="str">"default"</span>: <span class="kw">null</span>
+}</pre></div>
+      <div class="stack">
+        <div class="card flat"><p class="eyebrow">Old data</p><p class="bodycopy">No <code>vehicle_type</code> bytes were written.</p></div>
+        <div class="card flat"><p class="eyebrow">New reader</p><p class="bodycopy">Uses the declared default while resolving the record.</p></div>
+        <div class="card flat"><p class="eyebrow">Application</p><p class="bodycopy">Receives a typed V2 object with <code>vehicle_type=None</code>.</p></div>
+      </div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s27">
+    <div class="frame">
+      <p class="kicker">Breaking changes</p>
+      <h1>Not every field edit is an evolution</h1>
+      <p class="subtitle">Unsafe changes need migration, rollout coordination, or a new contract.</p>
+      <table>
+      <thead><tr><th>Change</th><th>Risk</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Required field, no default</td><td><span class="pill red">break</span></td><td>New reader cannot rebuild old data.</td></tr>
+        <tr><td>Rename without alias</td><td><span class="pill red">break</span></td><td>Reader sees a missing field.</td></tr>
+        <tr><td>Remove a retained enum symbol</td><td><span class="pill red">break</span></td><td>New reader cannot resolve it.</td></tr>
+        <tr><td><code>string</code> to unrelated record</td><td><span class="pill red">break</span></td><td>No resolution path.</td></tr>
+        <tr><td>Optional field + matching default</td><td><span class="pill green">usually safe</span></td><td>Reader supplies the older missing value.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s28">
+    <div class="frame">
+      <p class="kicker">Semantic change</p>
+      <h1>A compatible type can still carry incompatible meaning</h1>
+      <p class="subtitle">Registry cannot infer every business invariant.</p>
+      <div class="grid2">
+      <div class="card"><p class="eyebrow">Structurally valid Avro</p><div class="command">"fare": -10.0</div><p class="bodycopy" style="margin-top:10px;">The Avro field type is <code>double</code>. Negative is still a double.</p></div>
+      <div class="card"><p class="eyebrow">Application-invalid event</p><div class="command">fare = Field(ge=0)</div><p class="bodycopy" style="margin-top:10px;">Pydantic rejects the same decoded record before business processing or commit.</p></div>
+    </div>
+    <div class="callout red"><strong>Contract stack:</strong> Registry compatibility + Avro structural decoding + application validation + business processing.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s29" data-subsection-title="Pydantic and Avro boundaries">
+    <div class="frame">
+      <p class="kicker">Pydantic and Avro</p>
+      <h1>Use both at the boundary</h1>
+      <p class="subtitle">They solve different problems and reinforce each other.</p>
+      <table>
+      <thead><tr><th>Question</th><th>Pydantic V2</th><th>Avro</th></tr></thead>
+      <tbody>
+        <tr><td>Can Python accept this API/JSON input?</td><td><strong>Yes</strong></td><td>No</td></tr>
+        <tr><td>Can multiple languages share a binary Kafka contract?</td><td>Not by itself</td><td><strong>Yes</strong></td></tr>
+        <tr><td>Can it enforce regex, ranges, and cross-field rules?</td><td><strong>Yes</strong></td><td>Only limited structural constraints</td></tr>
+        <tr><td>Can it resolve writer V1 with reader V2?</td><td>Not a wire protocol</td><td><strong>Yes</strong></td></tr>
+        <tr><td>Should it run after deserialization?</td><td><strong>Yes</strong></td><td>Produces the structural record first</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s30">
+    <div class="frame">
+      <p class="kicker">Python models in 2026</p>
+      <h1>Dataclass remains valid; Pydantic is the course boundary model</h1>
+      <p class="subtitle">The choice is about validation needs, not whether one feature is “modern.”</p>
+      <div class="grid2">
+      <div class="card"><p class="eyebrow">dataclass</p><h2>Lightweight domain data</h2><ul class="compact-list"><li><code>@dataclass(kw_only=True)</code> removes positional default-order pressure.</li><li><code>slots=True</code> can reduce instance overhead.</li><li>Validation and JSON parsing require additional code or libraries.</li></ul></div>
+      <div class="card"><p class="eyebrow">Pydantic v2</p><h2>Boundary validation</h2><ul class="compact-list"><li>Strict JSON parsing and rich validation errors.</li><li>Timezone-aware datetime types and model validators.</li><li>Useful before serialization and after deserialization.</li></ul></div>
+    </div>
+    <div class="callout"><strong>Demo 04 decision:</strong> Pydantic owns application validation; Avro owns the cross-language wire schema.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s31">
+    <div class="frame">
+      <p class="kicker">Production/consumption separation</p>
+      <h1>Transmit source facts; derive reusable views downstream</h1>
+      <p class="subtitle">A consumer does not need every analytical field serialized into the event.</p>
+      <div class="grid2">
+      <div class="card"><p class="eyebrow">Producer sends</p><ul class="compact-list"><li><code>trip_id</code></li><li><code>event_type</code></li><li><code>event_time</code> as an aware instant</li><li><code>zone</code>, optional driver and fare</li></ul></div>
+      <div class="card"><p class="eyebrow">Consumer derives</p><ul class="compact-list"><li><code>event_date</code></li><li><code>event_hour</code></li><li><code>event_weekday</code></li><li>window, feature, or warehouse partition fields</li></ul></div>
+    </div>
+    <div class="callout green"><strong>Data enrichment:</strong> derived fields stay consistent with the source timestamp and do not bloat every event.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s32" data-subsection-title="Standard and AIO data paths">
+    <div class="frame">
+      <p class="kicker">Standard client data path</p>
+      <h1>Make both byte boundaries explicit</h1>
+      <p class="subtitle">Demo 04C contains the complete setup; here, trace only the record lifecycle that must remain correct.</p>
+      <div class="grid2 wide-left">
+      <div class="codecard tight"><pre>event = TripEventV1.model_validate(input_data)
+value_bytes = serializer(event, value_context)
+producer.produce(
+    topic, key=event_key(event), value=value_bytes
+)
+
+event = deserializer(message.value(), value_context)
+process(event)
+consumer.commit(message=message, asynchronous=<span class="kw">False</span>)</pre></div>
+      <div class="stack">
+        <div class="card flat"><span class="api-label">current path</span><p class="bodycopy">Direct serdes keep the byte boundary visible and work with the mature standard clients.</p></div>
+        <div class="card flat"><p class="eyebrow">Commit rule</p><p class="bodycopy">Deserialize Avro → validate application model → process → commit.</p></div>
+        <div class="card flat"><p class="eyebrow">Wire boundary</p><p class="bodycopy">The explicit serializer/deserializer pair makes object-to-bytes conversion visible.</p></div>
+      </div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s33">
+    <div class="frame">
+      <p class="kicker">Native asyncio path</p>
+      <h1>Use AIO only when the application already owns an event loop</h1>
+      <p class="subtitle">Demo 04D owns the full setup and bounded cleanup.</p>
+      <div class="grid2 wide-left">
+      <div class="codecard tight"><pre><span class="kw">await</span> assignment_ready.wait()
+
+value_bytes = <span class="kw">await</span> serializer(event, context)
+delivery_future = <span class="kw">await</span> producer.produce(
+    topic, key=event_key(event), value=value_bytes
+)
+<span class="kw">await</span> producer.flush()
+<span class="kw">await</span> delivery_future
+
+message = <span class="kw">await</span> consumer.poll(timeout=<span class="num">1.0</span>)
+event = <span class="kw">await</span> deserializer(message.value(), context)
+process(event)
+<span class="kw">await</span> consumer.commit(message=message, asynchronous=<span class="kw">False</span>)</pre></div>
+      <div class="stack">
+        <div class="card flat"><p class="eyebrow">Readiness</p><p class="bodycopy">Wait for real assignment, then match the bounded run by expected <code>trip_id</code> keys.</p></div>
+        <div class="card flat"><p class="eyebrow">Host application</p><p class="bodycopy">FastAPI or other nonblocking I/O shares one loop.</p></div>
+        <div class="callout red"><strong>Rule:</strong> standard <code>poll()</code> blocks; use AIO only when Kafka shares an event loop.</div>
+      </div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s34">
+    <div class="frame">
+      <p class="kicker">Current implementation checklist</p>
+      <h1>Six choices keep the data path explicit</h1>
+      <p class="subtitle">Use this when reading Demo 04.</p>
+      <table>
+      <thead><tr><th>Concern</th><th>Current choice</th></tr></thead>
+      <tbody>
+        <tr><td>Validation</td><td>Strict Pydantic before produce and after deserialize</td></tr>
+        <tr><td>Serialization</td><td>Direct Avro serializer/deserializer</td></tr>
+        <tr><td>Kafka value</td><td>Schema ID framing + Avro body</td></tr>
+        <tr><td>Client model</td><td>Standard CLI; native AIO for an existing event loop</td></tr>
+        <tr><td>Event time</td><td>Aware UTC + logical timestamp</td></tr>
+        <tr><td>Registry</td><td>Stores and governs schemas; serdes convert</td></tr>
+      </tbody>
+    </table>
+    <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> Compatibility protects wire readability; Pydantic protects application meaning.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-4-demo04"
+    data-module-number="4"
+    data-module-title="Demo 04: Prove Every Layer"
+    data-module-question="How do we prove the contract locally before adding Cloud?"
+    data-module-start="s35"
+    data-module-end="s38">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div class="module-marker">
+          <div class="module-index" data-module-index>04</div>
+          <div class="module-label" data-module-label>Module</div>
+        </div>
+        <div>
+          <p class="kicker">Lecture 4 learning path</p>
+          <h1 id="module-4-title" data-module-heading>Module title</h1>
+          <p class="subtitle module-question" data-module-question-text>Module question</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Local</strong>04A proves Pydantic validation; 04B uses a mock Registry for an Avro round trip.</div>
+            <div class="module-outcome"><strong>Cloud</strong>04C creates the dedicated Avro topic and runs a standard-client round trip.</div>
+            <div class="module-outcome"><strong>Async</strong>04D is the optional native-AIO extension after the topic exists.</div>
+          </div>
+          <div class="callout green"><strong>Direct prerequisite:</strong> no prior topic, data, or running producer is required. Use Python 3.11.14, <code>confluent-kafka==2.15.0</code>, and <code>pydantic==2.13.4</code>. Run 04A → 04B locally; 04C creates the Cloud topic; 04D reuses it.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s35" data-subsection-title="Local proof ladder">
+    <div class="frame">
+      <p class="kicker">Demo 04 storyline</p>
+      <h1>Four bounded proofs build one mental model</h1>
+      <p class="subtitle">Local first, Cloud second.</p>
+      <div class="demo-sequence">
+      <div class="card"><p class="eyebrow">04A · Local</p><h2>Application validation</h2><p class="bodycopy">Strict types, lifecycle rules, derived time fields.</p><div class="command">python demo04a_schema_validation.py</div></div>
+      <div class="card"><p class="eyebrow">04B · Local</p><h2>Avro round trip</h2><p class="bodycopy">Framing, round trip, V1 writer/V2 reader, mismatch.</p><div class="command">python demo04b_local_avro_roundtrip.py</div></div>
+      <div class="card"><p class="eyebrow">04C · Cloud</p><h2>Standard clients</h2><p class="bodycopy">Topic, Registry, round trip, validate, commit.</p><div class="command">python demo04c_confluent_avro_roundtrip.py --create-topic</div></div>
+      <div class="card"><p class="eyebrow">04D · Cloud</p><h2>Native asyncio</h2><p class="bodycopy">AIO + async serdes + real assignment event.</p><div class="command">python demo04d_asyncio_avro_roundtrip.py</div></div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s36">
+    <div class="frame">
+      <p class="kicker">Demo 04A–04B evidence</p>
+      <h1>The required baseline runs without credentials</h1>
+      <p class="subtitle">Local evidence should prove validation, framing, round trips, and reader evolution.</p>
+      <div class="grid2">
+      <div class="card"><p class="eyebrow">04A report</p><ul class="compact-list"><li>8 deterministic pass/fail cases;</li><li>normalized UTC timestamp;</li><li>derived date/hour/weekday;</li><li>stable Pydantic error locations and types.</li></ul><div class="command">outputs/runs/&lt;run-id&gt;/demo04a_schema_validation/report.json</div></div>
+      <div class="card"><p class="eyebrow">04B report</p><ul class="compact-list"><li>subject and registered schema ID;</li><li>magic byte and payload sizes;</li><li>V1 equality after round trip;</li><li>V2 reader default;</li><li>JSON mismatch and business-rule evidence.</li></ul><div class="command">outputs/runs/&lt;run-id&gt;/demo04b_local_avro_roundtrip/report.json</div></div>
+    </div>
+    <div class="callout green"><strong>Verification contract:</strong> local tests must pass before using Cloud credentials.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s37" data-subsection-title="Real Cloud evidence">
+    <div class="frame">
+      <p class="kicker">Demo 04C–04D evidence</p>
+      <h1>Cloud reports explain the real run without exposing secrets</h1>
+      <p class="subtitle">Topic, subject, schema ID, version, partition, offset, and counts are safe; credentials are not.</p>
+      <div class="evidence-grid">
+      <div class="evidence"><h3>Schema</h3><p>subject, schema ID, version, compatibility response</p></div>
+      <div class="evidence"><h3>Kafka</h3><p>assignment, partition, offset, key, delivered and consumed counts</p></div>
+      <div class="evidence"><h3>Wire</h3><p>magic byte, schema ID in each payload, byte lengths</p></div>
+      <div class="evidence"><h3>Safety</h3><p>hosts and credential-presence booleans, never credential values</p></div>
+    </div>
+    <div class="grid2" style="margin-top:18px;">
+      <div class="callout green" style="margin-top:0;"><strong>04C:</strong> standard client, synchronous post-validation commit.</div>
+      <div class="callout" style="margin-top:0;"><strong>04D:</strong> native AIO, assignment event, expected-key correlation, and awaited async serdes and commit.</div>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s38" data-subsection-title="Diagnose failures by layer">
+    <div class="frame">
+      <p class="kicker">Troubleshooting</p>
+      <h1>Diagnose the contract layer that failed</h1>
+      <p class="subtitle">Change one layer at a time.</p>
+      <table>
+      <thead><tr><th>Symptom</th><th>Likely layer</th><th>Direct action</th></tr></thead>
+      <tbody>
+        <tr><td>Missing `.env` values</td><td>Configuration</td><td>Fill Kafka and Registry credentials.</td></tr>
+        <tr><td>“Expecting data framing...”</td><td>Wire format</td><td>Confirm Avro serializer + Avro topic.</td></tr>
+        <tr><td>Registration denied</td><td>Registry auth</td><td>Check subject permissions.</td></tr>
+        <tr><td>Avro passes, Pydantic rejects</td><td>Application rules</td><td>Inspect the validation error.</td></tr>
+        <tr><td>AIO assignment timeout</td><td>Kafka access</td><td>Check topic, credentials, connectivity.</td></tr>
+        <tr><td>JSON consumer fails</td><td>Deserializer</td><td>Use Avro on the Avro topic.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> Prove locally, then add Cloud one layer at a time.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-5-ridesharing"
+    data-module-number="5"
+    data-module-title="Ridesharing Architecture Case Study"
+    data-module-question="Where should processing boundaries, state, and contracts live?"
+    data-module-start="ridesharing-problem-setup"
+    data-module-end="ridesharing-overall-recommended">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div class="module-marker">
+          <div class="module-index" data-module-index>05</div>
+          <div class="module-label" data-module-label>Module</div>
+        </div>
+        <div>
+          <p class="kicker">Lecture 4 learning path</p>
+          <h1 id="module-5-title" data-module-heading>Module title</h1>
+          <p class="subtitle module-question" data-module-question-text>Module question</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Groups</strong>One consumer group is one logical application; its members run the same logic.</div>
+            <div class="module-outcome"><strong>Boundaries</strong>Compare one-stage, combined-metrics, and separate-topic join designs.</div>
+            <div class="module-outcome"><strong>Decision</strong>Explain why subscribe does not mean join, then select Proposal 2 for classroom simplicity.</div>
+          </div>
+          <div class="callout amber"><strong>Scope:</strong> this is a conceptual architecture extension. Demo 04A–04D proves data contracts and does not implement the full pipeline.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="ridesharing-problem-setup" data-subsection-title="Define the business problem">
+    <div class="frame">
+      <p class="kicker">Ridesharing case study · business problem</p>
+      <h1>Estimate a fare while the trip request is still actionable</h1>
+      <p class="subtitle">Define the input, output, scale, and routing.</p>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Initial Kafka input</p>
+          <h2><code>ridesharing.trip-created.v1</code></h2>
+          <p class="bodycopy"><strong>Fields:</strong> <code>trip_id</code>, state, time, coordinates.</p>
+          <p class="bodycopy"><strong>Key:</strong> <code>trip_id</code>.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Required business output</p>
+          <h2><code>ridesharing.trip-priced.v1</code></h2>
+          <p class="bodycopy"><strong>Result:</strong> duration, distance, fare, version.</p>
+          <p class="bodycopy"><strong>Correlation:</strong> the same <code>trip_id</code>.</p>
+        </div>
+      </div>
+      <div class="grid4" style="margin-top:16px;">
+        <div class="card flat"><p class="eyebrow">Classroom scale</p><h3>50 states<br>50 partitions</h3></div>
+        <div class="card flat"><p class="eyebrow">Group coverage</p><h3>10 consumers<br>~5 partitions each</h3></div>
+        <div class="card flat"><p class="eyebrow">Default key</p><h3><code>trip_id</code>, Kafka hash</h3></div>
+        <div class="card flat"><p class="eyebrow">Topology sizes</p><h3>2, 3, or 4 topics</h3></div>
+      </div>
+      <div class="callout amber"><strong>Classroom model:</strong> state is payload. These counts explain capacity, not state-based routing.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="ridesharing-chart-01" data-subsection-title="One-stage processing">
+    <div class="frame">
+      <p class="kicker">Ridesharing case study · Chart 1</p>
+      <h1>Proposal 1: one group computes the full fare</h1>
+      <p class="subtitle"><strong>2 topics.</strong> One logical application owns the complete calculation.</p>
+      <div class="arch-flow three" data-diagram="html">
+        <div class="arch-node">
+          <span class="arch-label">Input topic</span>
+          <h3>trip-created.v1</h3>
+          <p>Validated trip request<br>50 partitions: classroom scale</p>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node group">
+          <span class="arch-label">Fare estimation group</span>
+          <h3>10 consumers, same logic</h3>
+          <p>about 5 partitions each<br>duration → distance → fare</p>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node output">
+          <span class="arch-label">Output topic</span>
+          <h3>trip-priced.v1</h3>
+          <p>One estimate per trip</p>
+        </div>
+      </div>
+      <div class="arch-chip-row"><span class="arch-chip">2 topics</span><span class="arch-chip good">low latency</span><span class="arch-chip warn">low reuse</span></div>
+      <div class="callout amber"><strong>Group rule:</strong> every member runs the same logic. Separate logical applications need separate group IDs.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="ridesharing-chart-02" data-subsection-title="Multi-stage pipelines and joins">
+    <div class="frame">
+      <p class="kicker">Ridesharing case study · Chart 2</p>
+      <h1>Proposal 2: combine duration and distance, then price</h1>
+      <p class="subtitle"><strong>3 topics.</strong> Recommended: one reusable metrics event, no join.</p>
+      <div class="arch-flow five" data-diagram="html">
+        <div class="arch-node"><span class="arch-label">Input</span><h3>trip-created.v1</h3><p>trip facts</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node group"><span class="arch-label">Metrics group</span><h3>duration + distance</h3><p>validate and produce</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node output"><span class="arch-label">Metrics topic</span><h3>trip-metrics-estimated.v1</h3><p>one complete event</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node group"><span class="arch-label">Pricing group</span><h3>calculate fare</h3><p>one input topic</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node output"><span class="arch-label">Output</span><h3>trip-priced.v1</h3><p>validated estimate</p></div>
+      </div>
+      <div class="arch-chip-row">
+        <span class="arch-chip">3 topics</span>
+        <span class="arch-chip good">recommended</span>
+        <span class="arch-chip good">reusable metrics</span>
+        <span class="arch-chip good">no join</span>
+        <span class="arch-chip">clear ownership</span>
+      </div>
+      <div class="callout green"><strong>Boundary rule:</strong> deserialize + validate on consume; validate + serialize on produce; commit after successful processing.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="ridesharing-chart-03">
+    <div class="frame">
+      <p class="kicker">Ridesharing case study · Chart 3</p>
+      <h1>Proposal 3: separate topics force a pricing join</h1>
+      <p class="subtitle"><strong>4 topics.</strong> Maximum reuse requires explicit correlation and state.</p>
+      <div class="branch-flow" data-diagram="html">
+        <div class="arch-node"><span class="arch-label">Input topic</span><h3>trip-created.v1</h3><p>same keyed trip stream</p></div>
+        <div class="arch-down">↙ &nbsp;&nbsp;&nbsp; ↘</div>
+        <div class="branch-grid">
+          <div class="branch-lane">
+            <div class="arch-node group"><span class="arch-label">Duration group</span><h3>estimate duration</h3></div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-node output"><span class="arch-label">Topic</span><h3>trip-duration.v1</h3></div>
+          </div>
+          <div class="branch-lane">
+            <div class="arch-node group"><span class="arch-label">Distance group</span><h3>estimate distance</h3></div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-node output"><span class="arch-label">Topic</span><h3>trip-distance.v1</h3></div>
+          </div>
+        </div>
+        <div class="arch-down">↘ &nbsp;&nbsp;&nbsp; ↙</div>
+        <div class="arch-node join"><span class="arch-label">Pricing join group</span><h3>match by <code>trip_id</code> + store partials</h3><p>wait for both → calculate fare → recover state</p></div>
+        <div class="arch-down">↓</div>
+        <div class="arch-node output"><span class="arch-label">Output topic</span><h3>trip-priced.v1</h3></div>
+      </div>
+      <div class="arch-chip-row"><span class="arch-chip">4 topics</span><span class="arch-chip good">highest reuse</span><span class="arch-chip risk">stateful join</span><span class="arch-chip risk">late data</span></div>
+      <div class="callout red"><strong>Subscribe is not join:</strong> the application still needs correlation, state, time rules, and recovery.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="ridesharing-design-tradeoffs" data-subsection-title="Trade-offs and recommendation">
+    <div class="frame">
+      <p class="kicker">Ridesharing case study · design trade-offs</p>
+      <h1>Four ways to design the pipeline</h1>
+      <p class="subtitle">Compare boundaries, reuse, and state.</p>
+      <table class="presentation-table">
+        <thead><tr><th>Pattern</th><th>Topics</th><th>Boundary</th><th>Reuse</th><th>State</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="proposal-keyword">Coupled</span><br><strong>1. Single stage</strong></td>
+            <td><strong>2</strong></td>
+            <td><strong>One group</strong></td>
+            <td><strong>Low</strong></td>
+            <td><strong>None</strong></td>
+            <td><strong>Fastest start</strong></td>
+          </tr>
+          <tr class="recommended">
+            <td><span class="proposal-keyword">Recommended</span><br><strong>2. Metrics, then pricing</strong></td>
+            <td><strong>3</strong></td>
+            <td><strong>Two groups</strong></td>
+            <td><strong>Reusable metrics</strong></td>
+            <td><strong>No join</strong></td>
+            <td><strong>Best balance</strong></td>
+          </tr>
+          <tr>
+            <td><span class="proposal-keyword">Decomposed</span><br><strong>3. Separate topics</strong></td>
+            <td><strong>4</strong></td>
+            <td><strong>Independent groups</strong></td>
+            <td><strong>Highest</strong></td>
+            <td><strong>Stateful join</strong></td>
+            <td><strong>Independent teams</strong></td>
+          </tr>
+          <tr>
+            <td><span class="proposal-keyword">Tooling</span><br><strong>4. Stream framework</strong></td>
+            <td><strong>Same as 2 or 3</strong></td>
+            <td><strong>Implements 2 or 3</strong></td>
+            <td><strong>Unchanged</strong></td>
+            <td><strong>Managed</strong></td>
+            <td><strong>Complex production</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout green"><strong>Decision:</strong> Proposal 2 gives reusable metrics without a stateful join.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="ridesharing-overall-recommended">
+    <div class="frame">
+      <p class="kicker">Ridesharing case study · recommended architecture</p>
+      <h1>Recommended overall classroom architecture</h1>
+      <p class="subtitle"><strong>Choose Proposal 2:</strong> reusable metrics with no multi-topic join.</p>
+      <div class="registry-bridge" data-diagram="html">
+        <div class="arch-node registry"><span class="arch-label">Schema Registry</span><h3>schemas + IDs + compatibility</h3></div>
+        <div class="card flat"><p class="eyebrow">Contract rule</p><p class="bodycopy">Every producer validates then serializes. Every consumer deserializes then validates. Registry governs each Avro value contract.</p></div>
+      </div>
+      <div class="arch-flow five" data-diagram="html">
+        <div class="arch-node output"><span class="arch-label">Input topic</span><h3>trip-created.v1</h3><p>keyed by trip_id</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node group"><span class="arch-label">Metrics group</span><h3>duration + distance</h3><p>reusable event</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node output"><span class="arch-label">Metrics topic</span><h3>trip-metrics-estimated.v1</h3><p>complete metrics</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node group"><span class="arch-label">Pricing group</span><h3>fare</h3><p>one complete input</p></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node output"><span class="arch-label">Output topic</span><h3>trip-priced.v1</h3><p>validated estimate</p></div>
+      </div>
+      <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> Proposal 2 gives clear ownership, reusable metrics, independent scaling, and no stateful join.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s39">
+    <div class="frame narrow">
+      <p class="kicker">Exit ticket</p>
+      <h1>Can you explain the bytes before you run the code?</h1>
+      <p class="subtitle">Answer these questions for any schema-managed Kafka event.</p>
+      <div class="final-grid">
+      <div class="final-q"><b>What validates meaning?</b><span>Pydantic, before production and after deserialization.</span></div>
+      <div class="final-q"><b>What defines wire bytes?</b><span>Avro schema, Confluent framing, and schema ID.</span></div>
+      <div class="final-q"><b>What does Registry own?</b><span>Schemas, IDs, versions, subjects, and compatibility, not events.</span></div>
+      <div class="final-q"><b>Will V2 read V1?</b><span>Check fields, types, defaults, and the compatibility rule.</span></div>
+    </div>
+    <div class="callout green"><strong>Run:</strong> 04A → 04B → 04C → 04D. Predict, run, explain.</div>
+    <div class="source-row source-small">
+      <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo04" target="_blank" rel="noopener">Demo 04 handout ↗</a>
+      <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec4-ridesharing-architecture" target="_blank" rel="noopener">Ridesharing supplement ↗</a>
+    </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+
+  <script>
+    const slides = [...document.querySelectorAll("section.slide")];
+    const slidePositionById = new Map(slides.map((slide, index) => [slide.id, index]));
+    const moduleDividers = [...document.querySelectorAll("section.module-divider")];
+    const moduleRecords = moduleDividers.map(divider => {
+      const startIndex = slidePositionById.get(divider.dataset.moduleStart);
+      const endIndex = slidePositionById.get(divider.dataset.moduleEnd);
+      const contentSlides = slides.slice(startIndex, endIndex + 1);
+      const subsectionStarts = contentSlides.filter(slide => slide.dataset.subsectionTitle);
+      return {
+        id: divider.id,
+        divider,
+        number: divider.dataset.moduleNumber,
+        title: divider.dataset.moduleTitle,
+        question: divider.dataset.moduleQuestion,
+        contentSlides,
+        subsections: subsectionStarts.map((slide, index) => ({
+          number: index + 1,
+          title: slide.dataset.subsectionTitle,
+          startId: slide.id,
+        })),
+      };
+    });
+    moduleDividers.forEach((divider, moduleIndex) => {
+      const record = moduleRecords[moduleIndex];
+      divider.querySelector("[data-module-index]").textContent =
+        String(record.number).padStart(2, "0");
+      divider.querySelector("[data-module-label]").textContent =
+        `Module ${record.number} / ${moduleRecords.length}`;
+      divider.querySelector("[data-module-heading]").textContent = record.title;
+      divider.querySelector("[data-module-question-text]").textContent = record.question;
+      const subsectionList = document.createElement("div");
+      subsectionList.className = "module-subsection-list";
+      subsectionList.style.setProperty("--subsection-count", record.subsections.length);
+      record.subsections.forEach(subsection => {
+        const item = document.createElement("div");
+        item.className = "module-subsection-chip";
+        item.innerHTML = `<b>${record.number}.${subsection.number}</b>${subsection.title}`;
+        subsectionList.append(item);
+      });
+      divider.querySelector(".module-outcomes").insertAdjacentElement("afterend", subsectionList);
+
+    });
+    const moduleToc = document.querySelector("[data-module-toc]");
+    if (moduleToc) {
+      moduleRecords.forEach(record => {
+        const card = document.createElement("a");
+        card.className = "module-toc-card";
+        card.href = `#${record.id}`;
+        card.dataset.moduleNumber = record.number;
+        card.innerHTML = `
+          <span class="module-toc-number">${String(record.number).padStart(2, "0")}</span>
+          <h2 class="module-toc-title">${record.title}</h2>
+          <ol class="module-toc-subsections">
+            ${record.subsections.map(item => `<li><b>${record.number}.${item.number}</b> ${item.title}</li>`).join("")}
+          </ol>`;
+        moduleToc.append(card);
+      });
+    }
+
+    const pageWidth = String(slides.length).length;
+    slides.forEach((slide, pageIndex) => {
+      const pager = slide.querySelector(".pager");
+      if (pager) {
+        const current = String(pageIndex + 1).padStart(pageWidth, "0");
+        pager.textContent = `${current}/${slides.length}`;
+      }
+    });
+    let index = 0;
+    const clamp = value => Math.max(0, Math.min(slides.length - 1, value));
+    const go = value => {
+      index = clamp(value);
+      slides[index].scrollIntoView({ behavior: "smooth", block: "start" });
+      history.replaceState(null, "", `#${slides[index].id}`);
+    };
+    document.addEventListener("keydown", event => {
+      if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(event.key)) go(index + 1);
+      else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(event.key)) go(index - 1);
+      else if (event.key === "Home") go(0);
+      else if (event.key === "End") go(slides.length - 1);
+      else return;
+      event.preventDefault();
+    });
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) index = slides.indexOf(entry.target); });
+    }, { threshold: .6 });
+    slides.forEach(slide => observer.observe(slide));
+    const initial = slides.findIndex(slide => `#${slide.id}` === location.hash);
+    if (initial >= 0) {
+      index = initial;
+      requestAnimationFrame(() => slides[index].scrollIntoView({ block: "start" }));
+    }
+  </script>
+
+</body>
+</html>

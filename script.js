@@ -374,6 +374,19 @@ const handouts = [
     summary: "Bounded consumers, manual commits, group replay, and native asyncio on Confluent Cloud."
   },
   {
+    slug: "lec4-data-contracts",
+    section: "lec4",
+    category: "Slides",
+    title: "Lecture 4: Data Contracts, Avro, and Schema Registry",
+    kind: "html",
+    file: "handouts/lec4-data-contracts.html",
+    createdAt: "Created at 5:06 PM PDT on July 16, 2026",
+    lastUpdatedAt: "Last updated at 5:06 PM PDT on July 16, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Schemas, validation layers, Avro, Schema Registry, compatible evolution, Demo 04, and a ridesharing architecture case study."
+  },
+  {
     slug: "demo04",
     section: "lec4",
     category: "Demo",
