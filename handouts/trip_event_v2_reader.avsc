@@ -1,0 +1,38 @@
+{
+  "type": "record",
+  "name": "TripEventV1",
+  "namespace": "edu.usf.msds682",
+  "doc": "Backward-compatible reader schema that adds an optional vehicle_type field.",
+  "fields": [
+    {"name": "trip_id", "type": "string"},
+    {
+      "name": "event_type",
+      "type": {
+        "type": "enum",
+        "name": "TripEventType",
+        "symbols": [
+          "trip_requested",
+          "driver_matched",
+          "trip_started",
+          "trip_completed"
+        ]
+      }
+    },
+    {"name": "rider_id", "type": "string"},
+    {
+      "name": "event_time",
+      "type": {"type": "long", "logicalType": "timestamp-millis"}
+    },
+    {
+      "name": "zone",
+      "type": {
+        "type": "enum",
+        "name": "ServiceZone",
+        "symbols": ["north", "south", "west"]
+      }
+    },
+    {"name": "driver_id", "type": ["null", "string"], "default": null},
+    {"name": "fare", "type": ["null", "double"], "default": null},
+    {"name": "vehicle_type", "type": ["null", "string"], "default": null}
+  ]
+}

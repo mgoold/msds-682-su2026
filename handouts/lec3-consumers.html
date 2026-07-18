@@ -1157,45 +1157,50 @@
   <section class="slide" id="pptx-09-course-overview">
     <div class="frame">
       <p class="kicker">Course roadmap</p>
-      <h1>Overview of Lectures 2–5</h1>
-      <p class="subtitle">Move from Python Kafka functions to shared, versioned data contracts.</p>
+      <h1>Lectures 2 to 5: one data path, four questions</h1>
+      <p class="subtitle">Move from producing and consuming bytes to governed contracts and schema-aware applications.</p>
 
       <div class="course-overview">
         <div class="roadmap-phases">
           <div class="roadmap-phase">
-            <h3>Lectures 2–3 · Kafka with Python</h3>
-            <p>Implement producers and consumers. Initial values may be free-form JSON or strings.</p>
+            <h3>Lecture 2 · Produce</h3>
+            <p>Write key and value bytes with Python. Initial values may be application-defined JSON or strings without a centrally governed wire schema.</p>
+          </div>
+          <div class="roadmap-phase">
+            <h3>Lecture 3 · Consume</h3>
+            <p>Use poll loops, consumer groups, offsets, commits, and replay to process records and track progress.</p>
           </div>
           <div class="roadmap-phase green">
-            <h3>Lecture 4 · Define data with Avro</h3>
-            <p><strong>Problem:</strong> how do applications share and coordinate a schema? <strong>Solution:</strong> Schema Registry, with a REST interface for storing and retrieving schemas by ID.</p>
+            <h3>Lecture 4 · Contract</h3>
+            <p>Use Pydantic for application rules, Avro for the wire record, and Schema Registry for subjects, IDs, versions, and compatibility.</p>
           </div>
           <div class="roadmap-phase amber">
-            <h3>Lecture 5 · Deep dive into Schema Registry</h3>
-            <p>Produce Avro, store or fetch schemas, and use the registry to deserialize consumer data. Schema Registry integrates with Kafka and Kafka Connect.</p>
+            <h3>Lecture 5 · Integrate</h3>
+            <p>Use FastAPI and REST endpoints with schema-aware producer and consumer paths inside an application.</p>
           </div>
         </div>
 
         <div class="schema-map">
           <div class="schema-app">
             <h3>Producer application</h3>
-            <div class="schema-step">Basic Kafka Producer</div>
+            <div class="schema-step">Lec 2: Python producer</div>
             <div class="schema-down">↓</div>
-            <div class="schema-step">Serialize with Avro</div>
+            <div class="schema-step">Lec 4: validate + Avro serialize</div>
             <div class="schema-down">↓</div>
-            <div class="schema-step">Fetch / store schema<br>Schema Registry</div>
+            <div class="schema-step">Registry schema ID + Kafka value bytes</div>
           </div>
-          <div class="schema-kafka">Kafka<br>Cluster<br>↔<br>Schema<br>Registry</div>
+          <div class="schema-kafka">Kafka<br>Cluster<br>↕<br>Schema<br>Registry</div>
           <div class="schema-app consumer">
             <h3>Consumer application</h3>
-            <div class="schema-step">Basic Kafka Consumer</div>
+            <div class="schema-step">Lec 3: poll + process + commit</div>
             <div class="schema-down">↓</div>
-            <div class="schema-step">Fetch schema<br>Schema Registry</div>
+            <div class="schema-step">Lec 4: Avro deserialize + validate</div>
             <div class="schema-down">↓</div>
-            <div class="schema-step">Deserialize with Avro</div>
+            <div class="schema-step">Lec 5: FastAPI / REST integration</div>
           </div>
         </div>
       </div>
+      <div class="callout green"><strong>Sequence:</strong> Lec 2 writes, Lec 3 reads and tracks progress, Lec 4 governs meaning, and Lec 5 exposes the schema-aware path through an application. Kafka Connect follows in Lecture 6.</div>
     </div>
     <div class="pager"></div>
   </section>
@@ -1413,7 +1418,7 @@
           <ul class="compact-list">
             <li><strong>Lecture 2:</strong> topics and producers — Demo 02A–02D wrote real trip events.</li>
             <li><strong>Today:</strong> consumers own progress — Demo 03A–03D read them. Assignment 1 due <strong>July 21</strong>.</li>
-            <li><strong>Lecture 4:</strong> FastAPI and data schemas. Assignment 2 due <strong>July 25</strong>.</li>
+            <li><strong>Lecture 4:</strong> data contracts, Pydantic, Avro, and Schema Registry. Assignment 2 due <strong>July 25</strong>.</li>
           </ul>
         </div>
         <div class="card">

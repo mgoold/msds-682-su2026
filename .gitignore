@@ -2,6 +2,7 @@
 .DS_Store
 .env
 .env.*
+!/handouts/.env.example
 .venv/
 .playwright-mcp/
 *.png

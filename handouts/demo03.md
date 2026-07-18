@@ -23,7 +23,8 @@
 | 3 | Demo 03C: groups and replay | How do consumers share partitions, and how is replay different from resume? | Shows assignment/revocation events and makes forced replay explicit. |
 | 4 | Demo 03D: native asyncio | When does Python `asyncio` add value? | Runs `AIOProducer` and `AIOConsumer` concurrently without blocking the event loop. |
 
-FastAPI is intentionally **not** part of Demo 03. It begins in Lecture 4.
+FastAPI is intentionally **not** part of Demo 03. It follows the Lecture 4
+data-contract unit in Lecture 5.
 Demo 03A–03C are the consumer core; Demo 03D is the short asyncio extension
 using the native AIO clients in the pinned 2.15.0 package.
 
