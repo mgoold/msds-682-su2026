@@ -39,7 +39,16 @@ def run_async(
     # ==================== CODE START HERE ====================
     # TODO: Produce every event with its key, value, and callback. Call poll(0)
     # while producing, then call flush() exactly once after the loop.
-    raise NotImplementedError("Complete the asynchronous producer loop")
+    for event in events:
+        producer.produce(
+            topic=topic,
+            key=event_key(event),
+            value=serialize_event(event),
+            callback=tracker.callback,
+        )
+        producer.poll(0) # lets the client serve delivery callbacks without blocking.
+    
+    remaining = producer.flush(flush_timeout)
     # ===================== CODE ENDS HERE =====================
 
     elapsed = max(time.perf_counter() - start, 0.000001)

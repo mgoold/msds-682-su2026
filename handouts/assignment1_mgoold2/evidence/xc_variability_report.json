@@ -1,0 +1,236 @@
+{
+  "async_speedup_pooled": 162.9,
+  "batch_size": 500,
+  "extra_credit_item": "+1 advanced evaluation and observability",
+  "independent_runs": 3,
+  "messages_per_strategy_per_run": 2000,
+  "per_strategy": {
+    "async": {
+      "per_run": {
+        "producer_benchmark_run1": {
+          "all_batches_complete": true,
+          "batch_latency_seconds": {
+            "max": 1.442705,
+            "mean": 0.501868,
+            "min": 0.179994,
+            "p50": 0.19213,
+            "p95": 1.442705,
+            "stdev": 0.627252
+          },
+          "batches": 4,
+          "label": "producer_benchmark_run1",
+          "messages_delivered": 2000,
+          "messages_failed": 0,
+          "remaining_after_flush": 0,
+          "throughput_msgs_per_second": {
+            "max": 2777.88,
+            "mean": 2080.58,
+            "min": 346.57,
+            "stdev": 1159.08
+          }
+        },
+        "producer_benchmark_run2": {
+          "all_batches_complete": true,
+          "batch_latency_seconds": {
+            "max": 1.498605,
+            "mean": 0.525606,
+            "min": 0.194874,
+            "p50": 0.201586,
+            "p95": 1.498605,
+            "stdev": 0.648686
+          },
+          "batches": 4,
+          "label": "producer_benchmark_run2",
+          "messages_delivered": 2000,
+          "messages_failed": 0,
+          "remaining_after_flush": 0,
+          "throughput_msgs_per_second": {
+            "max": 2565.76,
+            "mean": 1947.75,
+            "min": 333.64,
+            "stdev": 1077.93
+          }
+        },
+        "producer_benchmark_run3": {
+          "all_batches_complete": true,
+          "batch_latency_seconds": {
+            "max": 1.472739,
+            "mean": 0.511474,
+            "min": 0.182596,
+            "p50": 0.192879,
+            "p95": 1.472739,
+            "stdev": 0.640875
+          },
+          "batches": 4,
+          "label": "producer_benchmark_run3",
+          "messages_delivered": 2000,
+          "messages_failed": 0,
+          "remaining_after_flush": 0,
+          "throughput_msgs_per_second": {
+            "max": 2738.29,
+            "mean": 2049.86,
+            "min": 339.5,
+            "stdev": 1143.59
+          }
+        }
+      },
+      "pooled": {
+        "all_batches_complete": true,
+        "batch_latency_seconds": {
+          "max": 1.498605,
+          "mean": 0.512983,
+          "min": 0.179994,
+          "p50": 0.194874,
+          "p95": 1.498605,
+          "stdev": 0.578086
+        },
+        "batches": 12,
+        "label": "async (all runs pooled)",
+        "messages_delivered": 6000,
+        "messages_failed": 0,
+        "remaining_after_flush": 0,
+        "throughput_msgs_per_second": {
+          "max": 2777.88,
+          "mean": 2026.06,
+          "min": 333.64,
+          "stdev": 1021.51
+        }
+      },
+      "variability": {
+        "across_run_mean": 2026.06,
+        "across_run_spread": 132.83,
+        "across_run_stdev": 69.54,
+        "coefficient_of_variation_pct": 3.43,
+        "per_run_mean_throughput": [
+          2080.58,
+          1947.75,
+          2049.86
+        ]
+      }
+    },
+    "sync_style": {
+      "per_run": {
+        "producer_benchmark_run1": {
+          "all_batches_complete": true,
+          "batch_latency_seconds": {
+            "max": 42.211922,
+            "mean": 40.950505,
+            "min": 40.300112,
+            "p50": 40.582423,
+            "p95": 42.211922,
+            "stdev": 0.858038
+          },
+          "batches": 4,
+          "label": "producer_benchmark_run1",
+          "messages_delivered": 2000,
+          "messages_failed": 0,
+          "remaining_after_flush": 0,
+          "throughput_msgs_per_second": {
+            "max": 12.41,
+            "mean": 12.21,
+            "min": 11.84,
+            "stdev": 0.25
+          }
+        },
+        "producer_benchmark_run2": {
+          "all_batches_complete": true,
+          "batch_latency_seconds": {
+            "max": 41.320328,
+            "mean": 39.731924,
+            "min": 39.093022,
+            "p50": 39.110052,
+            "p95": 41.320328,
+            "stdev": 1.068533
+          },
+          "batches": 4,
+          "label": "producer_benchmark_run2",
+          "messages_delivered": 2000,
+          "messages_failed": 0,
+          "remaining_after_flush": 0,
+          "throughput_msgs_per_second": {
+            "max": 12.79,
+            "mean": 12.59,
+            "min": 12.1,
+            "stdev": 0.33
+          }
+        },
+        "producer_benchmark_run3": {
+          "all_batches_complete": true,
+          "batch_latency_seconds": {
+            "max": 40.561802,
+            "mean": 39.938437,
+            "min": 39.548409,
+            "p50": 39.662077,
+            "p95": 40.561802,
+            "stdev": 0.454214
+          },
+          "batches": 4,
+          "label": "producer_benchmark_run3",
+          "messages_delivered": 2000,
+          "messages_failed": 0,
+          "remaining_after_flush": 0,
+          "throughput_msgs_per_second": {
+            "max": 12.64,
+            "mean": 12.52,
+            "min": 12.33,
+            "stdev": 0.14
+          }
+        }
+      },
+      "pooled": {
+        "all_batches_complete": true,
+        "batch_latency_seconds": {
+          "max": 42.211922,
+          "mean": 40.206955,
+          "min": 39.093022,
+          "p50": 39.981459,
+          "p95": 42.211922,
+          "stdev": 0.936891
+        },
+        "batches": 12,
+        "label": "sync_style (all runs pooled)",
+        "messages_delivered": 6000,
+        "messages_failed": 0,
+        "remaining_after_flush": 0,
+        "throughput_msgs_per_second": {
+          "max": 12.79,
+          "mean": 12.44,
+          "min": 11.84,
+          "stdev": 0.29
+        }
+      },
+      "variability": {
+        "across_run_mean": 12.44,
+        "across_run_spread": 0.38,
+        "across_run_stdev": 0.2,
+        "coefficient_of_variation_pct": 1.63,
+        "per_run_mean_throughput": [
+          12.21,
+          12.59,
+          12.52
+        ]
+      }
+    }
+  },
+  "plot": "results/xc_latency_by_run.png",
+  "run_names": [
+    "producer_benchmark_run1",
+    "producer_benchmark_run2",
+    "producer_benchmark_run3"
+  ],
+  "secret_free_config_snapshot": {
+    "batch_size": 500,
+    "connection": {
+      "bootstrap_host": "pkc-619z3.us-east1.gcp.confluent.cloud:9092",
+      "has_password": true,
+      "has_username": true,
+      "sasl_mechanisms": "PLAIN",
+      "security_protocol": "SASL_SSL",
+      "topic": "msds682.demo01.trip-events.v1"
+    },
+    "messages_per_strategy": 2000,
+    "run_id": "assignment1",
+    "seed": 682
+  },
+  "seed": 682
+}

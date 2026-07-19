@@ -75,8 +75,58 @@ def run_strategy(
     # for every event, then flush once per batch. For sync_style, flush after
     # every event. Time each batch through completed delivery. Append one row
     # using every CSV_COLUMNS field and callback-count deltas for that batch.
-    raise NotImplementedError("Complete run_strategy")
-    # ===================== CODE ENDS HERE =====================
+    
+    total_events = len(events)
+    num_batches = total_events // batch_size
+    total_messages_so_far = 0
+
+    for batch_index in range(1, num_batches + 1):            # 1-based, matches the analyzer/test
+        start_pos = (batch_index - 1) * batch_size
+        batch_events = events[start_pos:start_pos + batch_size]   # this batch's slice
+
+        # (a) snapshot BEFORE producing, so deltas describe only this batch
+        delivered_before = tracker.delivered_count
+        failed_before = tracker.failed_count
+        batch_start = time.perf_counter()
+
+        # (b) produce batch_events here, branching on strategy  ← you write this
+        #     async:      produce + poll(0) each, then ONE flush after the slice
+
+        if strategy=="async":
+            for event in batch_events:
+                producer.produce(topic, key=event_key(event), value=serialize_event(event), callback=tracker.callback)
+                producer.poll(0)
+            remaining = producer.flush(flush_timeout)
+
+        elif strategy=="sync_style":
+            for event in batch_events:
+                # Sync-style teaching simplification: wait after each produce.
+                producer.produce(topic, key=event_key(event), value=serialize_event(event), callback=tracker.callback)
+                remaining = producer.flush(flush_timeout)
+
+        elapsed = max(time.perf_counter() - batch_start, 0.000001)
+        #     sync_style: produce + flush after EVERY event
+        #     capture the last flush() return into `remaining`
+
+        # (c) measure + append one row to `rows`  ← you write this
+        batch_delivered = tracker.delivered_count - delivered_before   # delta = THIS batch only
+        batch_failed = tracker.failed_count - failed_before
+        total_messages_so_far += batch_size                            # running total across batches
+
+        rows.append({
+            "run_id": run_id,
+            "strategy": strategy,
+            "batch_index": batch_index,
+            "batch_message_count": batch_size,
+            "total_messages_so_far": total_messages_so_far,
+            "elapsed_seconds": round(elapsed, 6),
+            "messages_per_second": round(batch_size / elapsed, 2),
+            "batch_delivered": batch_delivered,
+            "batch_failed": batch_failed,
+            "remaining_after_flush": remaining,
+        })
+ 
+        # ===================== CODE ENDS HERE =====================
 
     return rows
 

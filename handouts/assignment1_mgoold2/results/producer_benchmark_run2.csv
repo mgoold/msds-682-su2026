@@ -1,0 +1,9 @@
+run_id,strategy,batch_index,batch_message_count,total_messages_so_far,elapsed_seconds,messages_per_second,batch_delivered,batch_failed,remaining_after_flush
+xc-run2,async,1,500,500,1.498605,333.64,500,0,0
+xc-run2,async,2,500,1000,0.207359,2411.27,500,0,0
+xc-run2,async,3,500,1500,0.201586,2480.33,500,0,0
+xc-run2,async,4,500,2000,0.194874,2565.76,500,0,0
+xc-run2,sync_style,1,500,500,41.320328,12.1,500,0,0
+xc-run2,sync_style,2,500,1000,39.404292,12.69,500,0,0
+xc-run2,sync_style,3,500,1500,39.093022,12.79,500,0,0
+xc-run2,sync_style,4,500,2000,39.110052,12.78,500,0,0

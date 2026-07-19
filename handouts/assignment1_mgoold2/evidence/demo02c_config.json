@@ -1,0 +1,14 @@
+{
+  "batch_size": 500,
+  "connection": {
+    "bootstrap_host": "pkc-619z3.us-east1.gcp.confluent.cloud:9092",
+    "has_password": true,
+    "has_username": true,
+    "sasl_mechanisms": "PLAIN",
+    "security_protocol": "SASL_SSL",
+    "topic": "msds682.demo01.trip-events.v1"
+  },
+  "messages_per_strategy": 2000,
+  "run_id": "assignment1",
+  "seed": 682
+}

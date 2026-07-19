@@ -1,0 +1,53 @@
+{
+  "attempted": 4,
+  "connection": {
+    "bootstrap_host": "pkc-619z3.us-east1.gcp.confluent.cloud:9092",
+    "has_password": true,
+    "has_username": true,
+    "sasl_mechanisms": "PLAIN",
+    "security_protocol": "SASL_SSL",
+    "topic": "msds682.demo01.trip-events.v1"
+  },
+  "delivered": 4,
+  "delivery_samples": [
+    {
+      "key": "trip_981",
+      "offset": 24,
+      "partition": 2,
+      "topic": "msds682.demo01.trip-events.v1"
+    },
+    {
+      "key": "trip_981",
+      "offset": 25,
+      "partition": 2,
+      "topic": "msds682.demo01.trip-events.v1"
+    },
+    {
+      "key": "trip_981",
+      "offset": 26,
+      "partition": 2,
+      "topic": "msds682.demo01.trip-events.v1"
+    },
+    {
+      "key": "trip_981",
+      "offset": 27,
+      "partition": 2,
+      "topic": "msds682.demo01.trip-events.v1"
+    }
+  ],
+  "demo": "demo02b_confluent_async_producer",
+  "elapsed_seconds": 1.072878,
+  "failed": 0,
+  "failure_messages": [],
+  "producer_mode": "async_one_final_flush",
+  "remaining_after_flush": 0,
+  "run_id": "assignment1",
+  "sample_value": {
+    "event_time": "2026-07-04T10:00:00Z",
+    "event_type": "trip_requested",
+    "rider_id": "rider-981",
+    "trip_id": "trip_981",
+    "zone": "north"
+  },
+  "topic": "msds682.demo01.trip-events.v1"
+}

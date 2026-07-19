@@ -36,11 +36,17 @@ def run_sync_style(
     tracker = DeliveryTracker()
     remaining = 0
     start = time.perf_counter()
-
+    for event in events:
     # ==================== CODE START HERE ====================
     # TODO: For every event, call produce() with topic, stable key, serialized
     # value, and tracker.callback; then call flush() inside the loop.
-    raise NotImplementedError("Complete the sync-style producer loop")
+        producer.produce(
+            topic=topic,
+            key=event_key(event),
+            value=serialize_event(event),
+            callback=tracker.callback,
+        )
+        remaining = producer.flush(flush_timeout)    
     # ===================== CODE ENDS HERE =====================
 
     elapsed = max(time.perf_counter() - start, 0.000001)

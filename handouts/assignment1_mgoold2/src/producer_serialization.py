@@ -40,7 +40,17 @@ def run_serialization_demo(
     # ==================== CODE START HERE ====================
     # TODO: For each validated TripEvent, create UTF-8 key/value bytes, produce
     # with tracker.callback, and poll(0). Flush exactly once after the loop.
-    raise NotImplementedError("Complete the serialization producer loop")
+    for event in events:
+        value_bytes = serialize_event(event)        # explicit object → bytes step
+        producer.produce(
+            topic=topic,
+            key=event_key(event),
+            value=value_bytes,                      # pass the named bytes
+            callback=tracker.callback,
+        )
+        producer.poll(0)
+    remaining = producer.flush(flush_timeout)        # once, outside, assigned
+
     # ===================== CODE ENDS HERE =====================
 
     elapsed = max(time.perf_counter() - start, 0.000001)

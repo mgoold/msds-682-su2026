@@ -20,13 +20,21 @@ BASE_EVENT_TIME = datetime(2026, 7, 4, 10, 0, tzinfo=timezone.utc)
 
 class TripEvent(BaseModel):
     """Validated message-value contract shared by every producer strategy."""
-
+    # note that basemodel, field imported on line 13 above
     # ==================== CODE START HERE ====================
     # TODO: Define trip_id, event_type, rider_id, event_time, zone,
+        # Message value model shared by all Demo 02 producer scripts.
+    trip_id: str
+    event_type: Literal["trip_requested", "driver_matched", "trip_started", "trip_completed"] # can only be these 4 strings
+    rider_id: str 
+    event_time: str
+    zone: str
+    driver_id: str | None = None
+    fare: float | None = Field(default=None, ge=0) 
     # optional driver_id, and an optional nonnegative fare. Use the Demo 02
     # TripEvent model as the contract.
-    pass
     # ===================== CODE ENDS HERE =====================
+
 
 
 class DeliveryTracker:
@@ -38,13 +46,27 @@ class DeliveryTracker:
     # success increment the count and retain at most 10 secret-free samples.
     def __init__(self) -> None:
         """Initialize delivery counts, errors, and bounded evidence samples."""
-
-        raise NotImplementedError("Complete DeliveryTracker.__init__")
+        self.delivered_count = 0
+        self.failed_messages: list[str] = []
+        self.delivery_samples: list[str] = []
 
     def callback(self, err: Any, msg: Any) -> None:
         """Record one delivery success or failure from confluent-kafka."""
+        if err is not None:
+            self.failed_messages.append(str(err))
+            return
+        key = msg.key().decode("utf-8") if msg.key() else ""
+        self.delivered_count+=1
+        if len(self.delivery_samples) < 10:
+            self.delivery_samples.append(
+                {
+                    "topic": msg.topic(),
+                    "partition": msg.partition(),
+                    "offset": msg.offset(),
+                    "key": key,
+                }
+            )
 
-        raise NotImplementedError("Complete DeliveryTracker.callback")
     # ===================== CODE ENDS HERE =====================
 
     @property
@@ -68,7 +90,20 @@ def load_producer_config() -> dict[str, str]:
     # ==================== CODE START HERE ====================
     # TODO: Load .env and return the five confluent-kafka keys demonstrated in
     # Demo 02. Credentials must come from environment variables, never literals.
-    raise NotImplementedError("Complete load_producer_config")
+    load_dotenv_for_assignment()
+    return {
+        # Confluent Cloud Kafka cluster endpoint.
+        "bootstrap.servers": os.getenv("BOOTSTRAP_SERVERS", ""),
+        # Confluent Cloud requires encrypted SASL authentication.
+        "security.protocol": os.getenv("SECURITY_PROTOCOL", "SASL_SSL"),
+        # PLAIN means API-key/API-secret authentication.
+        "sasl.mechanisms": os.getenv("SASL_MECHANISMS", "PLAIN"),
+        # Kafka API key. Do not hard-code it in source code.
+        "sasl.username": os.getenv("SASL_USERNAME", ""),
+        # Kafka API secret. Keep it in .env only.
+        "sasl.password": os.getenv("SASL_PASSWORD", ""),
+    }    
+
     # ===================== CODE ENDS HERE =====================
 
 
@@ -100,7 +135,20 @@ def make_trip_event(index: int, rng: random.Random) -> TripEvent:
     # ==================== CODE START HERE ====================
     # TODO: Reproduce the Demo 02 deterministic event generator. The same index
     # and seeded Random instance must create the same logical event.
-    raise NotImplementedError("Complete make_trip_event")
+    event_types = ["trip_requested", "driver_matched", "trip_started", "trip_completed"]
+    event_type = event_types[index % len(event_types)]
+    trip_number = 981 + (index // len(event_types))
+    event_time = (BASE_EVENT_TIME + timedelta(seconds=index)).isoformat().replace("+00:00", "Z")
+
+    return TripEvent(
+        trip_id=f"trip_{trip_number}",
+        event_type=event_type,
+        rider_id=f"rider-{trip_number}",
+        driver_id=None if event_type == "trip_requested" else f"driver-{rng.randint(1, 8):03d}",
+        fare=round(rng.uniform(10.0, 90.0), 2) if event_type == "trip_completed" else None,
+        zone=["north", "south", "west"][index % 3],
+        event_time=event_time,
+    )
     # ===================== CODE ENDS HERE =====================
 
 
@@ -118,7 +166,7 @@ def event_key(event: TripEvent) -> bytes:
 
     # ==================== CODE START HERE ====================
     # TODO: Encode trip_id as UTF-8 bytes.
-    raise NotImplementedError("Complete event_key")
+    return event.trip_id.encode("utf-8")
     # ===================== CODE ENDS HERE =====================
 
 
@@ -128,7 +176,7 @@ def serialize_event(event: TripEvent) -> bytes:
     # ==================== CODE START HERE ====================
     # TODO: Convert the Pydantic model to a JSON string, omit None fields, and
     # encode that string as UTF-8 bytes.
-    raise NotImplementedError("Complete serialize_event")
+    return event.model_dump_json(exclude_none=True).encode("utf-8")
     # ===================== CODE ENDS HERE =====================
 
 

@@ -1,0 +1,42 @@
+{
+  "extra_credit_item": "+1 AI-assisted engineering review (measured evidence)",
+  "mode": "LOCAL, CREDENTIAL-FREE",
+  "suggestion_1_accepted": {
+    "claim": "Cap the delivery samples on len(delivery_samples) < 10, not on delivered_count.",
+    "evidence": {
+      "accepted_fix_correct": true,
+      "accepted_fix_len_lt_10": 10,
+      "deliveries_simulated": 25,
+      "first_draft_correct": false,
+      "first_draft_delivered_count_lt_10": 9,
+      "requirement": "retain at most 10 secret-free samples",
+      "second_draft_correct": false,
+      "second_draft_len_le_10": 11,
+      "shipped_DeliveryTracker_retains": 10,
+      "shipped_code_correct": true
+    },
+    "verdict": "ACCEPTED. Both earlier drafts violate the 'at most 10' requirement (9 and 11 respectively); only the accepted gate retains exactly 10, and the shipped DeliveryTracker matches it."
+  },
+  "suggestion_2_rejected": {
+    "claim": "Pre-serialize every event before starting the batch timer so the benchmark measures delivery alone rather than serialization + delivery.",
+    "evidence": {
+      "observed_batch_latency_seconds": {
+        "async_fastest_batch": 0.184151,
+        "sync_style_fastest_batch": 38.677392
+      },
+      "serialization_cost": {
+        "batch_size": 500,
+        "microseconds_per_event": 0.807,
+        "repeats": 30,
+        "seconds_per_batch_max": 0.00048612,
+        "seconds_per_batch_mean": 0.00041711,
+        "seconds_per_batch_median": 0.00040367
+      },
+      "serialization_share_of_batch_pct": {
+        "async_fastest_batch": 0.2192,
+        "sync_style_fastest_batch": 0.001
+      }
+    },
+    "verdict": "REJECTED. Serialization is a negligible share of even the fastest observed batch, far below run-to-run variability, so the measurement bias it would remove is not detectable. The change would also diverge from the Demo 02 control flow the assignment asks to reproduce."
+  }
+}

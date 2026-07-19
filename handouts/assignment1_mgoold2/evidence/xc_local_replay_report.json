@@ -1,0 +1,53 @@
+{
+  "batch_size": 500,
+  "determinism": {
+    "different_seed_differs": true,
+    "fingerprint_different_seed": "45b45ba1391f21d77f3f61881238c15aa7ea63f8fe63495d16d61f255e4d368f",
+    "fingerprint_run_1": "d25a2900d850e1afd764685811ff71e09da2e77ebafa91232554f5c28594f92e",
+    "fingerprint_run_2": "d25a2900d850e1afd764685811ff71e09da2e77ebafa91232554f5c28594f92e",
+    "same_seed_reproducible": true
+  },
+  "extra_credit_item": "+1 deterministic local replay",
+  "messages": 2000,
+  "mode": "LOCAL DRY RUN - NO KAFKA, NO CREDENTIALS, NO NETWORK",
+  "run_id": "xc-local-replay",
+  "sample_event": {
+    "event_time": "2026-07-04T10:00:00Z",
+    "event_type": "trip_requested",
+    "rider_id": "rider-981",
+    "trip_id": "trip_981",
+    "zone": "north"
+  },
+  "seed": 682,
+  "strategies": [
+    {
+      "attempted": 2000,
+      "delivered": 2000,
+      "failed": 0,
+      "flush_calls": 4,
+      "harness_elapsed_seconds": 0.00356,
+      "partitions_used": [
+        0,
+        1,
+        2
+      ],
+      "poll_calls": 2000,
+      "strategy": "async"
+    },
+    {
+      "attempted": 2000,
+      "delivered": 2000,
+      "failed": 0,
+      "flush_calls": 2000,
+      "harness_elapsed_seconds": 0.003597,
+      "partitions_used": [
+        0,
+        1,
+        2
+      ],
+      "poll_calls": 0,
+      "strategy": "sync_style"
+    }
+  ],
+  "warning": "Timings below are a harness check of Python and an in-memory sink. They are NOT Kafka performance and must not be compared with results/producer_benchmark.csv."
+}

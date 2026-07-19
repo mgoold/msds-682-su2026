@@ -1,0 +1,9 @@
+run_id,strategy,batch_index,batch_message_count,total_messages_so_far,elapsed_seconds,messages_per_second,batch_delivered,batch_failed,remaining_after_flush
+assignment1,async,1,500,500,1.638277,305.2,500,0,0
+assignment1,async,2,500,1000,0.190482,2624.93,500,0,0
+assignment1,async,3,500,1500,0.184151,2715.16,500,0,0
+assignment1,async,4,500,2000,0.188711,2649.55,500,0,0
+assignment1,sync_style,1,500,500,40.813491,12.25,500,0,0
+assignment1,sync_style,2,500,1000,38.807425,12.88,500,0,0
+assignment1,sync_style,3,500,1500,39.182116,12.76,500,0,0
+assignment1,sync_style,4,500,2000,38.677392,12.93,500,0,0
