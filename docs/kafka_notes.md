@@ -76,7 +76,42 @@ A **topic** is a **logical name** you route records to (e.g.
 an S3 bucket, and it is *not* pure namespace either — it is a name over **N
 partitions**, each of which is real physical storage.
 
-QUESTION: is it correct to say that a topic *is* a log file?  Is that what it is materially?
+### Is a topic "a log file"?
+
+**No — and the gap between that intuition and reality is worth pinning down,
+because it explains most of Kafka's behavior.**
+
+A topic is **not** a file. Materially, a topic with 3 partitions is:
+
+```
+msds682.demo01.trip-events.v1          ← the topic: a NAME + POLICY. No bytes of its own.
+├── partition 0  →  a directory on some broker   ← real storage
+│   ├── 00000000000000000000.log                 ← a SEGMENT file (actual records)
+│   ├── 00000000000000000000.index
+│   └── 00000000000004096.log                    ← the next segment
+├── partition 1  →  a directory on some (possibly different) broker
+└── partition 2  →  a directory on some (possibly different) broker
+```
+
+So "topic = log file" is wrong twice over:
+
+1. **A topic is not one log — it is N logs.** Each partition is an independent
+   append-only log with its own offset counter starting at 0. There is no
+   file, anywhere, containing "the topic."
+2. **Even a partition is not one file.** It is a *directory* of **segment**
+   files that Kafka rolls over as they fill (see §3 below).
+
+And the partitions of one topic usually live on **different brokers**, so a
+topic's bytes are physically scattered across several machines.
+
+**What a topic materially *is*:** an entry in cluster metadata — a name, a
+partition count, a replication factor, and a config bag (`cleanup.policy`,
+retention, etc.). It is closer to a **table name in a database** than to a file:
+the name plus the rules, while the actual rows live in physical structures
+underneath.
+
+> **If you want a one-liner:** a topic is a *named, partitioned, policy-carrying
+> stream*. The only thing that is literally a log file is a **segment**.
 
 A topic is the level at which you set **policy** and **route**:
 
@@ -111,7 +146,54 @@ Key facts:
   Closest mapping: **topic ≈ bucket-like container, segment file ≈ object** (and
   under tiered storage, old segments literally become objects in a bucket).
 
-QUESTION: explain in more detail what a segment is.
+### Segments: the files a partition is actually made of
+
+A partition is a **directory**; a **segment** is a **file inside it**. Kafka
+never writes one giant ever-growing file — it writes a series of bounded ones.
+
+```
+msds682.demo01.trip-events.v1-0/          ← partition 0's directory
+├── 00000000000000000000.log      ← CLOSED segment: records for offsets 0…4095
+├── 00000000000000000000.index    ← offset → byte-position lookup
+├── 00000000000000000000.timeindex← timestamp → offset lookup
+├── 00000000000000004096.log      ← ACTIVE segment: currently being appended
+├── 00000000000000004096.index
+└── 00000000000000004096.timeindex
+```
+
+**The filename is the base offset.** `00000000000000004096.log` holds records
+starting at offset 4096. That naming is what makes a read seek fast: to find
+offset 5000, Kafka binary-searches the filenames to pick the segment, then uses
+that segment's `.index` to jump to roughly the right byte, then scans forward a
+little. No database, no central lookup table.
+
+**Only one segment per partition is "active."** Writes always append to the
+active segment. When it hits a limit, Kafka **closes** it and opens a new one —
+a *roll*. Two settings trigger a roll:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `segment.bytes` | 1 GB | roll when the active segment reaches this size |
+| `segment.ms` | 7 days | roll after this much time, even if small |
+
+**Why this design matters — three consequences you can feel:**
+
+1. **Deletion is cheap and coarse.** Retention (`cleanup.policy=delete`) does not
+   remove individual records — it deletes **whole closed segment files** whose
+   newest record has aged out. This is why you cannot delete one record by
+   offset: the unit of forgetting is a file, not a row. (Compaction is different:
+   it rewrites segments, keeping the latest record per key.)
+2. **The active segment is never deleted or compacted.** Data you just wrote
+   sticks around until the segment rolls, regardless of retention settings —
+   a common surprise when testing short retention.
+3. **Writes are sequential appends to one open file**, which is why Kafka is so
+   fast. It rides the OS page cache and sequential disk I/O rather than doing
+   random writes, and can hand bytes straight to the network.
+
+**Tiered storage** (§3's last bullet) operates at this granularity too: closed
+segments get shipped to object storage while the active one stays on local disk.
+That is the sense in which "segment ≈ object" — a segment really does become an
+S3 object.
 
 **Buckets store *things you fetch*; partitions store *a sequence you replay*.**
 
@@ -174,7 +256,48 @@ changed, `hash(key) % N` would send the same key to a *different* partition,
 breaking per-key ordering. So Kafka only lets you **increase** partitions (a
 deliberate admin act), never shuffle them dynamically.
 
-QUESTION: re: " producer client chooses the partition before sending, using recently refreshed broker metadata" -- does the client every change the partition it sends to dynamically? If it does, what causes that change?
+### Does the client ever change partitions dynamically?
+
+**It depends entirely on whether your record has a key — and the two cases are
+opposites by design.**
+
+#### With a key (what this course does): no, it is deterministic
+
+`hash(key) % num_partitions` is a pure function. The same `trip_id` goes to the
+same partition on every call, from every producer instance, in every process, for
+as long as the partition count is unchanged. That determinism *is* the ordering
+guarantee — it is not an implementation detail you should hope holds.
+
+You can see it in the assignment evidence: all four messages keyed `trip_981`
+landed on partition 2 at consecutive offsets 20–23.
+
+#### Without a key: yes, deliberately and constantly
+
+If `key=None`, there is nothing to hash, so the client is free to load-balance —
+and modern clients use a **sticky partitioner**:
+
+```
+pick a partition → fill an entire batch with records → send it
+                 → pick a DIFFERENT partition → fill the next batch → …
+```
+
+Not round-robin per record (that would scatter each record into a different
+half-empty batch and destroy batching efficiency), but **sticky per batch**. So a
+keyless producer changes partition roughly every time a batch is dispatched.
+
+#### Four things that *can* shift the target, even with a key
+
+| Cause | Effect |
+|---|---|
+| **Partition count increases** | `% N` changes, so existing keys remap to different partitions. Old records stay put; new ones may land elsewhere — this is exactly why §5 says the count is semi-static and why Kafka only allows *increases*, never decreases or reshuffles. |
+| **Metadata refresh** | The client periodically re-fetches topic metadata (`topic.metadata.refresh.interval.ms`, default 5 min). It learns of new partitions or new leaders here — the count it divides by comes from this cache, not from a live query per record. |
+| **Leader change / unavailable partition** | If a partition's leader broker dies, the client re-fetches metadata and sends to the new leader. The *partition* is unchanged; only the broker it talks to moves. Some clients additionally avoid partitions with no available leader when keyless. |
+| **You pass `partition=` explicitly** | `produce()` accepts an explicit partition, which bypasses the partitioner entirely. Rare, and it puts the ordering burden on you. |
+
+**The practical takeaway:** keying is how you *buy* ordering, and the price is
+that partition count becomes hard to change later. A keyless producer gets easy,
+even load distribution and gives up per-key ordering. Choose the key based on
+what must stay ordered together — here, one trip's lifecycle.
 
 ## 6. Offsets: address *and* bookmark
 
@@ -401,7 +524,103 @@ one per topic, which you must resolve to learn the outcome. Creating a topic tha
 already exists raises `TOPIC_ALREADY_EXISTS` — which the demo treats as success,
 making the script safely re-runnable.
 
-* QUESTION: using code snippet examples from our demo0* files if possible, explain in more detail the user of  `create_topics()`, and a "dict of futures, one per topic, which you must resolve to learn the outcome.".  Also: are these actions performed on the client, the broker, or somewhere else?
+### `create_topics()` in detail — and where the work actually happens
+
+Here is the whole thing from
+[`demo01_create_topic.py:74-83`](../msds682-demos/demo1/demo01_create_topic.py#L74-L83):
+
+```python
+topic = NewTopic(
+    topic_name,
+    num_partitions=partitions,
+    replication_factor=replication_factor,
+    config={"cleanup.policy": cleanup_policy},
+)
+# create_topics() is async: it returns {topic_name: Future}.
+# result() blocks until the broker confirms, or raises on failure.
+futures = admin_client.create_topics([topic])
+futures[topic_name].result(timeout=30)
+```
+
+Three lines, three distinct ideas.
+
+#### 1. `NewTopic(...)` is a plain local object
+
+It creates *nothing*. It is a request description — a dataclass-like bundle of
+"here is what I want" — sitting in your process's memory. No network traffic yet.
+
+#### 2. `create_topics([topic])` takes a **list** and returns a **dict of futures**
+
+Note the API shape: you hand it a **list** of `NewTopic` objects, and get back a
+`dict` keyed by topic name:
+
+```python
+futures = admin_client.create_topics([topic_a, topic_b, topic_c])
+# → {"topic_a": Future, "topic_b": Future, "topic_c": Future}
+```
+
+**Why a dict of futures rather than a single result?** Because the operations
+succeed or fail *independently*. In one call, `topic_a` might be created,
+`topic_b` might already exist, and `topic_c` might be rejected for requesting
+more replicas than you have brokers. A single return value could not express
+three different outcomes, so each topic gets its own future you resolve
+separately.
+
+This is the same `concurrent.futures.Future` you may know from Python's
+`ThreadPoolExecutor` — a handle to a result that isn't ready yet.
+
+#### 3. `.result(timeout=30)` is where you actually find out
+
+`create_topics()` returns **immediately**, before the cluster has done anything.
+Calling `.result()` **blocks** your thread until the answer arrives, then either
+returns normally (success) or **raises** `KafkaException`. That raise is how the
+demo detects a topic that already exists — it catches the exception, inspects the
+error code for `TOPIC_ALREADY_EXISTS`, and treats it as success, which is what
+makes the script safely re-runnable.
+
+If you never call `.result()`, your script can exit having learned nothing — and
+possibly before the request was even sent.
+
+#### So where does the work happen?
+
+All three places, in sequence:
+
+```
+YOUR PROCESS (client)          NETWORK            KAFKA CLUSTER
+─────────────────────          ───────            ─────────────
+NewTopic(...)                                     
+  builds a local request                          
+                                                  
+admin_client.create_topics()                      
+  ├─ hands request to the ──── CreateTopics ────▶  CONTROLLER broker
+  │  background I/O thread      request            ├─ validates the request
+  ├─ creates Future objects                        ├─ picks which brokers host
+  └─ RETURNS IMMEDIATELY ◀──┐                      │  which partition replicas
+                            │                      ├─ writes to cluster metadata
+future.result(timeout=30)   │                      └─ creates log directories
+  └─ BLOCKS your thread     │                         on the chosen brokers
+                            └──── response ─────────┘
+     background thread resolves the Future
+     → .result() returns, or raises
+```
+
+- **On the client:** building the request, managing futures, and blocking in
+  `.result()`. The client also runs a **background thread** that owns the socket
+  and resolves futures when responses land — the same architecture as the
+  producer's background thread in §12.
+- **On the broker:** all the real work. Specifically the **controller** — one
+  elected broker responsible for cluster metadata. It decides replica placement,
+  updates the cluster's metadata, and instructs brokers to create the partition
+  directories from §3.
+- **Nowhere else.** There is no separate coordination service in modern Kafka
+  (older versions used ZooKeeper for this; KRaft mode keeps it inside the brokers).
+
+**The pattern generalizes:** this "call returns a future, `.result()` blocks and
+raises" shape is how nearly all admin operations work (`delete_topics`,
+`create_partitions`, `describe_configs`). And it is the same *asynchronous
+client, background I/O thread, deferred outcome* model you meet again in
+`produce()` + callbacks (§12) — Kafka clients are asynchronous almost everywhere,
+and your job is deciding **where to block**.
 
 **Naming convention** used all course: `msds682.demo01.trip-events.v1` —
 `<org>.<context>.<entity>.<version>`. The trailing `v1` matters: an
@@ -458,7 +677,81 @@ The **model** is the contract
 carries `ge=0`. This is **schema-on-write** — malformed events are rejected
 *before* they can reach the topic.
 
-* QUESTION: remind me from where the pydantic base model is obtained and where it is applied.  Is it pulled from the broker, and applied on the client side?
+### Where does the Pydantic model come from, and where is it applied?
+
+**It is your own source code, and it runs entirely on the client. The broker has
+no idea it exists.** This is worth stating plainly because it is the single most
+common misconception about Kafka schemas.
+
+#### Where it comes from: a file in your repo
+
+```python
+# demo02_producer_common.py:18-26 — you wrote this; nothing fetched it
+class TripEvent(BaseModel):
+    trip_id: str
+    event_type: Literal["trip_requested", "driver_matched", "trip_started", "trip_completed"]
+    rider_id: str
+    event_time: str
+    zone: str
+    driver_id: str | None = None
+    fare: float | None = Field(default=None, ge=0)
+```
+
+Nothing is pulled from the broker. Nothing is registered anywhere. It is an
+ordinary Python class that both your producer and your consumer `import`.
+
+#### Where it is applied: both ends, independently
+
+```
+PRODUCER (your process)                          CONSUMER (your process)
+────────────────────────                         ────────────────────────
+TripEvent(...)          ← validates HERE         raw bytes off the wire
+   │                                                │
+   ▼                                                ▼
+serialize_event()       → JSON → bytes           TripEvent.model_validate_json()
+   │                                                │  ← validates HERE, again
+   ▼                                                ▲
+producer.produce() ─────▶ BROKER ───────────────────┘
+                          (stores opaque bytes;
+                           validates NOTHING)
+```
+
+- **On write:** validation happens when you *construct* the `TripEvent`, before
+  `produce()` is ever called. A negative `fare` raises a `ValidationError` in
+  your code — the message never reaches the network.
+- **On read:** the consumer decodes bytes and calls
+  `TripEvent.model_validate_json(...)`
+  ([`demo03_consumer_common.py:129`](../handouts/demo03_consumer_common.py#L129)),
+  applying the *same class* to data that arrives.
+
+#### Why it is validated twice
+
+Because **the broker will not do it for you.** Kafka stores opaque bytes (§4). It
+cannot reject a malformed record, because it has no notion of what your bytes
+mean. The schema is therefore a **social contract between two programs**, and it
+holds only as long as both programs independently choose to honor it.
+
+That has a real failure mode: if someone deploys a producer with a changed model
+and the consumer still has the old one, nothing warns you. The mismatch surfaces
+at 3 a.m. as a `ValidationError` on the consumer — or worse, as silently
+misinterpreted data.
+
+#### What *is* fetched from a server: Schema Registry (§16)
+
+This is exactly the gap Schema Registry fills, and it is the one schema component
+that genuinely lives elsewhere:
+
+| | Pydantic model | Avro + Schema Registry |
+|---|---|---|
+| **Lives where** | your source code | a **separate registry service** (not the broker) |
+| **Fetched at runtime?** | no — imported | **yes** — client fetches a schema by ID |
+| **Enforces** | business meaning (`fare >= 0`, cross-field rules) | wire structure (field names, types) |
+| **Can reject a bad deploy?** | no | yes — compatibility checks before a schema is accepted |
+
+Even then, note the registry is a **third service** alongside the Kafka brokers,
+with its **own credentials** (§16.3) — and it still does not validate business
+rules. `fare = -10` is a perfectly valid Avro `double`. Only your Pydantic model
+rejects it, client-side, as it always did.
 
 > **Forward pointer:** this validation layer is the subject of §16 — treat the
 > model here as "a contract that rejects bad events" and read §16.1 when you want
@@ -505,7 +798,98 @@ they are assigned downstream of `produce()` (§4, §6).
 run. `flush()` is the **explicit wait point**. Where you put it *is* the delivery
 strategy.
 
-* QUESTION: explain in detail what poll() and flush() are and do.
+### `poll()` and `flush()` in detail
+
+To understand both, you need one fact about how the client is built:
+**`confluent-kafka` is a thin Python wrapper over a C library (librdkafka) that
+runs its own background thread.** That thread — not your Python thread — owns the
+socket and does all network I/O.
+
+```
+YOUR PYTHON THREAD                    BACKGROUND THREAD (C)
+──────────────────                    ─────────────────────
+produce()  ──appends to──▶  [ send queue ]
+  returns instantly                        │ picks up records,
+                                           │ batches them, sends,
+                                           │ waits for broker acks
+                                           ▼
+                                    [ callback queue ]  ← results land here
+poll()  ──drains──────────────────────────┘
+  runs YOUR callbacks
+  on YOUR thread
+```
+
+The two queues are the key. `produce()` fills the first; the background thread
+moves work into the second; **`poll()` is the only thing that empties the
+second.**
+
+#### `poll(timeout)` — "run my pending callbacks now"
+
+```python
+n = producer.poll(0)     # non-blocking: serve whatever is ready, return count
+n = producer.poll(1.0)   # wait up to 1 second for something to become ready
+```
+
+- **What it does:** executes queued delivery callbacks **on your calling thread**,
+  and returns how many events it served.
+- **`timeout=0`** means *do not wait* — serve what's ready and return
+  immediately, possibly having done nothing.
+- **Why callbacks need it:** your Python callback cannot safely be invoked from
+  the C background thread, so results are queued until you call `poll()`. **A
+  callback never fires on its own.**
+
+**Two things go wrong if you never call it:**
+
+1. **Memory grows.** Completed results accumulate in the callback queue forever.
+2. **Producing eventually fails.** The send queue is bounded
+   (`queue.buffering.max.messages`, default ~100,000). Once full, `produce()`
+   raises `BufferError` instead of enqueuing. Calling `poll(0)` in the loop keeps
+   the pipeline moving.
+
+#### `flush(timeout)` — "block until everything is resolved"
+
+```python
+remaining = producer.flush(30.0)
+```
+
+Conceptually, `flush()` is just **`poll()` in a loop until the queues are empty**:
+
+```python
+# what flush(timeout) is doing, in spirit
+deadline = now() + timeout
+while messages_in_flight() > 0 and now() < deadline:
+    poll(small_interval)
+return messages_in_flight()      # 0 if everything resolved
+```
+
+- **It blocks** until every produced message has reached a **terminal state** —
+  either delivered (callback with `err=None`) or failed (callback with an error).
+- **It is not itself a network call.** It sends nothing; it *waits* for the
+  background thread to finish what it already has, and serves the resulting
+  callbacks along the way.
+- **It returns a count**, not a status: how many messages are *still* unresolved
+  when it gave up. `0` means done. See the next section for what that number does
+  and does not include.
+
+#### The comparison that actually matters
+
+| | `poll(0)` | `flush(timeout)` |
+|---|---|---|
+| Blocks? | no | yes, until empty or timeout |
+| Serves callbacks? | yes, whatever is ready | yes, continuously while waiting |
+| Waits for in-flight messages? | **no** | **yes** — that is its whole job |
+| Returns | number of events served | number of messages **still unresolved** |
+| Typical placement | inside the produce loop | once before exit, or per batch |
+
+**The one-sentence version:** `poll()` is *"process results that already
+arrived"*; `flush()` is *"wait until there are no more results coming."* Every
+producer must call `flush()` at least once before exiting, or messages still in
+the queue are silently discarded when the process dies.
+
+> **Consumers have a `poll()` too, and it is a different animal** — it *fetches
+> records from the broker* and returns one message (§14.2). Same name, opposite
+> direction: producer `poll` drains outbound results; consumer `poll` pulls
+> inbound data.
 
 ### 12.5 Three delivery patterns
 
@@ -530,7 +914,38 @@ for event in events:
     producer.poll(0)                              # non-blocking, inside loop
 remaining = producer.flush(flush_timeout)         # exactly once, after loop
 ```
-* QUESTION: explain in detail where "remaining" comes from as its orgin is not shown in this code.  Explain what it does.  Does it take any messages that were not successfully processed?
+> **Where does `remaining` come from?** It has no prior definition — that line
+> *creates* it. `remaining` is simply the **return value of `flush()`**:
+> the number of messages still sitting unresolved in the producer's queue when
+> `flush()` returned. On a healthy run it is `0`.
+>
+> **Does it include messages that failed?** **No — and this is the important
+> subtlety.** Every produced message ends in exactly one of three states:
+>
+> | State | How you learn about it | Counted in `remaining`? |
+> |---|---|---|
+> | **Delivered** | callback fires with `err = None` → `delivered_count += 1` | no |
+> | **Failed** | callback fires with an error → appended to `failed_messages` | **no** |
+> | **Unresolved** | callback never fired; still queued when the timeout expired | **yes** |
+>
+> A *failed* message is a **resolved** message — Kafka reached a verdict and told
+> you via the callback, so it leaves the queue and does not count as remaining.
+> `remaining > 0` means something different and worse: **you don't know what
+> happened.** Those messages might still be delivered after your process exits,
+> or might not be. The usual cause is a `flush()` timeout that was too short, or
+> a broker you cannot reach.
+>
+> That is exactly why the reports check **both** conditions:
+>
+> ```python
+> if report["failed"] or report["remaining_after_flush"]:
+>     raise SystemExit("Some messages were not delivered.")
+> ```
+>
+> `failed` catches *known* problems; `remaining` catches *unknown* ones. A run is
+> only trustworthy when both are zero — which is also why the benchmark's CSV
+> contract requires `batch_delivered == 500`, `batch_failed == 0`, **and**
+> `remaining_after_flush == 0` on every row.
 
 The idiomatic high-throughput pattern. Messages pipeline over the network instead
 of going one at a time.
@@ -552,7 +967,41 @@ for event in events:
     producer.poll(0)
 remaining = producer.flush(flush_timeout)
 ```
-* QUESTION: what are the use cases for pattern B vs pattern C? When is each one best to do?
+### When to use pattern B vs pattern C
+
+**Straight answer: they are the same pattern.** C is B with one expression pulled
+onto its own line. The produce/poll/flush control flow is identical, the bytes on
+the wire are identical, and the performance is identical — measurably so:
+serialization is ~0.88 µs per event, about 0.24 % of a 500-message async batch.
+
+So the choice is not architectural. It is about **when the serialization step
+deserves to be visible**:
+
+| Use the inline form (B) when… | Use the explicit form (C) when… |
+|---|---|
+| Serialization is a one-liner that can't fail interestingly | You need to **inspect, log, or measure** the bytes (e.g. record a `sample_serialized_value`, as Demo 02D does) |
+| The payload is simple JSON | You use a **serializer object** — Avro, Protobuf — that needs a `SerializationContext` and may hit Schema Registry (§16.2) |
+| You want the shortest readable loop | Serialization can **raise**, and you want to `try/except` around just that step to skip or dead-letter a bad record without aborting the batch |
+| | You're **teaching or reviewing** the code and want the object → bytes boundary impossible to miss |
+
+**Why Demo 02D exists at all:** its purpose is pedagogical. The assignment wants
+you to see that **validation and serialization are two different steps** —
+Pydantic guarantees the object is *meaningful*, serialization decides how it
+*travels*. Inlining the call hides that boundary; naming `value_bytes` makes it a
+thing you can point at.
+
+**In production**, the explicit form tends to win as soon as serialization stops
+being trivial — which happens the moment you adopt Avro:
+
+```python
+# with Avro, "serialization" is a stateful object that may call out to a registry
+value_bytes = avro_serializer(event, SerializationContext(topic, MessageField.VALUE))
+producer.produce(topic, key=event_key(event), value=value_bytes, callback=cb)
+```
+
+Here the inline form would be genuinely unpleasant, and error handling around
+just the serializer would be impossible. **Pick C when serialization is a step
+with its own failure modes; pick B when it is punctuation.**
 
 The lesson: **validation and serialization are distinct steps.** Pydantic
 guarantees the object is *correct*; serialization decides how it travels *on the
@@ -577,7 +1026,61 @@ any speed difference is therefore attributable to the strategy, not the data.
 This is why the `rng` call order inside `make_trip_event` must never change: it
 would desynchronize the sequence.
 
-* QUESTION: I don't understand the point of using a seed for ML work in order to generate reproduceable results, but I don't understand the point of sending anything random via kafka... is this purely for testing purposes?
+### Why send *random* data through Kafka at all?
+
+**Short answer: yes, this is a test harness — but "random" is doing something
+more specific than it sounds, and your ML seeding intuition transfers exactly.**
+
+#### The data isn't random because randomness is useful — it's *synthetic*
+
+There is no real ride-hailing company feeding this course a live event stream. To
+exercise a producer you need *some* payload, so the demos fabricate plausible
+trip events. Synthetic data is the norm for this because it is realistic in
+shape, free, and carries no privacy or PII concerns. In production, this
+generator is exactly the piece you delete — real events arrive from your
+application, and nothing about the producer code changes.
+
+Note also how *unrandom* the "random" data actually is
+([`demo02_producer_common.py:92-106`](../handouts/demo02_producer_common.py#L92-L106)):
+`event_type` cycles deterministically through the four lifecycle stages,
+`trip_id` increments every four events, `zone` cycles north/south/west, and
+timestamps advance one second per index. **Only two fields draw from the RNG at
+all** — `driver_id` and `fare`. The stream is a structured simulation with a
+little jitter, not noise.
+
+#### The seed is doing the same job it does in ML — controlling a nuisance variable
+
+Your ML instinct is precisely right, just pointed at a different experiment:
+
+| | ML training | This benchmark |
+|---|---|---|
+| **What you're measuring** | does architecture A beat B? | does async beat sync-style? |
+| **Nuisance variable** | weight init, shuffling, dropout | the payload itself |
+| **Seed's job** | so a score difference reflects the *architecture*, not luckier initialization | so a timing difference reflects the *strategy*, not different data |
+
+Without the seed, the two strategies would send different bytes. Message size
+directly affects throughput — a batch of `trip_completed` events (which carry a
+`fare`) is larger than a batch of `trip_requested` events (which don't). If async
+happened to draw more compact payloads, part of its advantage would be an
+artifact of the data. **Seeding makes the payload a constant so the strategy is
+the only variable.**
+
+This is also why §13.1 warns that the `rng` call order must never change: reorder
+the two draws and the sequences diverge, silently breaking the comparison.
+
+#### Where the reproducibility genuinely pays off
+
+1. **Fair A/B comparison** — the benchmark's whole claim depends on it.
+2. **Credential-free testing** — `test_producer_logic.py` asserts that the same
+   seed produces byte-identical serialized events, so control-flow bugs are
+   caught with no cluster and no cost.
+3. **Debuggability** — "the failure happens at message 1,447" is only a
+   meaningful statement if message 1,447 is the same message every run.
+
+**In production you would not seed anything** — you'd send real events as they
+occur. Determinism is a property of the *measurement harness*, not of Kafka or of
+production producers. It belongs to the same family of habits as fixing a random
+seed before reporting a model score.
 
 ### 13.2 Measure through *completed delivery*
 
@@ -696,7 +1199,67 @@ crash). Committing *after* risks **reprocessing** it (done, crash before commit)
 which is why Kafka's default guarantee is **at-least-once**, and why consumer
 processing should be **idempotent**.
 
-* QUESTION: remind me what idempotent means in this context.  I'm used to it meaning AB = BA in linear algebra.
+### What "idempotent" means here
+
+**Your algebra instinct is nearly right — one substitution away.** `AB = BA` is
+*commutativity*. **Idempotence** in linear algebra is:
+
+$$A^2 = A$$
+
+A projection matrix is the classic example: project a vector onto a plane, and
+projecting *again* changes nothing. **Applying the operation twice equals
+applying it once.** That is exactly — not merely analogously — the Kafka meaning:
+
+$$f(f(x)) = f(x)$$
+
+**Processing the same message twice leaves the system in the same state as
+processing it once.**
+
+#### Why you are forced to care
+
+Because §14.3's ordering rule guarantees duplicates will eventually happen:
+
+```
+poll → decode → validate → process → commit
+                                  ↑
+                          crash HERE and the message
+                          was processed but never committed
+                          → next run redelivers it
+```
+
+That is the meaning of **at-least-once**: every message arrives *at least* once,
+possibly more. You cannot engineer the duplicates away — the crash window between
+"processed" and "committed" is irreducible. So you make duplicates *harmless*.
+
+#### The distinction in practice
+
+| Idempotent ✓ | Not idempotent ✗ |
+|---|---|
+| `UPSERT INTO trips VALUES (trip_id, …)` — same row, same result | `UPDATE trips SET count = count + 1` — runs twice, counts twice |
+| `SET status = 'completed'` | `INSERT INTO events …` without a unique key — duplicate rows |
+| `redis.SADD(key, trip_id)` — sets ignore re-adds | `list.append(record)` — grows every time |
+| Writing a file at a deterministic path | Sending a confirmation email; charging a card |
+
+The pattern: **assignment and set-insertion are idempotent; accumulation and
+side-effects are not.**
+
+#### Three ways to get it
+
+1. **Key your writes by a natural ID.** Upserting on `trip_id` is idempotent by
+   construction — the most common and cheapest fix.
+2. **Deduplicate on `(topic, partition, offset)`.** That triple is unique
+   forever (§6), so a "processed offsets" table lets you skip replays. Useful
+   when the work genuinely cannot be made idempotent.
+3. **Make the side-effect conditional.** Check "did I already send this?" before
+   sending — effectively option 2 for external systems.
+
+> **Related but different — the producer's `enable.idempotence` setting.** That
+> config solves the *other* end: it stops the **producer** from writing the same
+> record twice when it retries after an ambiguous network failure, by tagging
+> records with a producer ID and sequence number the broker can deduplicate.
+> Useful, but it protects the write path only. It does nothing about a **consumer**
+> reprocessing a record after a crash — that remains your application's problem,
+> and idempotent processing is the answer.
 
 With `enable.auto.commit=False`, the demo also sets
 `enable.auto.offset.store=False` so *the application* decides what counts as
