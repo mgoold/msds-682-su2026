@@ -76,6 +76,8 @@ A **topic** is a **logical name** you route records to (e.g.
 an S3 bucket, and it is *not* pure namespace either — it is a name over **N
 partitions**, each of which is real physical storage.
 
+QUESTION: is it correct to say that a topic *is* a log file?  Is that what it is materially?
+
 A topic is the level at which you set **policy** and **route**:
 
 - Partition count, replication factor, and cleanup policy are chosen at creation:
@@ -108,6 +110,8 @@ Key facts:
   partition is an **ordered, append-only, immutable log** read sequentially.
   Closest mapping: **topic ≈ bucket-like container, segment file ≈ object** (and
   under tiered storage, old segments literally become objects in a bucket).
+
+QUESTION: explain in more detail what a segment is.
 
 **Buckets store *things you fetch*; partitions store *a sequence you replay*.**
 
@@ -170,7 +174,7 @@ changed, `hash(key) % N` would send the same key to a *different* partition,
 breaking per-key ordering. So Kafka only lets you **increase** partitions (a
 deliberate admin act), never shuffle them dynamically.
 
----
+QUESTION: re: " producer client chooses the partition before sending, using recently refreshed broker metadata" -- does the client every change the partition it sends to dynamically? If it does, what causes that change?
 
 ## 6. Offsets: address *and* bookmark
 
@@ -397,6 +401,8 @@ one per topic, which you must resolve to learn the outcome. Creating a topic tha
 already exists raises `TOPIC_ALREADY_EXISTS` — which the demo treats as success,
 making the script safely re-runnable.
 
+* QUESTION: using code snippet examples from our demo0* files if possible, explain in more detail the user of  `create_topics()`, and a "dict of futures, one per topic, which you must resolve to learn the outcome.".  Also: are these actions performed on the client, the broker, or somewhere else?
+
 **Naming convention** used all course: `msds682.demo01.trip-events.v1` —
 `<org>.<context>.<entity>.<version>`. The trailing `v1` matters: an
 incompatible schema change usually means a **new topic**, not a mutated one.
@@ -452,6 +458,8 @@ The **model** is the contract
 carries `ge=0`. This is **schema-on-write** — malformed events are rejected
 *before* they can reach the topic.
 
+* QUESTION: remind me from where the pydantic base model is obtained and where it is applied.  Is it pulled from the broker, and applied on the client side?
+
 > **Forward pointer:** this validation layer is the subject of §16 — treat the
 > model here as "a contract that rejects bad events" and read §16.1 when you want
 > the full rules, plus §16.2 for how Avro adds a second, structural layer beneath
@@ -497,6 +505,8 @@ they are assigned downstream of `produce()` (§4, §6).
 run. `flush()` is the **explicit wait point**. Where you put it *is* the delivery
 strategy.
 
+* QUESTION: explain in detail what poll() and flush() are and do.
+
 ### 12.5 Three delivery patterns
 
 **A. Sync-style — flush after every message**
@@ -520,6 +530,7 @@ for event in events:
     producer.poll(0)                              # non-blocking, inside loop
 remaining = producer.flush(flush_timeout)         # exactly once, after loop
 ```
+* QUESTION: explain in detail where "remaining" comes from as its orgin is not shown in this code.  Explain what it does.  Does it take any messages that were not successfully processed?
 
 The idiomatic high-throughput pattern. Messages pipeline over the network instead
 of going one at a time.
@@ -541,6 +552,7 @@ for event in events:
     producer.poll(0)
 remaining = producer.flush(flush_timeout)
 ```
+* QUESTION: what are the use cases for pattern B vs pattern C? When is each one best to do?
 
 The lesson: **validation and serialization are distinct steps.** Pydantic
 guarantees the object is *correct*; serialization decides how it travels *on the
@@ -564,6 +576,8 @@ any speed difference is therefore attributable to the strategy, not the data.
 
 This is why the `rng` call order inside `make_trip_event` must never change: it
 would desynchronize the sequence.
+
+* QUESTION: I don't understand the point of using a seed for ML work in order to generate reproduceable results, but I don't understand the point of sending anything random via kafka... is this purely for testing purposes?
 
 ### 13.2 Measure through *completed delivery*
 
@@ -681,6 +695,8 @@ Committing *before* processing risks **losing** a record (marked done, then you
 crash). Committing *after* risks **reprocessing** it (done, crash before commit) —
 which is why Kafka's default guarantee is **at-least-once**, and why consumer
 processing should be **idempotent**.
+
+* QUESTION: remind me what idempotent means in this context.  I'm used to it meaning AB = BA in linear algebra.
 
 With `enable.auto.commit=False`, the demo also sets
 `enable.auto.offset.store=False` so *the application* decides what counts as
