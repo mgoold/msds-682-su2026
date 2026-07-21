@@ -437,6 +437,19 @@ const handouts = [
     lastUpdatedAt: "Last updated at 5:06 PM PDT on July 20, 2026",
     wide: true,
     summary: "Local FastAPI contracts plus a bounded, independent Confluent Cloud Avro round trip with expected-result screenshots."
+  },
+  {
+    slug: "lec5-realtime-ml-examples",
+    section: "lec5",
+    category: "Supplement",
+    title: "Lecture 5 Supplement: Kafka for Real-Time Risk and Machine Learning",
+    kind: "html",
+    file: "handouts/lec5-supplementary-real-time-ml.html",
+    createdAt: "Created at 5:17 PM PDT on July 20, 2026",
+    lastUpdatedAt: "Last updated at 5:28 PM PDT on July 20, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Three anonymized examples compare real-time Kafka scoring, batch account risk, and account takeover detection."
   }
   // PDF example (uncomment and add the file to publish):
   // {
