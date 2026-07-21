@@ -1279,6 +1279,8 @@ resumes *after* the offsets the first one committed.
 
 ### 14.4 Groups, rebalancing, and replay
 
+QUESTION: Explain more thoroughly what a group is -- is a physical concept?  Is it a metadata concept like a topic?  Is it a resource/computing management concept like a control field?  It seems to be a resource management concept that designates parallel compute across brokers for partitions of a specific topic.  Is that correct? 
+
 [`demo03c`](../handouts/demo03c_confluent_groups_replay.py) demonstrates the
 **consumer group** — the mechanism for parallel consumption.
 
@@ -1305,6 +1307,8 @@ Rules:
 
 **Replay** is a separate contract from normal group consumption. To reread from
 the start you must *explicitly override* the assigned offsets:
+
+QUESTION: Explain in more beginner level detail what replay is and how it works, and whether it is a material, metadata, or resource management concept, or none of those.
 
 ```python
 def on_assign(consumer, partitions):
@@ -1374,7 +1378,10 @@ demonstrates exactly this).
 ### 16.1 Application validation (Demo 04A)
 
 [`demo04a`](../handouts/demo04a_schema_validation.py) is fully local — no Kafka,
-no Registry. It runs pass/fail cases through the JSON → Pydantic boundary an
+no Registry. 
+QUESTION: explain "is fully local — no Kafka, no Registry." in detail in a readable way for a beginning kafka user.  This is too terse to mean anything.
+
+It runs pass/fail cases through the JSON → Pydantic boundary an
 application actually uses (`model_validate_json`, not a plain dict). The strict
 contract rejects:
 
