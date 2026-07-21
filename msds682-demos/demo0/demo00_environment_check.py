@@ -12,7 +12,7 @@ PACKAGES = [
     "fastapi",
     "pydantic",
     "uvicorn",
-    "httpx",
+    "httpx2",
     "pandas",
     "matplotlib",
     "pytest",

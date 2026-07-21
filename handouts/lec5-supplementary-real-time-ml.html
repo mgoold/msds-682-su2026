@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Lecture 5 supplementary examples connecting Kafka, batch and real-time risk scoring, machine learning, and downstream decisions.">
+  <title>Lecture 5 Supplementary Examples | Kafka, Risk, and Machine Learning</title>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #69707c;
+      --line: #e2e4e1;
+      --panel: #ffffff;
+      --blue: #3565f2;
+      --blue-soft: #eef1fe;
+      --green: #0e7f66;
+      --green-soft: #e7f3f0;
+      --amber: #9a6209;
+      --amber-soft: #fff3d9;
+      --purple: #7655c5;
+      --purple-soft: #f2eefc;
+      --red: #c63f46;
+      --red-soft: #fdf0ef;
+      --shadow: 0 10px 30px rgba(22, 24, 29, .055);
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-snap-type: y mandatory;
+    }
+
+    body { overflow-x: hidden; }
+
+    .slide {
+      min-height: 100vh;
+      padding: 3vh 3vw;
+      position: relative;
+      display: grid;
+      place-items: center;
+      scroll-snap-align: start;
+    }
+
+    .frame { width: min(1380px, 93vw); }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 780;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(34px, 2.65vw, 52px);
+      line-height: 1.05;
+      letter-spacing: -.03em;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 1.38vw, 28px);
+      line-height: 1.16;
+    }
+
+    h3 {
+      margin: 0 0 6px;
+      font-size: clamp(16px, 1.02vw, 21px);
+      line-height: 1.22;
+    }
+
+    p, li, th, td {
+      font-size: clamp(15px, .98vw, 20px);
+      line-height: 1.42;
+    }
+
+    .subtitle {
+      margin: 0 0 2.25vh;
+      color: var(--muted);
+      font-size: clamp(17px, 1.18vw, 23px);
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(14px, 1.35vw, 22px);
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(14px, 1.35vw, 22px);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: clamp(17px, 1.5vw, 25px);
+      box-shadow: var(--shadow);
+    }
+
+    .card.blue { border-top: 5px solid var(--blue); }
+    .card.amber { border-top: 5px solid var(--amber); }
+    .card.purple { border-top: 5px solid var(--purple); }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: clamp(11px, .75vw, 14px);
+      font-weight: 780;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .bodycopy { margin: 0; color: var(--muted); }
+    .bodycopy strong { color: var(--ink); }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: #2f4b9a;
+      font-family: var(--mono);
+      font-size: clamp(11px, .72vw, 14px);
+      font-weight: 720;
+    }
+
+    .chip.green { background: var(--green-soft); color: #176452; }
+    .chip.amber { background: var(--amber-soft); color: #774d08; }
+    .chip.purple { background: var(--purple-soft); color: #594291; }
+
+    .architecture {
+      margin: 2.2vh 0;
+      display: grid;
+      grid-template-columns: repeat(11, auto);
+      align-items: stretch;
+      justify-content: center;
+      gap: clamp(6px, .62vw, 11px);
+    }
+
+    .node {
+      width: min(13.3vw, 192px);
+      min-height: 112px;
+      padding: 14px 12px;
+      display: grid;
+      align-content: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .node strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: clamp(14px, .92vw, 18px);
+      line-height: 1.15;
+    }
+
+    .node span {
+      color: var(--muted);
+      font-size: clamp(12px, .78vw, 15px);
+      line-height: 1.3;
+    }
+
+    .node.kafka { background: var(--blue-soft); border-color: #d2dafb; }
+    .node.model { background: var(--purple-soft); border-color: #ddd2f5; }
+    .node.output { background: var(--green-soft); border-color: #c7e2db; }
+    .node.context { background: var(--amber-soft); border-color: #ead7aa; }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: clamp(18px, 1.3vw, 26px);
+      font-weight: 800;
+    }
+
+    .fact-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .fact {
+      min-height: 108px;
+      padding: 14px 16px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .fact b {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: clamp(11px, .75vw, 14px);
+      text-transform: uppercase;
+    }
+
+    .fact span {
+      color: var(--muted);
+      font-size: clamp(13px, .87vw, 17px);
+      line-height: 1.35;
+    }
+
+    .callout {
+      margin-top: 1.7vh;
+      padding: 12px 16px;
+      border: 1px solid #d4dcfb;
+      border-radius: 11px;
+      background: var(--blue-soft);
+      color: #304273;
+      font-size: clamp(14px, .9vw, 18px);
+      line-height: 1.4;
+    }
+
+    .callout strong { color: var(--ink); }
+    .callout.green { background: var(--green-soft); border-color: #c6e2da; color: #1a6152; }
+    .callout.amber { background: var(--amber-soft); border-color: #ead7aa; color: #74500f; }
+    .callout.red { background: var(--red-soft); border-color: #efcbc9; color: #8c3035; }
+
+    .comparison {
+      width: 100%;
+      margin-top: 2vh;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .comparison th, .comparison td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .comparison th {
+      background: #fafaf8;
+      color: var(--muted);
+      font-size: clamp(12px, .78vw, 15px);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .comparison tr:last-child td { border-bottom: 0; }
+    .comparison td:first-child { font-weight: 760; }
+
+    .pager {
+      position: absolute;
+      right: 3vw;
+      bottom: 2.2vh;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .accent { color: var(--blue); }
+
+    @media (max-width: 1050px) {
+      .slide { min-height: auto; padding: 48px 24px 70px; scroll-snap-align: none; }
+      .grid3, .grid2, .fact-strip { grid-template-columns: 1fr; }
+      .architecture { grid-template-columns: 1fr; width: min(680px, 100%); margin-inline: auto; }
+      .node { width: 100%; min-height: auto; }
+      .arrow { transform: rotate(90deg); }
+      .comparison { display: block; overflow-x: auto; }
+    }
+
+    @media print {
+      html { scroll-snap-type: none; }
+      .slide { min-height: 100vh; page-break-after: always; }
+    }
+  </style>
+</head>
+<body>
+  <section class="slide" id="summary">
+    <div class="frame">
+      <p class="kicker">Lecture 5 supplementary examples</p>
+      <h1>Using Kafka for <span class="accent">risk and machine learning</span></h1>
+      <p class="subtitle">Three risk problems use different time horizons. Kafka moves events; the business problem determines whether scoring is batch or real time.</p>
+
+      <div class="grid3">
+        <article class="card blue">
+          <p class="eyebrow">Session level</p>
+          <h2>Geospatial session risk</h2>
+          <p class="bodycopy">Does the current route contain an unusual stop or movement pattern?</p>
+          <div class="chips"><span class="chip green">real-time inference</span><span class="chip">Kafka core</span></div>
+        </article>
+        <article class="card amber">
+          <p class="eyebrow">Account level</p>
+          <h2>Historical account risk</h2>
+          <p class="bodycopy">Does long-term behavior indicate persistent marketplace risk?</p>
+          <div class="chips"><span class="chip amber">batch scoring</span><span class="chip">Kafka optional</span></div>
+        </article>
+        <article class="card purple">
+          <p class="eyebrow">Incident level</p>
+          <h2>Account takeover (ATO)</h2>
+          <p class="bodycopy">Do new security events suggest that an account was just compromised?</p>
+          <div class="chips"><span class="chip purple">real-time inference</span><span class="chip">Kafka core</span></div>
+        </article>
+      </div>
+
+      <table class="comparison" aria-label="Comparison of three machine learning use cases">
+        <thead><tr><th>Case</th><th>Primary signal</th><th>Model timing</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr><td>Geospatial</td><td>Recent location and trip events</td><td>Short state window, then score</td><td>Classification, score, and reasons</td></tr>
+          <tr><td>Historical risk</td><td>Weeks or months of account history</td><td>Scheduled batch job</td><td>Latest account risk score</td></tr>
+          <tr><td>Account takeover (ATO)</td><td>New login, authentication, device, and card events</td><td>Batch training; score when events arrive</td><td>Account takeover risk score, reasons, and review case</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><strong>Common pattern:</strong> events become features, features become an assessment, and a separate policy or reviewer decides what action to take.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="geospatial-risk">
+    <div class="frame">
+      <p class="kicker">Example 1 · real-time session intelligence</p>
+      <h1>Geospatial session risk</h1>
+      <p class="subtitle"><strong>Business problem:</strong> identify unusual stops or route patterns early without treating one location point as proof of fraud.</p>
+
+      <div class="architecture" aria-label="Geospatial session risk architecture">
+        <div class="node"><strong>1 · Producers</strong><span>Location, trip state, event time</span></div><div class="arrow">→</div>
+        <div class="node kafka"><strong>2 · Kafka input topic</strong><span>Observations keyed by trip or session</span></div><div class="arrow">→</div>
+        <div class="node context"><strong>3 · Stateful consumer</strong><span>Maintains a recent bounded window</span></div><div class="arrow">→</div>
+        <div class="node model"><strong>4 · Classifier</strong><span>Rules first; machine learning when labels exist</span></div><div class="arrow">→</div>
+        <div class="node output"><strong>5 · Kafka output topic</strong><span>Assessment type, score, reasons, time</span></div><div class="arrow">→</div>
+        <div class="node"><strong>6 · Decisions</strong><span>Review, notification, and analytics</span></div>
+      </div>
+
+      <div class="fact-strip">
+        <div class="fact"><b>Kafka</b><span>Transports durable observations and classified results.</span></div>
+        <div class="fact"><b>Model timing</b><span>Real-time rules or inference over a short state window.</span></div>
+        <div class="fact"><b>Output</b><span>Explainable session-level risk signal, not a verdict.</span></div>
+        <div class="fact"><b>Decision</b><span>A policy or reviewer decides whether to notify or investigate.</span></div>
+      </div>
+
+      <div class="callout green"><strong>Why streaming matters:</strong> order and event time provide the context that an isolated location point cannot provide.</div>
+      <div class="callout red"><strong>Boundary:</strong> traffic, location error, a store visit, or waiting may explain the same pattern. The classifier estimates risk, not intent.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="historical-risk">
+    <div class="frame">
+      <p class="kicker">Example 2 · batch model with real-time reuse</p>
+      <h1>Historical account risk</h1>
+      <p class="subtitle"><strong>Business problem:</strong> use long-term behavior to prioritize accounts with persistent marketplace-integrity risk.</p>
+
+      <div class="architecture" aria-label="Historical account risk architecture">
+        <div class="node"><strong>1 · Historical sources</strong><span>Orders, disputes, devices, patterns</span></div><div class="arrow">→</div>
+        <div class="node context"><strong>2 · Batch store</strong><span>Governed history and labels</span></div><div class="arrow">→</div>
+        <div class="node model"><strong>3 · Batch model job</strong><span>Scheduled features, training, and scoring</span></div><div class="arrow">→</div>
+        <div class="node output"><strong>4 · Score store</strong><span>Latest account score and explanation</span></div><div class="arrow">→</div>
+        <div class="node kafka"><strong>5 · Optional stream use</strong><span>A consumer reads the latest score as context</span></div><div class="arrow">→</div>
+        <div class="node"><strong>6 · Risk review</strong><span>Prioritize, investigate, decide</span></div>
+      </div>
+
+      <div class="fact-strip">
+        <div class="fact"><b>Kafka</b><span>Optional in the core batch path; useful for feeding history or enriching live decisions.</span></div>
+        <div class="fact"><b>Model timing</b><span>Batch training and batch scoring on a schedule.</span></div>
+        <div class="fact"><b>Output</b><span>Account-level risk score reflecting long-term behavior.</span></div>
+        <div class="fact"><b>Decision</b><span>Reviewer prioritization; deactivation requires explicit policy and evidence.</span></div>
+      </div>
+
+      <div class="callout amber"><strong>Hybrid pattern:</strong> a real-time consumer may read the latest batch score as context, but that does not make the batch model itself real time.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="account-takeover">
+    <div class="frame">
+      <p class="kicker">Example 3 · real-time security response</p>
+      <h1>Account takeover (ATO) detection</h1>
+      <p class="subtitle"><strong>Business problem:</strong> detect a sudden compromise quickly enough to reduce harm while protecting the legitimate account owner.</p>
+
+      <div class="architecture" aria-label="Account takeover detection architecture">
+        <div class="node"><strong>1 · Event producers</strong><span>Login, multi-factor authentication, device, card events</span></div><div class="arrow">→</div>
+        <div class="node kafka"><strong>2 · Kafka input topics</strong><span>Durable security-event streams</span></div><div class="arrow">→</div>
+        <div class="node context"><strong>3 · ATO consumer</strong><span>Builds online features from recent events and history</span></div><div class="arrow">→</div>
+        <div class="node model"><strong>4 · Real-time scoring</strong><span>Account takeover risk score and reasons</span></div><div class="arrow">→</div>
+        <div class="node output"><strong>5 · Kafka output topic</strong><span>Assessment, evidence time, model version</span></div><div class="arrow">→</div>
+        <div class="node"><strong>6 · Protective response</strong><span>Review, verify, contain</span></div>
+      </div>
+
+      <div class="fact-strip">
+        <div class="fact"><b>Kafka</b><span>Carries events that drive detection and the typed assessment downstream.</span></div>
+        <div class="fact"><b>Model timing</b><span>Batch training; real-time inference when a security event arrives.</span></div>
+        <div class="fact"><b>Output</b><span>Account takeover risk score, reason codes, and evidence timestamps.</span></div>
+        <div class="fact"><b>Decision</b><span>Human review first; bounded protective action only under approved policy.</span></div>
+      </div>
+
+      <div class="callout green"><strong>Why streaming matters:</strong> success is measured by time from signal to detection to resolution, not only by model accuracy.</div>
+      <div class="callout red"><strong>Important distinction:</strong> the account owner may be the victim. Account takeover is not the same as long-term account risk.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <script>
+    const slides = [...document.querySelectorAll("section.slide")];
+
+    slides.forEach((slide, index) => {
+      slide.querySelector(".pager").textContent = `${index + 1} / ${slides.length}`;
+    });
+
+    function currentSlideIndex() {
+      const viewportCenter = window.scrollY + window.innerHeight / 2;
+      return slides.reduce((bestIndex, slide, index) => {
+        const slideCenter = slide.offsetTop + slide.offsetHeight / 2;
+        const bestCenter = slides[bestIndex].offsetTop + slides[bestIndex].offsetHeight / 2;
+        return Math.abs(slideCenter - viewportCenter) < Math.abs(bestCenter - viewportCenter)
+          ? index
+          : bestIndex;
+      }, 0);
+    }
+
+    function move(delta) {
+      const next = Math.max(0, Math.min(slides.length - 1, currentSlideIndex() + delta));
+      slides[next].scrollIntoView({ behavior: "smooth" });
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowDown", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        move(1);
+      } else if (["ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        move(-1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        slides[0].scrollIntoView({ behavior: "smooth" });
+      } else if (event.key === "End") {
+        event.preventDefault();
+        slides.at(-1).scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -4,7 +4,7 @@ apscheduler==3.11.3
 confluent-kafka[avro,schemaregistry]==2.15.0
 fastmcp==3.4.2
 fastapi==0.139.0
-httpx==0.28.1
+httpx2==2.7.0
 matplotlib==3.11.0
 pandas==3.0.3
 pydantic==2.13.4

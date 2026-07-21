@@ -53,6 +53,11 @@ site hash belongs to the router, Markdown heading IDs and in-page table-of-
 contents scrolling are handled by `prepareHandoutNavigation()` rather than by
 changing `window.location.hash`.
 
+Links from one Markdown handout to another must use the registered route
+`#/handouts/<slug>`, not a relative `.md` path. If the same Markdown source is
+packaged into a student ZIP, its builder owns the small route-to-local-link
+translation so the published handout remains the SSOT.
+
 ## Local preview
 
 ```bash
