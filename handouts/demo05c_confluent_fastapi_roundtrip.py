@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 
 from confluent_demo_common import (
     ConnectionConfigError,
+    TopicSetupError,
     consumer_group_id,
     ensure_topic,
     kafka_config,
@@ -68,13 +69,16 @@ def main() -> dict[str, Any]:
         raise SystemExit(str(exc)) from exc
 
     topic = topic_name()
-    topic_status = ensure_topic(
-        AdminClient(admin_config),
-        topic=topic,
-        create=args.create_topic,
-        partitions=args.partitions,
-        replication_factor=args.replication_factor,
-    )
+    try:
+        topic_status = ensure_topic(
+            AdminClient(admin_config),
+            topic=topic,
+            create=args.create_topic,
+            partitions=args.partitions,
+            replication_factor=args.replication_factor,
+        )
+    except TopicSetupError as exc:
+        raise SystemExit(f"Demo 05C topic setup failed: {exc}") from None
     expected_keys = frozenset(
         event_key(request_to_event(item)) for item in requests
     )
@@ -123,6 +127,7 @@ def main() -> dict[str, Any]:
                         f"{response.text}"
                     )
                 responses.append(response.json())
+            worker.mark_publishing_complete()
             consumed = worker.join()
     except BaseException:
         worker.stop()

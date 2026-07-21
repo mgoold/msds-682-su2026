@@ -434,7 +434,7 @@ const handouts = [
     kind: "md",
     file: "handouts/demo05.md",
     createdAt: "Created at 4:48 PM PDT on July 20, 2026",
-    lastUpdatedAt: "Last updated at 4:48 PM PDT on July 20, 2026",
+    lastUpdatedAt: "Last updated at 4:59 PM PDT on July 20, 2026",
     wide: true,
     summary: "Local FastAPI contracts plus a bounded, independent Confluent Cloud Avro round trip with expected-result screenshots."
   }

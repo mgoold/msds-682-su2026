@@ -141,6 +141,9 @@ top-level folder.
 
 - [Download `demo05-student.zip`](handouts/demo05-student.zip)
 
+If you are reading `README.md` inside the extracted ZIP, the download step is
+already complete; continue directly to Section 6.
+
 ```text
 demo05-student/
 ├── README.md
@@ -252,6 +255,10 @@ python demo05c_confluent_fastapi_roundtrip.py \
 assignment. It then executes the FastAPI application lifespan, posts three
 deterministic HTTP requests, awaits three broker acknowledgements, consumes the
 same three event keys, validates them, and commits them.
+
+`--consumer-timeout` is the downstream completion budget. It starts after the
+last HTTP request has finished publishing, so time spent obtaining broker
+acknowledgements does not silently consume the consumer's remaining budget.
 
 Expected report:
 

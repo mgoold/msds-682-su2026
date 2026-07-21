@@ -9,6 +9,7 @@ from confluent_kafka.admin import AdminClient
 
 from confluent_demo_common import (
     ConnectionConfigError,
+    TopicSetupError,
     ensure_topic,
     kafka_config,
     schema_registry_config,
@@ -69,13 +70,16 @@ def main() -> None:
     # Topic creation is a startup operation. Request handlers only validate,
     # map, publish, and return; they never administer Kafka resources.
     # ========================================================================
-    ensure_topic(
-        AdminClient(admin_config),
-        topic=topic,
-        create=args.create_topic,
-        partitions=args.partitions,
-        replication_factor=args.replication_factor,
-    )
+    try:
+        ensure_topic(
+            AdminClient(admin_config),
+            topic=topic,
+            create=args.create_topic,
+            partitions=args.partitions,
+            replication_factor=args.replication_factor,
+        )
+    except TopicSetupError as exc:
+        raise SystemExit(f"Demo 05D topic setup failed: {exc}") from None
     app = build_cloud_app(delivery_timeout=args.delivery_timeout)
     print(f"Swagger UI: http://{args.host}:{args.port}/docs")
     print("Stop the interactive service with Ctrl+C when the exercise is complete.")

@@ -26,6 +26,10 @@ class ConnectionConfigError(RuntimeError):
     """Raised when required Kafka or Schema Registry settings are absent."""
 
 
+class TopicSetupError(RuntimeError):
+    """Raised when a Kafka topic cannot be verified or created."""
+
+
 def load_dotenv_for_demo() -> Path | None:
     """Load ``.env`` from the working directory or this bundle directory."""
 
@@ -126,26 +130,33 @@ def ensure_topic(
 ) -> str:
     """Confirm a demo topic exists, optionally creating it once."""
 
-    metadata = admin.list_topics(timeout=15)
-    if topic in metadata.topics and metadata.topics[topic].error is None:
-        return "already_exists"
-    if not create:
-        raise RuntimeError(
-            f"Topic {topic!r} does not exist. Re-run with --create-topic or "
-            "create it in Confluent Cloud first."
-        )
-    future = admin.create_topics(
-        [
-            NewTopic(
-                topic,
-                num_partitions=partitions,
-                replication_factor=replication_factor,
-                config={"cleanup.policy": "delete"},
+    try:
+        metadata = admin.list_topics(timeout=15)
+        if topic in metadata.topics and metadata.topics[topic].error is None:
+            return "already_exists"
+        if not create:
+            raise TopicSetupError(
+                f"Topic {topic!r} does not exist. Re-run with --create-topic or "
+                "create it in Confluent Cloud first."
             )
-        ]
-    )[topic]
-    future.result(timeout=30)
-    return "created"
+        future = admin.create_topics(
+            [
+                NewTopic(
+                    topic,
+                    num_partitions=partitions,
+                    replication_factor=replication_factor,
+                    config={"cleanup.policy": "delete"},
+                )
+            ]
+        )[topic]
+        future.result(timeout=30)
+        return "created"
+    except TopicSetupError:
+        raise
+    except Exception as exc:
+        raise TopicSetupError(
+            f"Could not verify or create Kafka topic {topic!r}: {exc}"
+        ) from exc
 
 
 # ============================================================================

@@ -153,7 +153,7 @@ class AsyncAvroTripPublisher:
         if self.closed:
             return
         self.closed = True
-        primary_error: BaseException | None = None
+        primary_error: Exception | None = None
         try:
             remaining = await asyncio.wait_for(
                 self._producer.flush(self.delivery_timeout),
@@ -163,14 +163,23 @@ class AsyncAvroTripPublisher:
                 raise RuntimeError(
                     f"AIOProducer still had {remaining} queued messages at shutdown"
                 )
-        except BaseException as exc:
+        except asyncio.CancelledError:
+            # Cancellation remains cancellation, but owned clients still close.
+            try:
+                await self._stack.aclose()
+            except Exception:
+                pass
+            raise
+        except Exception as exc:
             primary_error = exc
         try:
             await asyncio.wait_for(
                 self._stack.aclose(),
                 timeout=self.delivery_timeout + 1.0,
             )
-        except BaseException as exc:
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
             if primary_error is None:
                 primary_error = exc
         if primary_error is not None:
@@ -197,6 +206,7 @@ class BoundedTripConsumer:
         self.assignment_timeout = assignment_timeout
         self.consumer_timeout = consumer_timeout
         self.ready = threading.Event()
+        self.publishing_complete = threading.Event()
         self.stop_requested = threading.Event()
         self.records: list[dict[str, Any]] = []
         self.assignments: list[list[dict[str, int | str]]] = []
@@ -231,6 +241,11 @@ class BoundedTripConsumer:
 
         self.stop_requested.set()
 
+    def mark_publishing_complete(self) -> None:
+        """Start the downstream completion budget after the final HTTP post."""
+
+        self.publishing_complete.set()
+
     def join(self) -> list[dict[str, Any]]:
         """Wait for the bounded consumer and surface its original error."""
 
@@ -238,6 +253,8 @@ class BoundedTripConsumer:
             raise RuntimeError("Consumer worker was not started")
         self._thread.join(self.assignment_timeout + self.consumer_timeout + 3.0)
         if self._thread.is_alive():
+            self.stop()
+            self._thread.join(1.0)
             raise RuntimeError("Consumer worker exceeded its bounded timeout")
         if self.error is not None:
             raise RuntimeError("Consumer worker failed") from self.error
@@ -253,6 +270,48 @@ class BoundedTripConsumer:
             }
             for partition in partitions
         ]
+
+    def _process_message(
+        self,
+        *,
+        consumer: Consumer,
+        deserializer: Any,
+        context: SerializationContext,
+        message: Any,
+        consumed_keys: set[bytes],
+    ) -> None:
+        """Validate, record, and commit one polled Kafka message if expected."""
+
+        if message.error():
+            error = message.error()
+            if error.code() == KafkaError._PARTITION_EOF:
+                return
+            raise RuntimeError(f"Consumer error: {error}")
+        key = message.key()
+        if key not in self.expected_keys or key in consumed_keys:
+            self.skipped += 1
+            return
+        event = deserializer(message.value(), context)
+        if not isinstance(event, TripEventV1):
+            raise TypeError("Expected AvroDeserializer to return TripEventV1")
+        if event_key(event) != key:
+            raise ValueError("Kafka key does not match the deserialized trip_id")
+        consumed_keys.add(key)
+        self.records.append(
+            {
+                "topic": message.topic(),
+                "partition": message.partition(),
+                "offset": message.offset(),
+                "key": key.decode("utf-8") if key else None,
+                "wire": parse_confluent_wire_header(message.value()),
+                "event": event.report_dict(),
+            }
+        )
+        # ====================================================================
+        # KEY CONCEPT
+        # Deserialize, validate, and process before committing.
+        # ====================================================================
+        consumer.commit(message=message, asynchronous=False)
 
     def _run(self) -> None:
         consumer: Consumer | None = None
@@ -279,6 +338,7 @@ class BoundedTripConsumer:
                     "enable.auto.offset.store": False,
                 }
                 consumer = Consumer(consumer_config)
+                consumed_keys: set[bytes] = set()
 
                 def on_assign(active_consumer: Consumer, partitions: Any) -> None:
                     active_consumer.assign(partitions)
@@ -289,53 +349,41 @@ class BoundedTripConsumer:
                 assignment_deadline = time.monotonic() + self.assignment_timeout
                 while not self.ready.is_set() and time.monotonic() < assignment_deadline:
                     message = consumer.poll(0.25)
-                    if message is not None and message.error():
-                        error = message.error()
-                        if error.code() != KafkaError._PARTITION_EOF:
-                            raise RuntimeError(f"Consumer assignment error: {error}")
+                    if message is not None:
+                        # A poll that triggers assignment may also return data.
+                        # Route it through the same validation and commit path.
+                        self._process_message(
+                            consumer=consumer,
+                            deserializer=deserializer,
+                            context=context,
+                            message=message,
+                            consumed_keys=consumed_keys,
+                        )
                 if not self.ready.is_set():
                     raise RuntimeError("Consumer assignment timed out")
 
-                consumed_keys: set[bytes] = set()
-                deadline = time.monotonic() + self.consumer_timeout
+                completion_deadline: float | None = None
                 while (
                     len(consumed_keys) < len(self.expected_keys)
-                    and time.monotonic() < deadline
                     and not self.stop_requested.is_set()
                 ):
+                    if completion_deadline is None and self.publishing_complete.is_set():
+                        completion_deadline = time.monotonic() + self.consumer_timeout
+                    if (
+                        completion_deadline is not None
+                        and time.monotonic() >= completion_deadline
+                    ):
+                        break
                     message = consumer.poll(0.5)
                     if message is None:
                         continue
-                    if message.error():
-                        error = message.error()
-                        if error.code() == KafkaError._PARTITION_EOF:
-                            continue
-                        raise RuntimeError(f"Consumer error: {error}")
-                    key = message.key()
-                    if key not in self.expected_keys or key in consumed_keys:
-                        self.skipped += 1
-                        continue
-                    event = deserializer(message.value(), context)
-                    if not isinstance(event, TripEventV1):
-                        raise TypeError("Expected AvroDeserializer to return TripEventV1")
-                    if event_key(event) != key:
-                        raise ValueError("Kafka key does not match the deserialized trip_id")
-                    consumed_keys.add(key)
-                    self.records.append(
-                        {
-                            "topic": message.topic(),
-                            "partition": message.partition(),
-                            "offset": message.offset(),
-                            "key": key.decode("utf-8") if key else None,
-                            "wire": parse_confluent_wire_header(message.value()),
-                            "event": event.report_dict(),
-                        }
+                    self._process_message(
+                        consumer=consumer,
+                        deserializer=deserializer,
+                        context=context,
+                        message=message,
+                        consumed_keys=consumed_keys,
                     )
-                    # ========================================================
-                    # KEY CONCEPT
-                    # Deserialize, validate, and process before committing.
-                    # ========================================================
-                    consumer.commit(message=message, asynchronous=False)
         except BaseException as exc:
             self.error = exc
             self.ready.set()

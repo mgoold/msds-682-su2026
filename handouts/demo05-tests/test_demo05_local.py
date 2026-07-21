@@ -6,15 +6,22 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
+import demo05_kafka as kafka_module
+from confluent_demo_common import TopicSetupError, ensure_topic
 from demo05_app import LocalTripPublisher, create_app, create_local_app
 from demo05_common import (
     PublishError,
     deterministic_requests,
     request_to_event,
 )
-from demo05_kafka import publish_one_event
+from demo05_kafka import (
+    AsyncAvroTripPublisher,
+    BoundedTripConsumer,
+    publish_one_event,
+)
 from trip_event_contract import TripEventV1
 
 
@@ -90,7 +97,117 @@ def test_local_app_returns_health_202_422_and_openapi() -> None:
         invalid["extra"] = True
         rejected = client.post("/trip-requests", json=invalid)
         assert rejected.status_code == 422
+        naive_timestamp = dict(payload)
+        naive_timestamp["requested_at"] = "2026-07-20T17:00:00"
+        assert client.post("/trip-requests", json=naive_timestamp).status_code == 422
         assert "/trip-requests" in client.get("/openapi.json").json()["paths"]
+
+
+def test_topic_setup_wraps_admin_failure() -> None:
+    class FailingAdmin:
+        def list_topics(self, *, timeout: float):
+            raise RuntimeError(f"network unavailable after {timeout:g}s")
+
+    with pytest.raises(TopicSetupError, match="Could not verify or create"):
+        ensure_topic(
+            FailingAdmin(),
+            topic="test.demo05",
+            create=True,
+            partitions=1,
+            replication_factor=1,
+        )
+
+
+def test_assignment_poll_processes_first_data_message(monkeypatch) -> None:
+    event = request_to_event(deterministic_requests(1)[0])
+    value = b"\x00\x00\x00\x00\x03payload"
+    commits: list[object] = []
+
+    class Message:
+        def error(self):
+            return None
+
+        def key(self) -> bytes:
+            return event.trip_id.encode("utf-8")
+
+        def value(self) -> bytes:
+            return value
+
+        def topic(self) -> str:
+            return "test.demo05"
+
+        def partition(self) -> int:
+            return 0
+
+        def offset(self) -> int:
+            return 4
+
+    message = Message()
+
+    class Partition:
+        topic = "test.demo05"
+        partition = 0
+        offset = -1001
+
+    class FakeConsumer:
+        def __init__(self, _config: dict):
+            self.on_assign = None
+            self.polled = False
+
+        def subscribe(self, _topics: list[str], *, on_assign):
+            self.on_assign = on_assign
+
+        def poll(self, _timeout: float):
+            if self.polled:
+                return None
+            self.polled = True
+            assert self.on_assign is not None
+            self.on_assign(self, [Partition()])
+            return message
+
+        def assign(self, _partitions: list[Partition]) -> None:
+            return None
+
+        def commit(self, *, message: object, asynchronous: bool) -> None:
+            assert asynchronous is False
+            commits.append(message)
+
+        def close(self) -> None:
+            return None
+
+    class FakeRegistry:
+        def __init__(self, _config: dict):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback) -> None:
+            return None
+
+    monkeypatch.setattr(kafka_module, "Consumer", FakeConsumer)
+    monkeypatch.setattr(kafka_module, "SchemaRegistryClient", FakeRegistry)
+    monkeypatch.setattr(
+        kafka_module,
+        "AvroDeserializer",
+        lambda *_args, **_kwargs: (lambda _value, _context: event),
+    )
+    monkeypatch.setattr(kafka_module, "kafka_config", lambda **_kwargs: {})
+
+    worker = BoundedTripConsumer(
+        topic="test.demo05",
+        group_id="test-group",
+        expected_keys=frozenset({event.trip_id.encode("utf-8")}),
+        registry_config={},
+        assignment_timeout=0.1,
+        consumer_timeout=0.1,
+    )
+    worker._run()
+
+    assert worker.error is None
+    assert len(worker.records) == 1
+    assert worker.records[0]["key"] == event.trip_id
+    assert commits == [message]
 
 
 def test_lifespan_closes_exactly_one_publisher() -> None:
@@ -132,6 +249,31 @@ def test_publish_failure_maps_to_secret_free_503() -> None:
     assert response.json() == {
         "detail": "The event publisher is temporarily unavailable."
     }
+
+
+def test_publisher_close_preserves_cancellation_after_cleanup() -> None:
+    class CancellingProducer:
+        async def flush(self, _timeout: float):
+            raise asyncio.CancelledError
+
+    class ClosingStack:
+        closed = False
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    stack = ClosingStack()
+    publisher = AsyncAvroTripPublisher(
+        stack=stack,
+        producer=CancellingProducer(),
+        serializer=object(),
+        topic="test.demo05",
+        delivery_timeout=0.1,
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(publisher.close())
+    assert stack.closed
 
 
 def test_native_aio_publish_contract_uses_key_value_and_ack() -> None:

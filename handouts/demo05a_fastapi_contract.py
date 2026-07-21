@@ -18,6 +18,7 @@ def run_local_contract(*, run_id: str, count: int, seed_offset: int) -> dict:
     requests = deterministic_requests(count, seed_offset=seed_offset)
     app = create_local_app()
     accepted: list[dict] = []
+    accepted_status_codes: list[int] = []
     with TestClient(app) as client:
         health = client.get("/health")
         health.raise_for_status()
@@ -26,6 +27,7 @@ def run_local_contract(*, run_id: str, count: int, seed_offset: int) -> dict:
                 "/trip-requests",
                 json=payload.model_dump(mode="json"),
             )
+            accepted_status_codes.append(response.status_code)
             if response.status_code != 202:
                 raise RuntimeError(f"Expected 202, received {response.status_code}")
             accepted.append(response.json())
@@ -52,7 +54,7 @@ def run_local_contract(*, run_id: str, count: int, seed_offset: int) -> dict:
         ],
         "input": request_input_report(requests, seed_offset=seed_offset),
         "health": health.json(),
-        "accepted_status_codes": [202] * len(accepted),
+        "accepted_status_codes": accepted_status_codes,
         "accepted": accepted,
         "invalid_status_code": invalid.status_code,
         "invalid_error_locations": [
