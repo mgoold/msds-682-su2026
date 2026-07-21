@@ -416,6 +416,19 @@ const handouts = [
     summary: "Ridesharing case study on groups, derived topics, joins, replay, and trade-offs."
   },
   {
+    slug: "lec5-streaming-apis",
+    section: "lec5",
+    category: "Slides",
+    title: "Lecture 5: Streaming APIs with FastAPI and Kafka",
+    kind: "html",
+    file: "handouts/lec5-streaming-apis.html",
+    createdAt: "Created at 5:29 PM PDT on July 20, 2026",
+    lastUpdatedAt: "Last updated at 5:29 PM PDT on July 20, 2026",
+    wide: true,
+    standalone: true,
+    summary: "FastAPI application boundaries, schema-aware Kafka delivery, consumer processing, Demo 05, and a stateful idling-classification case study."
+  },
+  {
     slug: "fastapi-recap",
     section: "lec5",
     category: "Recap",

@@ -1,0 +1,1599 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MSDS 682 Lecture 5 slides: FastAPI, schema-aware Kafka applications, and a stateful idling-classification case study.">
+  <title>MSDS 682 · Lecture 5 · Streaming Applications</title>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #6f7480;
+      --line: #e4e5e1;
+      --panel: #ffffff;
+      --accent: #3565f2;
+      --accent-soft: #eef1fe;
+      --green: #0e7f66;
+      --green-soft: #e7f3f0;
+      --amber: #a26706;
+      --amber-soft: #fff4dc;
+      --red: #d83b42;
+      --red-soft: #fdf0ef;
+      --purple: #7655c5;
+      --purple-soft: #f2eefc;
+      --code-bg: #171b24;
+      --code-ink: #e9edf5;
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+      --shadow: 0 8px 28px rgba(22, 24, 29, .05);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    body { overflow-x: hidden; }
+
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      place-items: center;
+      padding: 3vh 3vw;
+      position: relative;
+    }
+
+    .frame { width: min(1360px, 92vw); }
+    .frame.narrow { width: min(1160px, 88vw); }
+
+    .kicker {
+      margin: 0 0 9px;
+      color: var(--muted);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    .kicker b { color: var(--accent); }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 2.4vw, 47px);
+      font-weight: 750;
+      letter-spacing: -.024em;
+      line-height: 1.08;
+    }
+
+    .hero h1 {
+      max-width: 1080px;
+      font-size: clamp(52px, 4.25vw, 82px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 1.45vw, 28px);
+      line-height: 1.18;
+    }
+
+    h3 {
+      margin: 0 0 7px;
+      font-size: clamp(16px, 1.12vw, 22px);
+      line-height: 1.25;
+    }
+
+    p, li, td, th {
+      font-size: clamp(16px, 1.05vw, 21px);
+      line-height: 1.48;
+    }
+
+    .subtitle {
+      margin: 0 0 2.5vh;
+      color: var(--muted);
+      font-size: clamp(17px, 1.25vw, 24px);
+      line-height: 1.45;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: clamp(18px, 1.8vw, 30px);
+      box-shadow: var(--shadow);
+    }
+
+    .card.flat { box-shadow: none; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(16px, 1.7vw, 28px);
+      align-items: stretch;
+    }
+
+    .grid2.wide-left { grid-template-columns: 1.45fr .85fr; }
+    .grid2.wide-right { grid-template-columns: .85fr 1.45fr; }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(14px, 1.45vw, 24px);
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(12px, 1.25vw, 20px);
+    }
+
+    .grid5 {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(10px, 1vw, 16px);
+    }
+
+    .stack { display: grid; gap: clamp(12px, 1.4vh, 18px); }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .bodycopy { margin: 0; color: var(--muted); }
+    .bodycopy strong { color: var(--ink); }
+
+    .compact-list { margin: 10px 0 0; padding-left: 1.15em; }
+    .compact-list li { margin: 0 0 7px; color: var(--muted); }
+    .compact-list li:last-child { margin-bottom: 0; }
+    .compact-list strong { color: var(--ink); }
+
+    code, .command {
+      font-family: var(--mono);
+      font-size: .92em;
+    }
+
+    .command {
+      display: block;
+      margin-top: 10px;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fafafa;
+      color: #30343d;
+      overflow-wrap: anywhere;
+    }
+
+    .codecard {
+      background: var(--code-bg);
+      border-radius: 15px;
+      padding: clamp(18px, 1.7vw, 28px);
+      box-shadow: 0 12px 36px rgba(23, 27, 36, .14);
+    }
+
+    pre {
+      margin: 0;
+      color: var(--code-ink);
+      font-family: var(--mono);
+      font-size: clamp(13px, .88vw, 17px);
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .kw { color: #98b9ff; }
+    .str { color: #91d7bd; }
+    .num { color: #f0c97b; }
+    .cm { color: #8f98a9; }
+
+    .callout {
+      margin-top: clamp(14px, 1.7vh, 22px);
+      border: 1px solid #d6ddfb;
+      border-radius: 11px;
+      background: var(--accent-soft);
+      padding: 13px 18px;
+      color: #2b3a67;
+      font-size: clamp(15px, .98vw, 19px);
+      line-height: 1.46;
+    }
+
+    .callout strong { color: var(--ink); }
+    .callout.green { background: var(--green-soft); border-color: #c6e3dc; color: #185c4d; }
+    .callout.amber { background: var(--amber-soft); border-color: #f0dca9; color: #714b0b; }
+    .callout.red { background: var(--red-soft); border-color: #f0c9c7; color: #8f292e; }
+    .callout.purple { background: var(--purple-soft); border-color: #ddd1f5; color: #523c8b; }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      box-shadow: var(--shadow);
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th { color: var(--ink); background: #fafafa; font-weight: 750; }
+    td { color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+
+    .flowline {
+      display: grid;
+      grid-template-columns: repeat(9, auto);
+      justify-content: center;
+      align-items: center;
+      gap: 9px;
+      margin: clamp(18px, 2.5vh, 32px) 0;
+    }
+
+    .flow-node {
+      min-width: 128px;
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--panel);
+      color: var(--ink);
+      font-size: clamp(13px, .92vw, 18px);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .flow-node.accent { background: var(--accent-soft); border-color: #d6ddfb; color: #2d4eaa; }
+    .flow-node.green { background: var(--green-soft); border-color: #c6e3dc; color: #175f50; }
+    .flow-node.amber { background: var(--amber-soft); border-color: #f0dca9; color: #76500c; }
+    .flow-node.purple { background: var(--purple-soft); border-color: #ddd1f5; color: #563d91; }
+    .arrow { color: var(--muted); font-size: clamp(20px, 1.6vw, 30px); }
+
+    .recap-loop {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2vh 0;
+    }
+
+    .recap-step {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--panel);
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    .recap-step b { display: block; font-family: var(--mono); font-size: clamp(13px, .9vw, 17px); }
+    .recap-step span { display: block; margin-top: 5px; color: var(--muted); font-size: clamp(12px, .82vw, 15px); }
+
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 9px; margin: 16px 0 24px; }
+
+    .pill {
+      display: inline-flex;
+      padding: 7px 11px;
+      border: 1px solid #d6ddfb;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #2c4fab;
+      font-family: var(--mono);
+      font-size: clamp(12px, .8vw, 15px);
+      font-weight: 700;
+    }
+
+    .pill.green { border-color: #c6e3dc; background: var(--green-soft); color: #175f50; }
+
+    .hero-visual {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: stretch;
+      gap: 18px;
+      margin-top: 3vh;
+    }
+
+    .hero-box {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--panel);
+      padding: clamp(20px, 2vw, 32px);
+    }
+
+    .hero-box strong { display: block; font-size: clamp(20px, 1.45vw, 28px); }
+    .hero-box span { display: block; margin-top: 8px; color: var(--muted); font-size: clamp(15px, 1vw, 20px); line-height: 1.45; }
+    .hero-arrow { display: grid; place-items: center; color: var(--accent); font-size: clamp(28px, 2.5vw, 48px); }
+
+    .module-toc {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 2vh;
+    }
+
+    .module-toc a {
+      min-height: 178px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 18px;
+      color: inherit;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+    }
+
+    .module-toc .number { color: var(--accent); font-family: var(--mono); font-weight: 800; }
+    .module-toc h2 { margin-top: 12px; }
+    .module-toc p { margin: 0; color: var(--muted); font-size: clamp(14px, .88vw, 17px); line-height: 1.42; }
+
+    .module-divider { background: #eceef5; }
+    .module-divider[data-tone="green"] { background: #e9f1ef; }
+    .module-divider[data-tone="amber"] { background: #f5efe3; }
+    .module-divider[data-tone="purple"] { background: #f0ecf8; }
+
+    .module-divider-shell {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: clamp(28px, 4vw, 64px);
+      align-items: center;
+    }
+
+    .module-index {
+      font-family: var(--mono);
+      font-size: clamp(72px, 8vw, 145px);
+      line-height: .9;
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: -.08em;
+    }
+
+    .module-label {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: clamp(14px, .95vw, 18px);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-weight: 750;
+    }
+
+    .module-divider h1 { font-size: clamp(44px, 4.3vw, 78px); max-width: 970px; }
+
+    .module-outcomes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 2.2vh;
+    }
+
+    .module-outcome {
+      border-top: 3px solid var(--accent);
+      background: rgba(255, 255, 255, .62);
+      padding: 15px 16px;
+      border-radius: 0 0 10px 10px;
+      color: var(--muted);
+      font-size: clamp(14px, .9vw, 18px);
+      line-height: 1.42;
+    }
+
+    .module-outcome strong { display: block; color: var(--ink); margin-bottom: 5px; }
+
+    .status-ladder {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2vh 0;
+    }
+
+    .status-step {
+      min-height: 118px;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 13px;
+    }
+
+    .status-step b { display: block; font-size: clamp(15px, 1vw, 20px); }
+    .status-step span { display: block; margin-top: 7px; color: var(--muted); font-size: clamp(13px, .86vw, 16px); line-height: 1.4; }
+
+    .contract-pair {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .contract-owner {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 22px;
+    }
+
+    .contract-owner .filename { font-family: var(--mono); color: var(--accent); font-weight: 750; }
+
+    .story-map {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      margin: 2.4vh 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .story-stage {
+      min-height: 176px;
+      padding: clamp(18px, 1.7vw, 28px);
+      border-right: 1px solid var(--line);
+    }
+
+    .story-stage:last-child { border-right: 0; }
+    .story-stage .number { color: var(--accent); font-family: var(--mono); font-weight: 800; }
+    .story-stage h2 { margin-top: 12px; }
+    .story-stage p { margin: 0; color: var(--muted); font-size: clamp(14px, .92vw, 18px); }
+
+    .scope-lanes {
+      display: grid;
+      gap: 14px;
+      margin: 2.4vh 0;
+    }
+
+    .scope-lane {
+      display: grid;
+      grid-template-columns: minmax(160px, .45fr) 1.8fr;
+      align-items: center;
+      gap: 20px;
+      border-left: 5px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      background: var(--panel);
+      padding: 18px 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .scope-lane.green { border-left-color: var(--green); }
+    .scope-lane.purple { border-left-color: var(--purple); }
+    .scope-lane .label { font-family: var(--mono); font-weight: 800; color: var(--ink); }
+    .scope-lane p { margin: 0; color: var(--muted); }
+
+    .equation {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: stretch;
+      gap: 12px;
+      margin: 2.4vh 0;
+    }
+
+    .equation-box {
+      display: grid;
+      place-items: center;
+      min-height: 150px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .equation-box strong { display: block; font-size: clamp(19px, 1.35vw, 27px); }
+    .equation-box span { display: block; margin-top: 7px; color: var(--muted); font-size: clamp(14px, .9vw, 18px); }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 2.2vh 0;
+    }
+
+    .metric {
+      border-top: 4px solid var(--green);
+      background: var(--panel);
+      padding: 17px 18px;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .metric strong { display: block; font-size: clamp(17px, 1.1vw, 22px); }
+    .metric span { display: block; margin-top: 6px; color: var(--muted); font-size: clamp(13px, .84vw, 16px); }
+
+    .architecture-line {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+      margin: 2.6vh 0;
+    }
+
+    .architecture-node {
+      min-height: 135px;
+      display: grid;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+      padding: 17px;
+      text-align: center;
+    }
+
+    .architecture-node strong { font-size: clamp(16px, 1.05vw, 21px); }
+    .architecture-node span { margin-top: 7px; color: var(--muted); font-size: clamp(13px, .84vw, 16px); line-height: 1.35; }
+    .architecture-node.state { background: var(--amber-soft); border-color: #f0dca9; }
+    .architecture-node.output { background: var(--purple-soft); border-color: #ddd1f5; }
+
+    .system-cue-map {
+      display: grid;
+      grid-template-columns: 0.72fr auto 1.1fr auto 1.2fr auto 1.25fr auto 1fr;
+      align-items: stretch;
+      gap: 10px;
+      margin: 3vh 0 2.2vh;
+    }
+
+    .system-cue-node {
+      min-height: 148px;
+      display: grid;
+      align-content: center;
+      border: 2px solid #25282e;
+      border-radius: 13px;
+      background: #fff;
+      padding: 17px;
+      color: #25282e;
+      text-align: center;
+    }
+
+    .system-cue-node .cue-step {
+      color: #6f7480;
+      font-family: var(--mono);
+      font-size: clamp(11px, .72vw, 14px);
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .system-cue-node strong {
+      display: block;
+      margin-top: 8px;
+      font-size: clamp(17px, 1.15vw, 23px);
+    }
+
+    .system-cue-node span {
+      display: block;
+      margin-top: 7px;
+      color: #555b66;
+      font-size: clamp(13px, .82vw, 16px);
+      line-height: 1.35;
+    }
+
+    .system-cue-node.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .system-cue-node.active .cue-step,
+    .system-cue-node.active strong { color: var(--accent); }
+
+    .system-cue-arrow {
+      display: grid;
+      place-items: center;
+      color: #25282e;
+      font-size: clamp(24px, 2vw, 38px);
+      font-weight: 800;
+    }
+
+    .system-map-note {
+      width: fit-content;
+      max-width: 100%;
+      margin: 12px auto 0;
+      border-top: 1px solid var(--line);
+      padding: 12px 20px 0;
+      color: #555b66;
+      font-size: clamp(14px, .9vw, 17px);
+      text-align: center;
+    }
+
+    .source-row { margin-top: 14px; color: var(--muted); font-size: clamp(12px, .8vw, 15px); }
+    .source-row a { color: var(--accent); text-decoration: none; }
+
+    .pager {
+      position: absolute;
+      right: 3vw;
+      bottom: 16px;
+      color: #9b9fa8;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .05em;
+    }
+
+    .student-question .frame { max-width: 1320px; }
+
+    .qa-date {
+      display: block;
+      margin: 8px 0 3px;
+      color: var(--ink);
+      font-size: clamp(26px, 2.15vw, 42px);
+      line-height: 1.12;
+    }
+
+    .qa-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 2vh 0;
+    }
+
+    .qa-step {
+      min-height: 155px;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: 0 0 12px 12px;
+      background: var(--panel);
+      padding: 17px;
+    }
+
+    .qa-step strong { display: block; font-size: clamp(16px, 1.05vw, 21px); }
+    .qa-step span { display: block; margin-top: 8px; color: var(--muted); font-size: clamp(13px, .86vw, 16px); line-height: 1.42; }
+
+    .qa-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1.15fr auto .8fr auto 1.15fr;
+      align-items: stretch;
+      gap: 9px;
+      margin: 2vh 0;
+    }
+
+    .qa-flow .flow-node {
+      min-width: 0;
+      display: grid;
+      align-content: center;
+      min-height: 120px;
+    }
+
+    .qa-flow .flow-node span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: clamp(12px, .78vw, 15px);
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 980px) {
+      .grid3, .grid4, .grid5, .module-toc, .status-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .flowline { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); text-align: center; }
+      .recap-loop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .module-divider-shell { grid-template-columns: 120px 1fr; }
+      .module-outcomes { grid-template-columns: 1fr; }
+      .contract-pair, .equation, .architecture-line, .system-cue-map, .qa-flow { grid-template-columns: 1fr; }
+      .qa-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .story-map { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .story-stage:nth-child(2) { border-right: 0; }
+      .story-stage:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .architecture-line .arrow, .equation .arrow, .system-cue-arrow, .qa-flow .arrow { transform: rotate(90deg); text-align: center; }
+      .hero-visual { grid-template-columns: 1fr; }
+      .hero-arrow { transform: rotate(90deg); }
+    }
+
+    @media (max-width: 680px) {
+      section.slide { padding: 7vh 5vw; }
+      .grid2, .grid2.wide-left, .grid2.wide-right, .grid3, .grid4, .grid5, .module-toc, .status-ladder, .story-map, .metric-strip, .qa-steps { grid-template-columns: 1fr; }
+      .story-stage { border-right: 0; border-bottom: 1px solid var(--line); }
+      .story-stage:last-child { border-bottom: 0; }
+      .scope-lane { grid-template-columns: 1fr; gap: 7px; }
+      .recap-loop { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .module-divider-shell { grid-template-columns: 1fr; }
+      .module-index { font-size: 72px; }
+    }
+  </style>
+</head>
+<body>
+  <section class="slide" id="s02">
+    <div class="frame">
+      <h1>Four lectures build one path from bytes to applications</h1>
+      <div class="grid4">
+        <div class="card"><p class="eyebrow">Lecture 2</p><h2>Produce</h2><p class="bodycopy">Publish key/value bytes.</p></div>
+        <div class="card"><p class="eyebrow">Lecture 3</p><h2>Consume</h2><p class="bodycopy">Process, commit, replay, scale.</p></div>
+        <div class="card"><p class="eyebrow">Lecture 4</p><h2>Contract</h2><p class="bodycopy">Meaning and Avro compatibility.</p></div>
+        <div class="card"><p class="eyebrow">Lecture 5</p><h2>Apply</h2><p class="bodycopy">HTTP and stateful processing.</p></div>
+      </div>
+      <div class="callout"><strong>Today:</strong> application boundary + case study. Kafka remains the backbone.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lecture-path">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · Lecture 5</p>
+      <h1>Add an HTTP API to the Kafka path</h1>
+      <p class="subtitle">Build the application path first. Then apply it to a stateful idling-classification case study.</p>
+      <nav class="module-toc" aria-label="Lecture 5 modules">
+        <a href="#module-1-bridge"><span class="number">01</span><h2>Kafka recap</h2><p>Consumers and contracts.</p></a>
+        <a href="#module-2-fastapi"><span class="number">02</span><h2>HTTP API</h2><p>FastAPI and Pydantic.</p></a>
+        <a href="#module-3-service"><span class="number">03</span><h2>Delivery</h2><p>Producer lifecycle and evidence.</p></a>
+        <a href="#module-4-classifier"><span class="number">04</span><h2>Classifier</h2><p>Window → typed event.</p></a>
+        <a href="#module-5-demo"><span class="number">05</span><h2>Demo 05</h2><p>API → Kafka → consumer.</p></a>
+      </nav>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="relationship-map">
+    <div class="frame">
+      <h1>One application pattern, shown at three levels</h1>
+      <div class="scope-lanes">
+        <div class="scope-lane"><div class="label">Class</div><p><strong>Understand the path.</strong> FastAPI → producer → Kafka → consumer.</p></div>
+        <div class="scope-lane green"><div class="label">Demo 05</div><p><strong>Run the base path.</strong> Validate → publish → consume → commit.</p></div>
+        <div class="scope-lane purple"><div class="label">Case study</div><p><strong>Extend the pattern.</strong> Location events → bounded window → idling classification event.</p></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="growth-map">
+    <div class="frame">
+      <h1>Idling classification turns a time window into a typed event</h1>
+      <div class="architecture-line">
+        <div class="architecture-node"><strong>Location events</strong><span>Timestamped synthetic coordinates keyed by <code>trip_id</code></span></div>
+        <div class="arrow">→</div>
+        <div class="architecture-node"><strong>Bounded window</strong><span>Order recent points and measure movement</span></div>
+        <div class="arrow">→</div>
+        <div class="architecture-node state"><strong>Idling segment</strong><span>Movement remains below a configurable threshold</span></div>
+        <div class="arrow">→</div>
+        <div class="architecture-node output"><strong>Classified event</strong><span>Waypoint type, confidence, and model version</span></div>
+      </div>
+      <div class="grid2">
+        <div class="card flat">
+          <p class="eyebrow">Classifier context</p>
+          <h2>What explains the idling segment?</h2>
+          <ul class="compact-list"><li>distance to a known waypoint;</li><li>current trip state;</li><li>GPS accuracy and missing updates;</li><li>time and location context.</li></ul>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Minimal output types</p>
+          <h2>Start small; extend deliberately</h2>
+          <ul class="compact-list"><li><code>pickup</code>;</li><li><code>other</code>;</li><li>add categories only when the classifier can support them.</li></ul>
+        </div>
+      </div>
+      <div class="callout"><strong>Detection asks whether the entity is idling.</strong> Classification asks which waypoint context best explains that interval.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <!-- Student questions received by email. -->
+  <section class="slide student-question" id="student-question-1">
+    <div class="frame">
+      <h1>When is Assignment 1 due, and when will grades be posted?</h1>
+      <div class="grid2">
+        <div class="card flat">
+          <p class="eyebrow">Deadline</p>
+          <strong class="qa-date">Tuesday, July 21</strong>
+          <h2>11:59 PM PDT</h2>
+          <p class="bodycopy">Submit on time. No late submissions or extensions will be accepted.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Grades</p>
+          <strong class="qa-date">About 7 to 10 days</strong>
+          <h2>Posted in Canvas</h2>
+          <p class="bodycopy">The exact timing depends on TA availability.</p>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide student-question" id="student-question-2">
+    <div class="frame">
+      <h1>Where should API keys live?</h1>
+      <div class="grid3">
+        <div class="card flat">
+          <p class="eyebrow">Local project</p>
+          <h2><code>.env</code></h2>
+          <p class="bodycopy">Keep project secrets in <code>.env</code>, ignore it in Git, and publish only a blank <code>.env.example</code>.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Cloud and CI</p>
+          <h2>Managed secrets</h2>
+          <p class="bodycopy">Use the platform secret manager, protected environment variables, or encrypted CI secrets.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Shared tools</p>
+          <h2>Credential store</h2>
+          <p class="bodycopy">Prefer CLI-managed authentication or the operating-system credential manager for tools used across projects.</p>
+        </div>
+      </div>
+      <div class="callout"><strong>Always:</strong> never hard-code or commit keys; scope each key to one environment with least privilege; rotate any exposed key.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide student-question" id="student-question-3">
+    <div class="frame">
+      <h1>What should I do when AI-generated code drifts?</h1>
+      <div class="qa-steps">
+        <div class="qa-step"><strong>1. Ask for a plan</strong><span>Review the proposed work and approve only the required steps.</span></div>
+        <div class="qa-step"><strong>2. Define done</strong><span>State acceptance criteria and what is explicitly outside the scope.</span></div>
+        <div class="qa-step"><strong>3. Use checkpoints</strong><span>Make small changes, test each one, and save a working checkpoint.</span></div>
+        <div class="qa-step"><strong>4. Add guardrails</strong><span>Turn repeated mistakes into tests, lint rules, type checks, or CI gates.</span></div>
+      </div>
+      <div class="callout"><strong>Core behavior first.</strong> Refactors, extra abstractions, and nice-to-have features wait. If the work drifts, return to the last working checkpoint and give the AI a smaller task.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide student-question" id="student-question-4">
+    <div class="frame">
+      <h1>Why use Schema Registry if we already have Pydantic?</h1>
+      <div class="grid2">
+        <div class="card flat">
+          <p class="eyebrow">Inside one application</p>
+          <h2>Pydantic validates meaning</h2>
+          <p class="bodycopy">It checks Python objects, field constraints, and business rules at an application boundary.</p>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">Across applications</p>
+          <h2>Schema Registry governs the wire contract</h2>
+          <p class="bodycopy">It coordinates schema IDs, versions, and compatibility across independently deployed producers and consumers.</p>
+        </div>
+      </div>
+      <div class="callout amber"><strong>A local schema file is only a copy.</strong> By itself, it cannot coordinate deployed versions or compatibility.</div>
+      <div class="callout green"><strong>Use both:</strong> Pydantic owns application rules; Avro plus Schema Registry own the shared Kafka wire contract. The registry stores schemas, not records.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide student-question" id="student-question-5">
+    <div class="frame">
+      <h1>Where does validation happen from producer to consumer?</h1>
+      <div class="qa-flow">
+        <div class="flow-node accent">Producer app<span>Pydantic checks input.</span></div>
+        <div class="arrow">→</div>
+        <div class="flow-node amber">Avro serializer<span>Encodes declared fields and a schema ID.</span></div>
+        <div class="arrow">→</div>
+        <div class="flow-node">Kafka<span>Retains bytes.</span></div>
+        <div class="arrow">→</div>
+        <div class="flow-node green">Consumer app<span>Decode, validate, process, then commit the consumer offset.</span></div>
+      </div>
+      <div class="grid2">
+        <div class="card flat">
+          <p class="eyebrow">What can fail?</p>
+          <ul class="compact-list"><li>Missing fields or wrong types can fail before publish.</li><li>Unknown schema IDs or corrupt bytes can fail during deserialization.</li><li>The course flow commits only successfully processed records.</li></ul>
+        </div>
+        <div class="card flat">
+          <p class="eyebrow">What if the object has 15 fields but Avro defines 5?</p>
+          <ul class="compact-list"><li>Avro is not an automatic filtering policy.</li><li>Our pinned writer may omit undeclared dictionary keys.</li><li>Reject them before publish with strict Pydantic <code>extra="forbid"</code>.</li></ul>
+        </div>
+      </div>
+      <div class="callout"><strong>Compatibility is checked when a new schema version is registered, not for every message.</strong> Kafka normally retains bytes without field-level validation.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-1-bridge" data-tone="blue" data-module="1" data-module-title="Kafka recap">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">01</div><div class="module-label">Kafka recap</div></div>
+        <div>
+          <h1>Connect Kafka mechanics to a real application</h1>
+          <p class="subtitle">What changes when a web request becomes producer input and downstream processing owns state?</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Recall</strong>Trace poll, validate, process, and commit.</div>
+            <div class="module-outcome"><strong>Reuse</strong>Keep Pydantic, Avro, Registry, and Kafka responsibilities separate.</div>
+            <div class="module-outcome"><strong>Extend</strong>Add HTTP first, then stateful scoring without collapsing the layers.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide hero" id="s01">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · <b>Lecture 5</b></p>
+      <h1>FastAPI turns a request<br>into an event boundary</h1>
+      <p class="subtitle">Validate input, construct a governed event, publish it, and report only the delivery state the application can prove.</p>
+      <div class="hero-meta">
+        <span class="pill">Python 3.11.14</span>
+        <span class="pill green">FastAPI 0.139.0</span>
+        <span class="pill">confluent-kafka 2.15.0</span>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-box"><strong>HTTP request</strong><span>A client asks the application to create or accept work.</span></div>
+        <div class="hero-arrow">→</div>
+        <div class="hero-box"><strong>Kafka event</strong><span>A durable fact can be processed by independent consumers.</span></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s03">
+    <div class="frame">
+      <p class="kicker">Prerequisite recap · Lecture 3</p>
+      <h1>Consumers turn Kafka records into durable progress</h1>
+      <p class="subtitle">The processing loop still applies when the producer is an API.</p>
+      <div class="recap-loop">
+        <div class="recap-step"><b>subscribe</b><span>join group</span></div>
+        <div class="recap-step"><b>poll</b><span>receive</span></div>
+        <div class="recap-step"><b>decode</b><span>bytes → data</span></div>
+        <div class="recap-step"><b>validate</b><span>trust boundary</span></div>
+        <div class="recap-step"><b>process</b><span>business logic</span></div>
+        <div class="recap-step"><b>commit</b><span>restart point</span></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><p class="eyebrow">Work ownership</p><h2>Groups divide partitions</h2><p class="bodycopy">Within one group, each partition is assigned to at most one active member. Different groups progress independently.</p></div>
+        <div class="card"><p class="eyebrow">Progress</p><h2>Position is not committed offset</h2><p class="bodycopy">Position is current-session progress. Committed offset is the durable restart point.</p></div>
+      </div>
+      <div class="callout green"><strong>Still true:</strong> deserialize → validate → process → commit.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s04">
+    <div class="frame">
+      <p class="kicker">Prerequisite recap · Lecture 4</p>
+      <h1>Four contract layers, two client paths</h1>
+      <p class="subtitle">FastAPI adds an HTTP boundary; it does not merge the layers.</p>
+      <table>
+        <thead><tr><th>Responsibility</th><th>Course implementation</th></tr></thead>
+        <tbody>
+          <tr><td>Application meaning</td><td>Strict <strong>Pydantic</strong> model plus lifecycle rules.</td></tr>
+          <tr><td>Wire contract</td><td><strong>.avsc schema</strong> plus Confluent-framed Avro binary.</td></tr>
+          <tr><td>Schema governance</td><td>Schema Registry subjects, IDs, versions, and compatibility.</td></tr>
+          <tr><td>Transport</td><td>Kafka retains ordered key and value bytes plus record metadata.</td></tr>
+        </tbody>
+      </table>
+      <div class="grid2">
+        <div class="card flat"><p class="eyebrow">CLI path</p><p class="bodycopy"><code>Producer</code>/<code>Consumer</code> with explicit Avro serdes.</p></div>
+        <div class="card flat"><p class="eyebrow">Existing event loop</p><p class="bodycopy">Native AIO clients with async Registry serdes.</p></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s05">
+    <div class="frame">
+      <p class="kicker">Prerequisite recap · Demo 04D</p>
+      <h1>Use AIO only when the application already owns an event loop</h1>
+      <p class="subtitle">FastAPI is the host application that makes this choice concrete.</p>
+      <div class="grid2 wide-left">
+        <div class="codecard"><pre><span class="kw">await</span> assignment_ready.wait()
+
+value_bytes = <span class="kw">await</span> serializer(event, context)
+delivery_future = <span class="kw">await</span> producer.produce(
+    topic, key=event_key(event), value=value_bytes
+)
+<span class="kw">await</span> producer.flush()
+<span class="kw">await</span> delivery_future</pre></div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">CLI application</p><p class="bodycopy">The standard client is usually simpler and correct.</p></div>
+          <div class="card flat"><p class="eyebrow">FastAPI application</p><p class="bodycopy">Native AIO can share the existing event loop with HTTP work.</p></div>
+          <div class="callout red"><strong>Rule:</strong> placing blocking work inside <code>async def</code> does not make it nonblocking.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s06">
+    <div class="frame">
+      <p class="kicker">The new boundary</p>
+      <h1>A web API receives commands; Kafka records durable facts</h1>
+      <p class="subtitle">The two interfaces serve different jobs and should remain visible.</p>
+      <div class="grid2">
+        <div class="card"><p class="eyebrow">HTTP command</p><h2>“Request a trip”</h2><ul class="compact-list"><li>short request and response lifecycle;</li><li>client-facing validation and status codes;</li><li>may contain intent that is not yet a durable fact.</li></ul></div>
+        <div class="card"><p class="eyebrow">Kafka event</p><h2>“Trip was requested”</h2><ul class="compact-list"><li>durable append-only record;</li><li>independent consumers can process it later;</li><li>includes event identity, time, key, and governed value.</li></ul></div>
+      </div>
+      <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> FastAPI accepts an application command; Kafka publishes the durable event created from it.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="classifier-anchor">
+    <div class="frame">
+      <p class="kicker">Classifier question</p>
+      <h1>One location point cannot determine a waypoint type</h1>
+      <p class="subtitle">Classification needs a bounded sequence of observations plus contextual features.</p>
+      <div class="equation">
+        <div class="equation-box"><div><strong>Observations</strong><span>Where and when did synthetic location events occur?</span></div></div>
+        <div class="arrow">+</div>
+        <div class="equation-box"><div><strong>Window + context</strong><span>What happened across the recent trip interval?</span></div></div>
+        <div class="arrow">→</div>
+        <div class="equation-box"><div><strong>Classified event</strong><span>Waypoint type, confidence, reason codes, and model version.</span></div></div>
+      </div>
+      <div class="callout purple"><strong>Scientific framing:</strong> classify the interval from observable signals; do not infer intent from one point.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-2-fastapi" data-tone="green" data-module="2" data-module-title="FastAPI essentials">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">02</div><div class="module-label">FastAPI</div></div>
+        <div>
+          <h1>FastAPI essentials for this course</h1>
+          <p class="subtitle">How does Python type information become an HTTP contract?</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Route</strong>Match a method and path to one Python function.</div>
+            <div class="module-outcome"><strong>Validate</strong>FastAPI parses JSON; Pydantic validates and builds the model.</div>
+            <div class="module-outcome"><strong>Document</strong>Generate OpenAPI and interactive docs from the same contract.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s07">
+    <div class="frame">
+      <p class="kicker">FastAPI in one page</p>
+      <h1>A route connects an HTTP request to typed Python code</h1>
+      <div class="grid2 wide-left">
+        <div class="codecard"><pre><span class="kw">from</span> datetime <span class="kw">import</span> datetime
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+
+app = FastAPI()
+
+<span class="kw">class</span> CreateTripRequest(BaseModel):
+    request_id: str
+    rider_id: str
+    requested_at: datetime
+    zone: str
+
+@app.post(<span class="str">"/trip-requests/validate"</span>)
+<span class="kw">async def</span> validate_trip(request: CreateTripRequest):
+    <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"valid"</span>}</pre></div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Decorator</p><p class="bodycopy"><code>@app.post</code> declares method, path, and response metadata.</p></div>
+          <div class="card flat"><p class="eyebrow">Model</p><p class="bodycopy">FastAPI parses JSON; Pydantic validates and builds the typed model.</p></div>
+          <div class="card flat"><p class="eyebrow">Function</p><p class="bodycopy">The path operation coordinates application services and returns a response.</p></div>
+        </div>
+      </div>
+      <div class="source-row"><a href="https://fastapi.tiangolo.com/tutorial/first-steps/" target="_blank" rel="noreferrer">FastAPI first steps ↗</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s08">
+    <div class="frame">
+      <p class="kicker">Request lifecycle</p>
+      <h1>FastAPI handles the HTTP mechanics around your function</h1>
+      <div class="flowline">
+        <div class="flow-node">HTTP JSON</div><div class="arrow">→</div>
+        <div class="flow-node accent">parse</div><div class="arrow">→</div>
+        <div class="flow-node green">Pydantic model</div><div class="arrow">→</div>
+        <div class="flow-node purple">path operation</div><div class="arrow">→</div>
+        <div class="flow-node amber">JSON response</div>
+      </div>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">Before the function</p><p class="bodycopy">Routing, content parsing, dependency resolution, and validation.</p></div>
+        <div class="card flat"><p class="eyebrow">Inside the function</p><p class="bodycopy">Application orchestration using already validated inputs.</p></div>
+        <div class="card flat"><p class="eyebrow">After the function</p><p class="bodycopy">Response serialization, status, headers, and OpenAPI contract.</p></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s09">
+    <div class="frame">
+      <p class="kicker">Two boundaries</p>
+      <h1>The request model and event model answer different questions</h1>
+      <div class="grid2">
+        <div class="card"><p class="eyebrow">CreateTripRequest</p><h2>What may the client ask for?</h2><ul class="compact-list"><li><code>request_id</code> and <code>rider_id</code>;</li><li><code>requested_at</code> and <code>zone</code>;</li><li>only command input fields.</li></ul></div>
+        <div class="card"><p class="eyebrow">TripEventV1</p><h2>What fact will the system publish?</h2><ul class="compact-list"><li>derived <code>trip_id</code> and event type;</li><li>normalized aware event time;</li><li>all application and lifecycle validation.</li></ul></div>
+      </div>
+      <div class="callout"><strong>Do not expose the wire model as the command model by default.</strong> One explicit mapper owns command-to-event transformation and lifecycle meaning.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s10">
+    <div class="frame">
+      <p class="kicker">Validation and documentation</p>
+      <h1>One typed route produces three useful surfaces</h1>
+      <div class="grid3">
+        <div class="card"><p class="eyebrow">Runtime</p><h2>Validated input</h2><p class="bodycopy">Invalid JSON or field values are rejected before the route body runs.</p></div>
+        <div class="card"><p class="eyebrow">Client</p><h2>Structured errors</h2><p class="bodycopy">FastAPI normally returns <code>422</code> with locations and messages.</p></div>
+        <div class="card"><p class="eyebrow">Team</p><h2>OpenAPI</h2><p class="bodycopy"><code>/docs</code> exposes interactive documentation generated from the same models.</p></div>
+      </div>
+      <div class="callout green"><strong>Single contract surface:</strong> Python annotations drive validation, documentation, and editor support.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide system-cue" id="system-cue-api" data-active="api">
+    <div class="frame">
+      <h1>Accept and validate the command</h1>
+      <div class="system-cue-map" aria-label="HTTP client to consumer offset commit"></div>
+      <div class="system-map-note"><strong>commit</strong> = consumer offset progress, not producer or Git.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s11">
+    <div class="frame">
+      <p class="kicker">HTTP semantics</p>
+      <h1>Status codes describe what the application can honestly claim</h1>
+      <table>
+        <thead><tr><th>Status</th><th>Use in this lecture</th><th>What it means</th></tr></thead>
+        <tbody>
+          <tr><td><strong>200 OK</strong></td><td>Health/read</td><td>Request completed.</td></tr>
+          <tr><td><strong>202 Accepted</strong></td><td>Broker acknowledged</td><td>Downstream work remains.</td></tr>
+          <tr><td><strong>422 Unprocessable Content</strong></td><td>Invalid request</td><td>Request contract failed.</td></tr>
+          <tr><td><strong>503 Service Unavailable</strong></td><td>Kafka/Registry unavailable</td><td>Cannot safely accept work.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout amber"><strong>Do not return success too early.</strong> “Python function returned” and “Kafka acknowledged the event” are different states.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s12">
+    <div class="frame">
+      <p class="kicker">Sync and async routes</p>
+      <h1>Choose <code>async def</code> only when the work can be awaited</h1>
+      <div class="grid2">
+        <div class="card"><p class="eyebrow">Use <code>def</code></p><h2>Blocking library call</h2><p class="bodycopy">FastAPI can run a normal path operation outside the event loop. This is safer than hiding blocking work inside <code>async def</code>.</p></div>
+        <div class="card"><p class="eyebrow">Use <code>async def</code></p><h2>Awaitable I/O</h2><p class="bodycopy">Native AIO Kafka, async HTTP, and async database clients can yield while waiting.</p></div>
+      </div>
+      <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> FastAPI provides the HTTP boundary; Python type models validate it; async is an execution choice, not a label.</div>
+      <div class="source-row"><a href="https://fastapi.tiangolo.com/async/" target="_blank" rel="noreferrer">FastAPI concurrency guidance ↗</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-3-service" data-tone="amber" data-module="3" data-module-title="Producer ownership and delivery">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">03</div><div class="module-label">Delivery</div></div>
+        <div>
+          <h1>Own shared clients and delivery states explicitly</h1>
+          <p class="subtitle">What belongs to the application, and what belongs to one request?</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Lifespan</strong>Create shared clients once and close them once.</div>
+            <div class="module-outcome"><strong>Route</strong>Keep HTTP handlers thin and testable.</div>
+            <div class="module-outcome"><strong>Delivery</strong>Distinguish enqueue, broker acknowledgement, and downstream processing.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide system-cue" id="system-cue-backbone" data-active="backbone">
+    <div class="frame">
+      <h1>Publish the event and prove delivery</h1>
+      <div class="system-cue-map" aria-label="HTTP client to consumer offset commit"></div>
+      <div class="system-map-note">Lifespan owns the producer. Health describes the API service, not downstream processing.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s13">
+    <div class="frame">
+      <p class="kicker">Application lifespan</p>
+      <h1>One service should own one long-lived producer</h1>
+      <div class="grid2 wide-left">
+        <div class="codecard"><pre><span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+
+@asynccontextmanager
+<span class="kw">async def</span> lifespan(app: FastAPI):
+    publisher = <span class="kw">await</span> create_publisher()
+    app.state.publisher = publisher
+    <span class="kw">try</span>:
+        <span class="kw">yield</span>
+    <span class="kw">finally</span>:
+        <span class="kw">await</span> publisher.close()
+
+app = FastAPI(lifespan=lifespan)</pre></div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Before requests</p><p class="bodycopy">Load configuration and create shared Kafka and Registry clients.</p></div>
+          <div class="card flat"><p class="eyebrow">Across requests</p><p class="bodycopy">Reuse connection pools, metadata, serializer caches, and background resources.</p></div>
+          <div class="card flat"><p class="eyebrow">After requests</p><p class="bodycopy">Flush or close bounded resources and release connections.</p></div>
+        </div>
+      </div>
+      <div class="source-row"><a href="https://fastapi.tiangolo.com/advanced/events/" target="_blank" rel="noreferrer">FastAPI lifespan events ↗</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s14">
+    <div class="frame">
+      <p class="kicker">Thin route, strong core</p>
+      <h1>The route coordinates work; it should not own every rule</h1>
+      <div class="flowline">
+        <div class="flow-node">request model</div><div class="arrow">→</div>
+        <div class="flow-node accent">route</div><div class="arrow">→</div>
+        <div class="flow-node green">application service</div><div class="arrow">→</div>
+        <div class="flow-node purple">publisher</div><div class="arrow">→</div>
+        <div class="flow-node amber">response model</div>
+      </div>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">Route owns</p><p class="bodycopy">HTTP method, path, dependency lookup, status, and response mapping.</p></div>
+        <div class="card flat"><p class="eyebrow">Core owns</p><p class="bodycopy">Event construction, identity, lifecycle rules, and application decisions.</p></div>
+        <div class="card flat"><p class="eyebrow">Publisher owns</p><p class="bodycopy">Serialization, Kafka delivery, timeout, and transport-specific errors.</p></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s15">
+    <div class="frame">
+      <p class="kicker">Delivery semantics</p>
+      <h1>“Accepted” is not one moment</h1>
+      <div class="status-ladder">
+        <div class="status-step"><b>1. Request valid</b><span>JSON matches the HTTP model.</span></div>
+        <div class="status-step"><b>2. Event valid</b><span>The core built <code>TripEventV1</code>.</span></div>
+        <div class="status-step"><b>3. Enqueued</b><span>The local producer queue accepted it.</span></div>
+        <div class="status-step"><b>4. Acknowledged</b><span>Kafka returned topic, partition, and offset.</span></div>
+        <div class="status-step"><b>5. Processed</b><span>The consumer completed business work.</span></div>
+        <div class="status-step"><b>6. Committed</b><span>The group stored its recovery position.</span></div>
+      </div>
+      <div class="callout"><strong>Course decision:</strong> wait through broker acknowledgement before returning <code>202 Accepted</code>. The response still does not promise downstream processing.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s16">
+    <div class="frame">
+      <p class="kicker">Failure mapping</p>
+      <h1>Report the layer that actually failed</h1>
+      <table>
+        <thead><tr><th>Failure</th><th>Owner</th><th>Visible result</th></tr></thead>
+        <tbody>
+          <tr><td>Missing or invalid request field</td><td>FastAPI + request model</td><td><code>422</code> with structured validation detail</td></tr>
+          <tr><td>Illegal trip lifecycle meaning</td><td>Application core</td><td>Internal contract error; no delivery claim</td></tr>
+          <tr><td>Schema registration or serialization fails</td><td>Publisher boundary</td><td><code>503</code>; no delivery claim</td></tr>
+          <tr><td>Producer queue or broker delivery fails</td><td>Publisher boundary</td><td><code>503</code>; no delivery claim</td></tr>
+          <tr><td>Downstream consumer fails later</td><td>Consumer application</td><td>Not equivalent to the original API request failing</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s17">
+    <div class="frame">
+      <p class="kicker">Operational endpoints</p>
+      <h1>Alive and ready answer different questions</h1>
+      <div class="grid2">
+        <div class="card"><p class="eyebrow"><code>GET /health</code></p><h2>Is the process alive?</h2><p class="bodycopy">A lightweight response confirms that the application can serve HTTP.</p></div>
+        <div class="card"><p class="eyebrow"><code>GET /ready</code> · design extension</p><h2>Can it accept work safely?</h2><p class="bodycopy">Readiness may include required configuration and publisher initialization state.</p></div>
+      </div>
+      <div class="callout amber"><strong>Keep readiness bounded.</strong> A health endpoint should not launch an unbounded Kafka operation or expose credentials.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s18">
+    <div class="frame">
+      <p class="kicker">Service boundary checklist</p>
+      <h1>Five ownership rules keep the application explainable</h1>
+      <div class="grid5">
+        <div class="card flat"><p class="eyebrow">1</p><h3>Validate input</h3><p class="bodycopy">Before the route performs work.</p></div>
+        <div class="card flat"><p class="eyebrow">2</p><h3>Build event</h3><p class="bodycopy">In the application core.</p></div>
+        <div class="card flat"><p class="eyebrow">3</p><h3>Reuse client</h3><p class="bodycopy">Across many requests.</p></div>
+        <div class="card flat"><p class="eyebrow">4</p><h3>Observe delivery</h3><p class="bodycopy">Before claiming success.</p></div>
+        <div class="card flat"><p class="eyebrow">5</p><h3>Close once</h3><p class="bodycopy">During application shutdown.</p></div>
+      </div>
+      <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> lifespan owns shared infrastructure; routes own HTTP orchestration; the core owns meaning.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-4-classifier" data-tone="purple" data-module="4" data-module-title="Stateful idling classifier">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">04</div><div class="module-label">Classifier</div></div>
+        <div>
+          <h1>Turn noisy location events into a typed classification</h1>
+          <p class="subtitle">How do durable observations become a window, features, and one explainable event?</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Signal</strong>Define the synthetic location-event contract.</div>
+            <div class="module-outcome"><strong>State</strong>Own the recent time window in one processor.</div>
+            <div class="module-outcome"><strong>Classify</strong>Emit a typed event with confidence and reasons.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide system-cue" id="system-cue-processing" data-active="processing,commit">
+    <div class="frame">
+      <h1>Process a time window, then commit</h1>
+      <div class="system-cue-map" aria-label="HTTP client to consumer offset commit"></div>
+      <div class="system-map-note">Process successfully → publish any output → commit the input offset.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s19">
+    <div class="frame">
+      <p class="kicker">Scientific framing</p>
+      <h1>The classifier estimates context; it does not observe intent</h1>
+      <div class="grid2 wide-left">
+        <div class="card flat">
+          <p class="eyebrow">What the stream contains</p>
+          <h2>Time-stamped service observations</h2>
+          <ul class="compact-list"><li>synthetic trip and event identity;</li><li>synthetic location plus GPS accuracy;</li><li>event time and current trip state;</li><li>no names, addresses, or personal history.</li></ul>
+        </div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Classifier output</p><h2>Waypoint type and confidence</h2><p class="bodycopy">Reason codes show which observable signals supported the classification.</p></div>
+          <div class="callout red"><strong>Never claim:</strong> one GPS point determines the waypoint type.</div>
+        </div>
+      </div>
+      <div class="callout green module-takeaway"><strong>KEY TAKEAWAY:</strong> classify the bounded interval, not the person.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s20">
+    <div class="frame">
+      <p class="kicker">Feature engineering over time</p>
+      <h1>A time window turns isolated points into useful features</h1>
+      <div class="equation">
+        <div class="equation-box"><div><strong>Recent points</strong><span>Ordered observations keyed by trip.</span></div></div>
+        <div class="arrow">→</div>
+        <div class="equation-box"><div><strong>Window</strong><span>A bounded interval with explicit state ownership.</span></div></div>
+        <div class="arrow">→</div>
+        <div class="equation-box"><div><strong>Feature vector</strong><span>Reusable inputs for classification and scoring.</span></div></div>
+      </div>
+      <div class="metric-strip">
+        <div class="metric"><strong>Displacement</strong><span>How far did the trip progress?</span></div>
+        <div class="metric"><strong>Dwell time</strong><span>How long did location remain stable?</span></div>
+        <div class="metric"><strong>Route deviation</strong><span>How different is the observed path?</span></div>
+        <div class="metric"><strong>Signal quality</strong><span>Are gaps or GPS error driving the pattern?</span></div>
+      </div>
+      <div class="callout"><strong>One point is weak evidence.</strong> The window supplies temporal context; the feature code owns its definition.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s21">
+    <div class="frame">
+      <p class="kicker">Minimum conceptual architecture</p>
+      <h1>Two topics and one stateful application are enough</h1>
+      <div class="architecture-line">
+        <div class="architecture-node"><strong>Location observations</strong><span>Input topic keyed by <code>trip_id</code></span></div>
+        <div class="arrow">→</div>
+        <div class="architecture-node state"><strong>Feature + classifier worker</strong><span>One consumer group with recent state per trip</span></div>
+        <div class="arrow">→</div>
+        <div class="architecture-node output"><strong>Classified idling events</strong><span>Output topic with type, confidence, and reason codes</span></div>
+        <div class="arrow">→</div>
+        <div class="architecture-node"><strong>Downstream consumer</strong><span>An independent application uses the typed event</span></div>
+      </div>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">2 topics</p><h3>Observations in, classifications out</h3></div>
+        <div class="card flat"><p class="eyebrow">Keyed state</p><h3>The assigned partition owner keeps each trip window</h3></div>
+        <div class="card flat"><p class="eyebrow">1 logical app</p><h3>The consumer group owns classification</h3></div>
+      </div>
+      <div class="callout amber"><strong>Subscribe is not a join.</strong> Correlation requires explicit keys, windows, state, and processing rules.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s22">
+    <div class="frame">
+      <p class="kicker">False-positive control</p>
+      <h1>Context can explain the same observed pattern</h1>
+      <table>
+        <thead><tr><th>Observed pattern</th><th>Alternative context</th></tr></thead>
+        <tbody>
+          <tr><td>Long dwell</td><td>Pickup wait, traffic, weather</td></tr>
+          <tr><td>Route deviation</td><td>Detour or destination change</td></tr>
+          <tr><td>Large jump</td><td>GPS error or delayed updates</td></tr>
+          <tr><td>Missing updates</td><td>Network, battery, or restart</td></tr>
+        </tbody>
+      </table>
+      <div class="callout purple"><strong>Context changes the label.</strong> Weather, traffic, and GPS quality can prevent a false classification.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s23">
+    <div class="frame">
+      <p class="kicker">Output boundary</p>
+      <h1>Classify, explain, then publish</h1>
+      <div class="grid2 wide-right">
+        <div class="card flat">
+          <p class="eyebrow">Classification event</p>
+          <ul class="compact-list"><li><code>trip_id</code> and window end;</li><li><code>waypoint_type</code>;</li><li>confidence;</li><li>reason and context codes;</li><li>model version.</li></ul>
+        </div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Classifier responsibility</p><h2>Produce one explainable label</h2><p class="bodycopy">The classifier reports uncertainty and the signals that influenced its output.</p></div>
+          <div class="card flat"><p class="eyebrow">Kafka responsibility</p><h2>Retain the typed event</h2><p class="bodycopy">Independent consumers decide how to use it.</p></div>
+          <div class="callout green"><strong>The classification is a new event.</strong> It has its own contract, key, timestamp, and version.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-5-demo" data-tone="green" data-module="5" data-module-title="Demo 05 proves the base application path">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">05</div><div class="module-label">Demo 05</div></div>
+        <div>
+          <h1>Prove the event boundary before adding the classifier</h1>
+          <p class="subtitle">Demo 05 implements the reusable API-to-Kafka path, not the stateful classifier.</p>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Contract</strong>Separate HTTP input from the durable event.</div>
+            <div class="module-outcome"><strong>Delivery</strong>Observe acceptance, acknowledgement, consumption, and commit.</div>
+            <div class="module-outcome"><strong>Transfer</strong>Apply the same boundaries to the case study later.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide system-cue" id="system-cue-demo" data-active="api,backbone,processing,commit">
+    <div class="frame">
+      <h1>Demo 05 proves the path end to end</h1>
+      <div class="system-cue-map" aria-label="HTTP client to consumer offset commit"></div>
+      <div class="system-map-note">Demo 05 stops at commit. Classifier state and output events are the next extension.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s24">
+    <div class="frame">
+      <p class="kicker">Demo 05 map</p>
+      <h1>Four proofs build one working application path</h1>
+      <div class="grid4">
+        <div class="card"><p class="eyebrow">05A · Local</p><h2>API contract</h2><p class="bodycopy">Validate requests, responses, and OpenAPI.</p></div>
+        <div class="card"><p class="eyebrow">05B · Local</p><h2>Live API</h2><p class="bodycopy">Run Uvicorn and inspect <code>/docs</code>.</p></div>
+        <div class="card"><p class="eyebrow">05C · Cloud</p><h2>Round trip</h2><p class="bodycopy">HTTP → Avro → Kafka → validate → commit.</p></div>
+        <div class="card"><p class="eyebrow">05D · Optional</p><h2>Live Cloud</h2><p class="bodycopy">Use Swagger UI and observe broker acknowledgement.</p></div>
+      </div>
+      <div class="callout"><strong>Scope:</strong> <code>TripEventV1</code> boundary only; no classifier.</div>
+      <div class="source-row"><a href="demo05.md">Demo 05 handout</a> · <a href="demo05-student.zip">Download student ZIP</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s25">
+    <div class="frame">
+      <p class="kicker">Direct prerequisites</p>
+      <h1>Demo 05 is self-contained and fresh-cluster friendly</h1>
+      <table>
+        <thead><tr><th>Requirement</th><th>Local API proof</th><th>Cloud extension</th></tr></thead>
+        <tbody>
+          <tr><td>Python 3.11.14 and course requirements</td><td>Required</td><td>Required</td></tr>
+          <tr><td>FastAPI 0.139.0 and Pydantic 2.13.4</td><td>Required</td><td>Required</td></tr>
+          <tr><td>Kafka cluster and Kafka credentials</td><td>No</td><td>Required</td></tr>
+          <tr><td>Schema Registry and separate credentials</td><td>No</td><td>Required</td></tr>
+          <tr><td>Existing topic or retained records</td><td>No</td><td>No</td></tr>
+          <tr><td>Demo 01 to 04 running in another terminal</td><td>No</td><td>No</td></tr>
+        </tbody>
+      </table>
+      <div class="callout green"><strong>No classifier pipeline required.</strong> Use <code>--create-topic</code> to create the dedicated topic; each request supplies new synthetic input.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s26">
+    <div class="frame">
+      <p class="kicker">Transfer from demo to case</p>
+      <h1>The classifier extension starts where Demo 05 stops</h1>
+      <div class="scope-lanes">
+        <div class="scope-lane green"><div class="label">Demo 05 proves</div><p>Validation, event mapping, Avro, Kafka acknowledgement, bounded consumption, and commit.</p></div>
+        <div class="scope-lane purple"><div class="label">Classifier adds</div><p>A location contract, keyed windows, features, inference, and a classification topic.</p></div>
+        <div class="scope-lane"><div class="label">Outside scope</div><p>Personal data, production training, and downstream business actions.</p></div>
+      </div>
+      <div class="callout"><strong>Sequence:</strong> prove ingestion and delivery before adding state and inference.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="s27">
+    <div class="frame narrow">
+      <p class="kicker">Lecture 5 synthesis</p>
+      <h1>Five ideas connect the lecture, demo, and case study</h1>
+      <div class="stack">
+        <div class="card flat"><h3>1. Lecture 4: meaning + wire. Lecture 5: HTTP application boundary.</h3></div>
+        <div class="card flat"><h3>2. FastAPI: commands. Kafka: durable facts.</h3></div>
+        <div class="card flat"><h3>3. Lifespan owns shared clients. Evidence supports delivery claims.</h3></div>
+        <div class="card flat"><h3>4. Demo 05 proves one <code>TripEventV1</code> path.</h3></div>
+        <div class="card flat"><h3>5. Classifier extension: contract + state + features + typed event.</h3></div>
+      </div>
+      <div class="callout green"><strong>Final question:</strong> who owns each step, and what proves it?</div>
+      <div class="source-row">References: <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noreferrer">FastAPI documentation</a> · <a href="https://docs.confluent.io/kafka-clients/python/current/overview.html" target="_blank" rel="noreferrer">Confluent Kafka Python client</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <script>
+    const slides = [...document.querySelectorAll("section.slide")];
+
+    const systemPathSteps = [
+      { id: "client", step: "Source", title: "HTTP client", detail: "Sends one command" },
+      { id: "api", step: "API boundary", title: "FastAPI", detail: "Uvicorn + Pydantic + mapper" },
+      { id: "backbone", step: "Event backbone", title: "Publish + retain", detail: "Producer + Avro + Registry + Kafka" },
+      { id: "processing", step: "Processing boundary", title: "Consumer", detail: "Decode + validate + window/classifier" },
+      { id: "commit", step: "Recovery", title: "Consumer commit", detail: "Store the next offset" }
+    ];
+
+    document.querySelectorAll("section.system-cue").forEach((slide) => {
+      const activeSteps = new Set(slide.dataset.active.split(","));
+      const map = slide.querySelector(".system-cue-map");
+      systemPathSteps.forEach((item, index) => {
+        if (index > 0) {
+          const arrow = document.createElement("div");
+          arrow.className = "system-cue-arrow";
+          arrow.setAttribute("aria-hidden", "true");
+          arrow.textContent = "→";
+          map.appendChild(arrow);
+        }
+        const node = document.createElement("div");
+        node.className = `system-cue-node${activeSteps.has(item.id) ? " active" : ""}`;
+        const step = document.createElement("div");
+        step.className = "cue-step";
+        step.textContent = item.step;
+        const title = document.createElement("strong");
+        title.textContent = item.title;
+        const detail = document.createElement("span");
+        detail.textContent = item.detail;
+        node.append(step, title, detail);
+        map.appendChild(node);
+      });
+    });
+
+    slides.forEach((slide, index) => {
+      const pager = slide.querySelector(".pager");
+      if (pager) pager.textContent = `${index + 1} / ${slides.length}`;
+    });
+
+    function currentSlideIndex() {
+      const viewportCenter = window.scrollY + window.innerHeight / 2;
+      return slides.reduce((bestIndex, slide, index) => {
+        const best = slides[bestIndex];
+        const slideCenter = slide.offsetTop + slide.offsetHeight / 2;
+        const bestCenter = best.offsetTop + best.offsetHeight / 2;
+        return Math.abs(slideCenter - viewportCenter) < Math.abs(bestCenter - viewportCenter)
+          ? index
+          : bestIndex;
+      }, 0);
+    }
+
+    function move(delta) {
+      const current = currentSlideIndex();
+      const next = Math.max(0, Math.min(slides.length - 1, current + delta));
+      slides[next].scrollIntoView({ behavior: "smooth" });
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowDown", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        move(1);
+      } else if (["ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        move(-1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        slides[0].scrollIntoView({ behavior: "smooth" });
+      } else if (event.key === "End") {
+        event.preventDefault();
+        slides.at(-1).scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  </script>
+</body>
+</html>
