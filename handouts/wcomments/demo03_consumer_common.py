@@ -30,6 +30,8 @@ THE BIG SHIFT FROM DEMO 02: READING IS HARDER THAN WRITING
       Reading does NOT consume or delete the message - the log stays put. Your
       position is just a bookmark, and you control when it advances.
 
+      * Note: a "commit" in this context is just your consumer saving the last offset of its read.  So when you commit, you "save your place, which is the offset you were at in that partition at that moment.
+
     - REBALANCING: when members join or leave a group, Kafka reassigns
       partitions among them. Your code can observe this via callbacks.
 
