@@ -256,6 +256,92 @@ changed, `hash(key) % N` would send the same key to a *different* partition,
 breaking per-key ordering. So Kafka only lets you **increase** partitions (a
 deliberate admin act), never shuffle them dynamically.
 
+### How per-key ordering actually happens
+
+A natural guess is that the producer somehow *collects* a trip's four events and
+arranges them before sending. **It does not.** There is no grouping, no
+coordination, and no waiting. Each `produce()` call is independent and returns in
+microseconds, long before the next one is made — and the producer never inspects
+your payload, so it has no idea that four records belong to the same trip.
+
+The ordering falls out of **three FIFO stages**, not from any planning:
+
+```
+1. YOUR CODE            produce(evt0)  produce(evt1)  produce(evt2)  produce(evt3)
+                              │              │              │              │
+                              ▼              ▼              ▼              ▼
+2. PER-PARTITION QUEUE  [ evt0 → evt1 → evt2 → evt3 ]   ← appended in CALL order;
+   (one per partition)              │                     hash(trip_981) chose
+                                    │                     this partition for all 4
+                                    ▼
+3. BACKGROUND THREAD    drains that queue IN ORDER into batches,
+                        sends over ONE connection to the partition LEADER
+                                    │
+                                    ▼
+4. BROKER               appends in ARRIVAL order → offsets 20, 21, 22, 23
+```
+
+**Same key → same partition → one FIFO queue → one connection → append on
+arrival.** Order survives every hop because nothing ever reorders it.
+
+Two consequences worth internalizing:
+
+- **The four events need not share a batch.** Batches are assembled by partition
+  and by `linger.ms` / `batch.size` — never by your business entity. `evt0`/`evt1`
+  may go in one request and `evt2`/`evt3` in the next; they still land in order,
+  because the queue is FIFO and requests go out sequentially on one connection.
+- **Kafka preserves the order *you produced in*, and nothing more.** If your
+  application calls `produce()` for `trip_started` before `trip_requested`, Kafka
+  faithfully stores that wrong order. It never sorts by `event_time`. The
+  guarantee is about transport fidelity, not correctness.
+
+### ⚠️ Ordering is not automatic: retries can break it
+
+Same-partition placement is **necessary but not sufficient**. Per-partition
+ordering can be broken by a retry, whenever more than one request is in flight to
+the same partition:
+
+```
+request A [evt0, evt1]  ──►  transient failure (timeout)  ──►  retried
+request B [evt2, evt3]  ──►  succeeds first
+                                        │
+                      broker appends B, then A's retry
+                                        ▼
+                      stored order: evt2, evt3, evt0, evt1   ← REORDERED
+```
+
+This is possible whenever **retries are enabled AND multiple requests are in
+flight per connection** — and in librdkafka both are the defaults
+(`max.in.flight.requests.per.connection` is effectively unbounded, and retries
+are effectively unlimited).
+
+**Two ways to actually get the guarantee:**
+
+| Setting | Effect |
+|---|---|
+| **`enable.idempotence=true`** | **The right answer.** Each record carries a producer ID and sequence number, and the broker *rejects out-of-order writes*. It also auto-pins `max.in.flight ≤ 5` and `acks=all`. Ordering **and** no duplicates, at negligible cost — which is why modern Java clients enable it by default. |
+| `max.in.flight.requests.per.connection=1` | The blunt instrument: one outstanding request, so a retry cannot be overtaken. Correct, but it throttles throughput badly. |
+
+> **The course demos set neither** — see §10, which lists the five connection
+> keys and nothing else. For a teaching run over a healthy connection this never
+> bites, and the assignment evidence duly showed clean consecutive offsets. But
+> it is reliance on nothing going wrong, not a guarantee. In production, set
+> `enable.idempotence=true`.
+
+**A quiet advantage of the slow pattern:** `demo02a` (flush after every message)
+gets ordering *for free*, because there is never more than one message in flight
+and a retry has nothing to overtake. `demo02b`'s async loop is where the
+theoretical risk lives — one more reason the sync-style pattern is useful when
+debugging.
+
+### What per-key ordering does *not* cover
+
+- **Nothing across partitions.** `trip_981` and `trip_982` will usually hash to
+  different partitions, and there is no ordering between them. **Kafka has no
+  global topic ordering at all** (§3, §6).
+- **Consumer-side ordering holds per partition only.** One consumer reading three
+  partitions interleaves them arbitrarily (§14.4).
+
 ### Does the client ever change partitions dynamically?
 
 **It depends entirely on whether your record has a key — and the two cases are
@@ -265,8 +351,11 @@ opposites by design.**
 
 `hash(key) % num_partitions` is a pure function. The same `trip_id` goes to the
 same partition on every call, from every producer instance, in every process, for
-as long as the partition count is unchanged. That determinism *is* the ordering
-guarantee — it is not an implementation detail you should hope holds.
+as long as the partition count is unchanged. That determinism is the *foundation*
+of the ordering guarantee — it is not an implementation detail you should hope
+holds. (Foundation, not the whole thing: same-partition placement is necessary
+but **not sufficient**, because a retry can still reorder records within that
+partition unless idempotence is enabled — see the ordering subsection above.)
 
 You can see it in the assignment evidence: all four messages keyed `trip_981`
 landed on partition 2 at consecutive offsets 20–23.
@@ -485,6 +574,20 @@ Two habits that come with this:
   ([`:136-143`](../handouts/demo02_producer_common.py#L136-L143)) emits the host and
   booleans `has_username` / `has_password`. Every report file in every demo is
   built to be safe to commit and submit.
+
+### What these five keys leave out
+
+They are the minimum to **connect**, not the minimum to be **correct**. Two
+production settings the demos deliberately omit, both worth knowing you are
+living without:
+
+| Setting | Default here | Why you would set it |
+|---|---|---|
+| `enable.idempotence` | off | Guarantees per-partition ordering and no duplicate writes on retry. Without it, a retried request can be overtaken and records land out of order (§5). Modern Java clients turn this on by default. |
+| `acks` | `1` (leader only) | `acks=all` waits for every in-sync replica, so an acknowledged write survives a broker loss (§8). With `acks=1`, a leader that dies right after acknowledging can lose the record. |
+
+For a teaching run over a healthy connection neither omission bites — which is
+exactly why they are easy to forget. **In production, set both.**
 
 **Demo 00** ([`demo00.md`](../handouts/demo00.md),
 [`demo00_environment_check.py`](../msds682-demos/demo0/demo00_environment_check.py))
@@ -760,6 +863,62 @@ rejects it, client-side, as it always did.
 
 ### 12.3 The delivery callback
 
+#### What a callback actually is
+
+Nothing Kafka-specific: a plain Python function **you** write, whose reference
+you hand to the library so the library can call it later — hence "call back."
+
+Note how it is passed:
+
+```python
+producer.produce(..., callback=tracker.callback)
+#                              ^^^^^^^^^^^^^^^^ NO parentheses
+```
+
+`tracker.callback` passes **the function object**. `tracker.callback()` would
+*call* it immediately and pass the return value — a classic beginner bug. You are
+handing over a phone number, not making the call.
+
+> **The coffee-shop analogy.** You do not wait at the counter; you leave your
+> name and they call it when the drink is ready. `produce()` places the order,
+> the callback is your name, and `poll()` is **listening for your name**. That
+> last part is what people miss: in Kafka you must *actively* listen, or you
+> never hear it.
+
+#### Where the callback lives: entirely on your side
+
+**The callback never leaves your machine.** It is not serialized, not
+transmitted, and the broker has no idea it exists. Kafka has no notion of "run
+this function when done."
+
+```
+YOUR PROCESS                          NETWORK                    BROKER
+────────────                          ───────                    ──────
+produce(topic, key, value,
+        callback=tracker.callback)
+   │
+   ├─ record ────────────────► [topic, key, value] ────────────▶ appends to log
+   │                             (bytes only)                    assigns offset
+   │
+   └─ callback reference ─┐
+      STAYS HERE          │     ◄────── ack: partition, offset ──────┘
+      (a pointer in RAM)  │             (or an error code)
+                          │                     │
+                          └─────────────────────┘
+                        the client matches the ack back
+                        to your pending record, then queues
+                        "run this function with this result"
+```
+
+What actually crosses the network is an **acknowledgement**: a few numbers —
+which partition, which offset, or an error code. The client library keeps a table
+of in-flight records and their callbacks, matches the incoming ack to the right
+record, and only then knows which of your functions to run.
+
+**The record goes to the broker; the callback stays home waiting for news.**
+
+#### What it records
+
 The callback is the **only** place your program learns what happened to an
 individual message
 ([`demo02_producer_common.py:35-47`](../handouts/demo02_producer_common.py#L35-L47)):
@@ -823,6 +982,128 @@ The two queues are the key. `produce()` fills the first; the background thread
 moves work into the second; **`poll()` is the only thing that empties the
 second.**
 
+#### ⚠️ The single most common misconception: `poll()` does not send
+
+It is natural to read the diagram above and conclude "so I must call `poll()` to
+push messages out to the broker." **That is wrong, and getting it right explains
+everything else.**
+
+> **`poll()` never puts a byte on the network. Messages are transmitted by the
+> background thread, automatically, whether or not you ever call `poll()`.**
+
+The two queues are drained by **different actors**, and that is the whole point:
+
+```
+        OUTBOUND                                   INBOUND
+   ┌──────────────────┐                     ┌──────────────────┐
+   │   SEND QUEUE     │                     │  CALLBACK QUEUE  │
+   │  (messages out)  │                     │  (results back)  │
+   └──────────────────┘                     └──────────────────┘
+            │                                         │
+   drained by:                               drained by:
+   ▶ THE BACKGROUND THREAD                    ▶ YOU, via poll()
+     automatically, always,                     manually, only when
+     with no help from you                      you ask
+            │                                         │
+            ▼                                         ▼
+      goes to the broker                       runs your Python callback
+```
+
+`poll()` touches **only the right-hand queue.**
+
+So if you produce 100 messages, never call `poll()`, and keep the process alive:
+
+| | Happened? |
+|---|---|
+| Messages sent to the broker | ✅ yes — all 100 |
+| Stored in the topic, offsets assigned | ✅ yes |
+| A consumer can read them | ✅ yes |
+| Your `tracker.delivered` populated | ❌ no — still empty |
+| Your report says "delivered: 100" | ❌ it says **0** |
+
+**The data is in Kafka; your program simply never found out.** You lose
+*knowledge* of delivery, not delivery itself.
+
+#### Then why does forgetting `flush()` lose messages?
+
+Because of a different mechanism — one worth separating clearly from the above:
+
+```python
+for event in events:
+    producer.produce(...)      # queued
+# no flush()
+# script ends → PROCESS EXITS HERE
+```
+
+Messages are lost **not because nobody drained a queue, but because the process
+terminated while the background thread was still working.** It had milliseconds
+of sending left to do and the interpreter shut down underneath it.
+
+`flush()` prevents that by blocking your main thread until the background thread
+reports everything resolved. It is a **synchronization barrier** — "do not let
+this program exit yet."
+
+| Scenario | Broker receives them? | Do you learn about it? |
+|---|---|---|
+| No `poll()`, process stays alive | ✅ yes | ❌ no |
+| No `flush()`, process exits at once | ❌ **in-flight ones lost** | ❌ no |
+| Both called correctly | ✅ yes | ✅ yes |
+
+#### So why call `poll(0)` in the loop at all?
+
+Three reasons, none of which is "to send":
+
+1. **To learn outcomes as they happen** — otherwise every callback fires in one
+   burst during the final `flush()` instead of streaming feedback.
+2. **To bound memory** — undrained results accumulate for the whole run.
+3. **To keep producing** — the indirect connection people sense. The send queue
+   is capped (`queue.buffering.max.messages`, ~100,000); draining results frees
+   the bookkeeping tied to completed records, so on a long run never polling can
+   make `produce()` raise `BufferError`. Polling keeps the *pipeline* healthy —
+   but it still is not what puts bytes on the wire.
+
+#### If you know event listeners: you are the event loop
+
+If you have written `addEventListener(fn)` in a browser, the registration half of
+this feels familiar — and the dispatch half is where Kafka differs.
+
+**Layer 1 — listening to the socket: something *is* always listening.**
+librdkafka runs real OS threads sitting in a blocking read on the TCP socket.
+When bytes arrive they wake, parse the response, match acks to in-flight records,
+and push results onto the callback queue. This happens with no involvement from
+your code.
+
+**Layer 2 — dispatching into your Python function: nothing is listening at all.**
+That queue is **passive**. Nothing watches it; nothing fires when an item lands.
+It accumulates until you call `poll()` — which is not a listener but a **pull**.
+
+| | React / browser | confluent-kafka (Python) |
+|---|---|---|
+| Register handler | `addEventListener(fn)` | `produce(..., callback=fn)` |
+| Who watches the source | browser internals | librdkafka background thread |
+| **Who dispatches to your code** | **the event loop, automatically** | **you, via `poll()`** |
+| If you write no dispatch code | handlers still fire | **handlers never fire, silently** |
+
+**In the browser the runtime owns the event loop and dispatches to you. Here,
+*you are the event loop*, and `poll()` is one manual turn of the crank.**
+
+The closest analogy in that family is not `addEventListener` but **React's
+batched state updates**: `setState` queues work that React flushes at a
+controlled point. `produce()` is `setState`; `poll()` is calling `flushSync()`
+yourself, forever, because nothing else will.
+
+**Why it is built this way:** your callback mutates shared state
+(`tracker.delivered.append(...)`). If a background C thread dispatched into
+Python at arbitrary moments, that would race with your main thread. Deferring
+guarantees your callback runs **on your thread, at a line number you chose** — so
+you get thread-safety with no locks. The price is the duty to actually pull.
+
+> **The async clients restore the model you already know.** `AIOProducer`
+> (§15) returns an awaitable future instead of taking a callback, and
+> **asyncio's event loop does the dispatching** — the same architecture as the
+> browser. That is a real reason to prefer the async clients when your
+> application already runs an event loop.
+
 #### `poll(timeout)` — "run my pending callbacks now"
 
 ```python
@@ -838,13 +1119,8 @@ n = producer.poll(1.0)   # wait up to 1 second for something to become ready
   the C background thread, so results are queued until you call `poll()`. **A
   callback never fires on its own.**
 
-**Two things go wrong if you never call it:**
-
-1. **Memory grows.** Completed results accumulate in the callback queue forever.
-2. **Producing eventually fails.** The send queue is bounded
-   (`queue.buffering.max.messages`, default ~100,000). Once full, `produce()`
-   raises `BufferError` instead of enqueuing. Calling `poll(0)` in the loop keeps
-   the pipeline moving.
+For what goes wrong if you never call it — and, just as importantly, what does
+**not** go wrong — see "The single most common misconception" above.
 
 #### `flush(timeout)` — "block until everything is resolved"
 
@@ -886,10 +1162,23 @@ arrived"*; `flush()` is *"wait until there are no more results coming."* Every
 producer must call `flush()` at least once before exiting, or messages still in
 the queue are silently discarded when the process dies.
 
-> **Consumers have a `poll()` too, and it is a different animal** — it *fetches
-> records from the broker* and returns one message (§14.2). Same name, opposite
-> direction: producer `poll` drains outbound results; consumer `poll` pulls
-> inbound data.
+#### Consumers have a `poll()` too — and it is genuinely a different animal
+
+Same name, and the asymmetry matters:
+
+| | producer `poll()` | consumer `poll()` |
+|---|---|---|
+| Moves data over the network? | **no** | **yes** |
+| What it does | drains the local results queue | **fetches records from the broker** |
+| Skip it entirely | messages are still delivered | **you receive nothing at all** |
+
+For the **consumer**, "no poll, no data" is literally true — it is the fetch. For
+the **producer** it is not: transmission happens regardless.
+
+What the two share is Kafka's underlying stance: **the client decides when work
+happens.** Consumers are pull-based throughout — the broker never pushes to a
+consumer — so a slow consumer can never be overwhelmed by a fast producer. It
+simply falls further behind in the log, which is harmless.
 
 ### 12.5 Three delivery patterns
 
