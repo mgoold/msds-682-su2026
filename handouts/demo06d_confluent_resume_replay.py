@@ -75,18 +75,21 @@ def main() -> None:
         run_id=f"{run_id}-first",
         group_id=base_group,
         create_topics=args.create_topics,
+        force_beginning=False,
         **shared,
     )
     resume = run_processor(
         run_id=f"{run_id}-resume",
         group_id=base_group,
         create_topics=False,
+        force_beginning=False,
         **shared,
     )
     replay = run_processor(
         run_id=f"{run_id}-replay",
         group_id=replay_group,
         create_topics=False,
+        force_beginning=True,
         **shared,
     )
     validation = validate_resume_replay(
@@ -107,7 +110,8 @@ def main() -> None:
                 "The same consumer group starts after its committed input offsets."
             ),
             "replay": (
-                "A new group has no committed position, so earliest is used."
+                "A distinct replay group explicitly overrides every assigned "
+                "partition to OFFSET_BEGINNING."
             ),
             "output_duplicates": (
                 "Replay intentionally republishes derived events. Stable output "

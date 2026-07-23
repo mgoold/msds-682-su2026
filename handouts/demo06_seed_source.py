@@ -42,7 +42,7 @@ class DeliveryTracker:
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
-            self.failed.append("delivery_failed")
+            self.failed.append(str(error))
             return
         self.delivered.append(
             {
@@ -79,6 +79,7 @@ def main() -> None:
         create=args.create_topics,
         partitions=args.partitions,
         replication_factor=args.replication_factor,
+        create_option="--create-topics",
     )
     output_status = ensure_topic(
         admin,
@@ -86,6 +87,7 @@ def main() -> None:
         create=args.create_topics,
         partitions=args.partitions,
         replication_factor=args.replication_factor,
+        create_option="--create-topics",
     )
 
     seed_offset = stable_seed_offset(run_id)

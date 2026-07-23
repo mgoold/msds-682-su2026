@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MSDS 682 Lecture 6 slides: Kafka Connect, managed connectors, and bounded stream processing with Confluent Cloud.">
+  <title>MSDS 682 · Lecture 6 · Kafka Connect and Stream Processing</title>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #6f7480;
+      --line: #e4e5e1;
+      --panel: #ffffff;
+      --accent: #3565f2;
+      --accent-soft: #eef1fe;
+      --green: #0e7f66;
+      --green-soft: #e7f3f0;
+      --amber: #a26706;
+      --amber-soft: #fff4dc;
+      --red: #d83b42;
+      --red-soft: #fdf0ef;
+      --purple: #7655c5;
+      --purple-soft: #f2eefc;
+      --code-bg: #171b24;
+      --code-ink: #e9edf5;
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+      --shadow: 0 8px 28px rgba(22, 24, 29, .05);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    body { overflow-x: hidden; }
+
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      place-items: center;
+      padding: 3vh 3vw;
+      position: relative;
+    }
+
+    .frame { width: min(1360px, 92vw); }
+    .frame.narrow { width: min(1160px, 88vw); }
+
+    .kicker {
+      margin: 0 0 9px;
+      color: var(--muted);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    .kicker b { color: var(--accent); }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 2.4vw, 47px);
+      font-weight: 750;
+      letter-spacing: -.024em;
+      line-height: 1.08;
+    }
+
+    .hero h1 {
+      max-width: 1120px;
+      font-size: clamp(52px, 4.25vw, 82px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 1.45vw, 28px);
+      line-height: 1.18;
+    }
+
+    h3 {
+      margin: 0 0 7px;
+      font-size: clamp(16px, 1.12vw, 22px);
+      line-height: 1.25;
+    }
+
+    p, li, td, th {
+      font-size: clamp(16px, 1.05vw, 21px);
+      line-height: 1.48;
+    }
+
+    .subtitle {
+      margin: 0 0 2.5vh;
+      color: var(--muted);
+      font-size: clamp(17px, 1.25vw, 24px);
+      line-height: 1.45;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: clamp(18px, 1.8vw, 30px);
+      box-shadow: var(--shadow);
+    }
+
+    .card.flat { box-shadow: none; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(16px, 1.7vw, 28px);
+      align-items: stretch;
+    }
+
+    .grid2.wide-left { grid-template-columns: 1.45fr .85fr; }
+    .grid2.wide-right { grid-template-columns: .85fr 1.45fr; }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(14px, 1.45vw, 24px);
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(12px, 1.25vw, 20px);
+    }
+
+    .grid5 {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(10px, 1vw, 16px);
+    }
+
+    .stack { display: grid; gap: clamp(12px, 1.4vh, 18px); }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(12px, .82vw, 15px);
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .bodycopy { margin: 0; color: var(--muted); }
+    .bodycopy strong { color: var(--ink); }
+
+    .compact-list { margin: 10px 0 0; padding-left: 1.15em; }
+    .compact-list li { margin: 0 0 7px; color: var(--muted); }
+    .compact-list li:last-child { margin-bottom: 0; }
+    .compact-list strong { color: var(--ink); }
+
+    code, .command {
+      font-family: var(--mono);
+      font-size: .92em;
+    }
+
+    .command {
+      display: block;
+      margin-top: 10px;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fafafa;
+      color: #30343d;
+      overflow-wrap: anywhere;
+    }
+
+    .codecard {
+      background: var(--code-bg);
+      border-radius: 15px;
+      padding: clamp(18px, 1.7vw, 28px);
+      box-shadow: 0 12px 36px rgba(23, 27, 36, .14);
+    }
+
+    pre {
+      margin: 0;
+      color: var(--code-ink);
+      font-family: var(--mono);
+      font-size: clamp(13px, .88vw, 17px);
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .kw { color: #98b9ff; }
+    .str { color: #91d7bd; }
+    .num { color: #f0c97b; }
+    .cm { color: #8f98a9; }
+
+    .callout {
+      margin-top: clamp(14px, 1.7vh, 22px);
+      border: 1px solid #d6ddfb;
+      border-radius: 11px;
+      background: var(--accent-soft);
+      padding: 13px 18px;
+      color: #2b3a67;
+      font-size: clamp(15px, .98vw, 19px);
+      line-height: 1.46;
+    }
+
+    .callout strong { color: var(--ink); }
+    .callout.green { background: var(--green-soft); border-color: #c6e3dc; color: #185c4d; }
+    .callout.amber { background: var(--amber-soft); border-color: #f0dca9; color: #714b0b; }
+    .callout.red { background: var(--red-soft); border-color: #f0c9c7; color: #8f292e; }
+    .callout.purple { background: var(--purple-soft); border-color: #ddd1f5; color: #523c8b; }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      box-shadow: var(--shadow);
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th { color: var(--ink); background: #fafafa; font-weight: 750; }
+    td { color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+
+    .recap-loop {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2vh 0;
+    }
+
+    .recap-step {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--panel);
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    .recap-step b {
+      display: block;
+      font-family: var(--mono);
+      font-size: clamp(13px, .9vw, 17px);
+    }
+
+    .recap-step span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: clamp(12px, .82vw, 15px);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin: 16px 0 24px;
+    }
+
+    .pill {
+      display: inline-flex;
+      padding: 7px 11px;
+      border: 1px solid #d6ddfb;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #2c4fab;
+      font-family: var(--mono);
+      font-size: clamp(12px, .8vw, 15px);
+      font-weight: 700;
+    }
+
+    .pill.green {
+      border-color: #c6e3dc;
+      background: var(--green-soft);
+      color: #175f50;
+    }
+
+    .hero-visual {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: stretch;
+      gap: 14px;
+      margin-top: 3vh;
+    }
+
+    .hero-box {
+      display: grid;
+      align-content: center;
+      min-height: 145px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--panel);
+      padding: clamp(20px, 2vw, 32px);
+    }
+
+    .hero-box strong { display: block; font-size: clamp(20px, 1.45vw, 28px); }
+    .hero-box span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: clamp(15px, 1vw, 20px);
+      line-height: 1.45;
+    }
+
+    .hero-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      font-size: clamp(28px, 2.5vw, 48px);
+    }
+
+    .module-toc {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 2vh;
+    }
+
+    .module-toc a {
+      min-height: 178px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 18px;
+      color: inherit;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+    }
+
+    .module-toc .number { color: var(--accent); font-family: var(--mono); font-weight: 800; }
+    .module-toc h2 { margin-top: 12px; }
+    .module-toc p {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(14px, .88vw, 17px);
+      line-height: 1.42;
+    }
+
+    .module-divider { background: #eceef5; }
+    .module-divider[data-tone="green"] { background: #e9f1ef; }
+    .module-divider[data-tone="amber"] { background: #f5efe3; }
+    .module-divider[data-tone="purple"] { background: #f0ecf8; }
+
+    .module-divider-shell {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: clamp(28px, 4vw, 64px);
+      align-items: center;
+    }
+
+    .module-index {
+      font-family: var(--mono);
+      font-size: clamp(72px, 8vw, 145px);
+      line-height: .9;
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: -.08em;
+    }
+
+    .module-label {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: clamp(14px, .95vw, 18px);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-weight: 750;
+    }
+
+    .module-divider h1 {
+      max-width: 970px;
+      font-size: clamp(44px, 4.3vw, 78px);
+    }
+
+    .module-outcomes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 2.2vh;
+    }
+
+    .module-outcome {
+      border-top: 3px solid var(--accent);
+      background: rgba(255, 255, 255, .62);
+      padding: 15px 16px;
+      border-radius: 0 0 10px 10px;
+      color: var(--muted);
+      font-size: clamp(14px, .9vw, 18px);
+      line-height: 1.42;
+    }
+
+    .module-outcome strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 5px;
+    }
+
+    .system-cue-map {
+      display: grid;
+      grid-template-columns: .72fr auto 1.1fr auto 1.2fr auto 1.25fr auto 1fr;
+      align-items: stretch;
+      gap: 10px;
+      margin: 3vh 0 2.2vh;
+    }
+
+    .system-cue-node {
+      min-height: 148px;
+      display: grid;
+      align-content: center;
+      border: 2px solid #25282e;
+      border-radius: 13px;
+      background: #fff;
+      padding: 17px;
+      color: #25282e;
+      text-align: center;
+    }
+
+    .system-cue-node .cue-step {
+      color: #6f7480;
+      font-family: var(--mono);
+      font-size: clamp(11px, .72vw, 14px);
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .system-cue-node strong {
+      display: block;
+      margin-top: 8px;
+      font-size: clamp(17px, 1.15vw, 23px);
+    }
+
+    .system-cue-node span {
+      display: block;
+      margin-top: 7px;
+      color: #555b66;
+      font-size: clamp(13px, .82vw, 16px);
+      line-height: 1.35;
+    }
+
+    .system-cue-node.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .system-cue-node.active .cue-step,
+    .system-cue-node.active strong { color: var(--accent); }
+
+    .system-cue-arrow {
+      display: grid;
+      place-items: center;
+      color: #25282e;
+      font-size: clamp(24px, 2vw, 38px);
+      font-weight: 800;
+    }
+
+    .system-map-note {
+      width: fit-content;
+      max-width: 100%;
+      margin: 12px auto 0;
+      border-top: 1px solid var(--line);
+      padding: 12px 20px 0;
+      color: #555b66;
+      font-size: clamp(14px, .9vw, 17px);
+      text-align: center;
+    }
+
+    .responsibility-map,
+    .pipeline {
+      display: grid;
+      align-items: stretch;
+      gap: 12px;
+      margin: 2.5vh 0;
+    }
+
+    .responsibility-map { grid-template-columns: 1fr auto 1fr auto 1fr; }
+    .pipeline.five { grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr; }
+    .pipeline.four { grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; }
+    .pipeline.three { grid-template-columns: 1fr auto 1fr auto 1fr; }
+
+    .map-node {
+      min-height: 140px;
+      display: grid;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .map-node strong { font-size: clamp(18px, 1.3vw, 26px); }
+    .map-node span {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: clamp(13px, .88vw, 17px);
+      line-height: 1.4;
+    }
+
+    .map-node.blue { background: var(--accent-soft); border-color: #d6ddfb; }
+    .map-node.green { background: var(--green-soft); border-color: #c6e3dc; }
+    .map-node.amber { background: var(--amber-soft); border-color: #f0dca9; }
+    .map-node.purple { background: var(--purple-soft); border-color: #ddd1f5; }
+
+    .map-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: clamp(24px, 2vw, 38px);
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 2vh 0;
+    }
+
+    .status-item {
+      border-top: 4px solid var(--accent);
+      border-radius: 0 0 12px 12px;
+      background: var(--panel);
+      padding: 17px;
+    }
+
+    .status-item strong { display: block; font-size: clamp(16px, 1.05vw, 21px); }
+    .status-item span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: clamp(13px, .84vw, 16px);
+      line-height: 1.4;
+    }
+
+    .source-row {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: clamp(12px, .8vw, 15px);
+    }
+
+    .source-row a { color: var(--accent); text-decoration: none; }
+
+    .pager {
+      position: absolute;
+      right: 3vw;
+      bottom: 16px;
+      color: #9b9fa8;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .05em;
+    }
+
+    @media (max-width: 980px) {
+      .grid3, .grid4, .grid5, .module-toc, .status-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .recap-loop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .module-divider-shell { grid-template-columns: 120px 1fr; }
+      .module-outcomes { grid-template-columns: 1fr; }
+      .responsibility-map,
+      .pipeline.five,
+      .pipeline.four,
+      .pipeline.three,
+      .system-cue-map { grid-template-columns: 1fr; }
+
+      .map-arrow, .system-cue-arrow {
+        transform: rotate(90deg);
+        text-align: center;
+      }
+
+      .hero-visual { grid-template-columns: 1fr; }
+      .hero-arrow { transform: rotate(90deg); }
+    }
+
+    @media (max-width: 680px) {
+      section.slide { padding: 7vh 5vw; }
+
+      .grid2,
+      .grid2.wide-left,
+      .grid2.wide-right,
+      .grid3,
+      .grid4,
+      .grid5,
+      .module-toc,
+      .status-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .recap-loop { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .module-divider-shell { grid-template-columns: 1fr; }
+      .module-index { font-size: 72px; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="slide" id="assignment-2-schedule-update">
+    <div class="frame narrow">
+      <p class="kicker">Course schedule update</p>
+      <h1>Assignment 2 opens July 23 and is due July 31</h1>
+      <p class="subtitle">This is the updated Assignment 2 timeline for Summer 2026.</p>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Release</p>
+          <h2>Thursday, July 23, 2026</h2>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Due</p>
+          <h2>Friday, July 31, 2026</h2>
+          <p class="bodycopy"><strong>11:59 PM PDT</strong></p>
+        </div>
+      </div>
+      <div class="callout amber"><strong>You have about one week.</strong> Begin when the assignment is released. The published Assignment 2 handout is the source of truth for requirements and submission.</div>
+      <div class="source-row"><a href="assignment02.md">Open Assignment 2 handout</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lec5-synthesis">
+    <div class="frame narrow">
+      <p class="kicker">Lecture 5 synthesis</p>
+      <h1>Five ideas connect the lecture, demo, and case study</h1>
+      <div class="stack">
+        <div class="card flat"><h3>1. Lecture 4: meaning + wire. Lecture 5: HTTP application boundary.</h3></div>
+        <div class="card flat"><h3>2. FastAPI: commands. Kafka: durable facts.</h3></div>
+        <div class="card flat"><h3>3. Lifespan owns shared clients. Evidence supports delivery claims.</h3></div>
+        <div class="card flat"><h3>4. Demo 05 proves one <code>TripEventV1</code> path.</h3></div>
+        <div class="card flat"><h3>5. Classifier extension: contract + state + features + typed event.</h3></div>
+      </div>
+      <div class="callout green"><strong>Final question:</strong> who owns each step, and what proves it?</div>
+      <div class="source-row">References: <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noreferrer">FastAPI documentation</a> · <a href="https://docs.confluent.io/kafka-clients/python/current/overview.html" target="_blank" rel="noreferrer">Confluent Kafka Python client</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lec5-consumer-recap">
+    <div class="frame">
+      <p class="kicker">Prerequisite recap · Lecture 3</p>
+      <h1>Consumers turn Kafka records into durable progress</h1>
+      <p class="subtitle">The processing loop still applies when the producer is an API.</p>
+      <div class="recap-loop">
+        <div class="recap-step"><b>subscribe</b><span>join group</span></div>
+        <div class="recap-step"><b>poll</b><span>receive</span></div>
+        <div class="recap-step"><b>decode</b><span>bytes → data</span></div>
+        <div class="recap-step"><b>validate</b><span>trust boundary</span></div>
+        <div class="recap-step"><b>process</b><span>business logic</span></div>
+        <div class="recap-step"><b>commit</b><span>restart point</span></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><p class="eyebrow">Work ownership</p><h2>Groups divide partitions</h2><p class="bodycopy">Within one group, each partition is assigned to at most one active member. Different groups progress independently.</p></div>
+        <div class="card"><p class="eyebrow">Progress</p><h2>Position is not committed offset</h2><p class="bodycopy">Position is current-session progress. Committed offset is the durable restart point.</p></div>
+      </div>
+      <div class="callout green"><strong>Still true:</strong> deserialize → validate → process → commit.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lec5-contract-recap">
+    <div class="frame">
+      <p class="kicker">Prerequisite recap · Lecture 4</p>
+      <h1>Four contract layers, two client paths</h1>
+      <p class="subtitle">FastAPI adds an HTTP boundary; it does not merge the layers.</p>
+      <table>
+        <thead><tr><th>Responsibility</th><th>Course implementation</th></tr></thead>
+        <tbody>
+          <tr><td>Application meaning</td><td>Strict <strong>Pydantic</strong> model plus lifecycle rules.</td></tr>
+          <tr><td>Wire contract</td><td><strong>.avsc schema</strong> plus Confluent-framed Avro binary.</td></tr>
+          <tr><td>Schema governance</td><td>Schema Registry subjects, IDs, versions, and compatibility.</td></tr>
+          <tr><td>Transport</td><td>Kafka retains ordered key and value bytes plus record metadata.</td></tr>
+        </tbody>
+      </table>
+      <div class="grid2">
+        <div class="card flat"><p class="eyebrow">CLI path</p><p class="bodycopy"><code>Producer</code>/<code>Consumer</code> with explicit Avro serdes.</p></div>
+        <div class="card flat"><p class="eyebrow">Existing event loop</p><p class="bodycopy">Native AIO clients with async Registry serdes.</p></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="validation-boundaries">
+    <div class="frame">
+      <p class="kicker">Precision bridge from Lecture 5</p>
+      <h1>Validation happens at multiple boundaries</h1>
+      <div class="pipeline five">
+        <div class="map-node blue"><strong>HTTP request</strong><span>FastAPI and Pydantic validate request shape.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node blue"><strong>Event object</strong><span>Pydantic enforces application rules.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node amber"><strong>Wire encoding</strong><span>Avro encodes data against the writer schema.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node purple"><strong>Schema version</strong><span>Registry checks compatibility when a new version is registered.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node green"><strong>Consumer</strong><span>Deserialize with the writer schema, then validate application meaning.</span></div>
+      </div>
+      <div class="callout red"><strong>Schema Registry does not migrate data.</strong> It governs schema versions and compatibility, but it does not rewrite stored records, database tables, Pydantic models, or application code.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide system-cue" id="lec5-processing-recap" data-active="processing,commit">
+    <div class="frame">
+      <h1>Process a time window, then commit</h1>
+      <div class="system-cue-map" aria-label="HTTP client to consumer offset commit"></div>
+      <div class="system-map-note">Process successfully → publish any output → commit the input offset.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide hero" id="lecture-6-title">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · <b>Lecture 6</b></p>
+      <h1>Connect moves data.<br>Processors compute results.</h1>
+      <p class="subtitle">Separate integration, durable transport, and stream computation before choosing an implementation.</p>
+      <div class="hero-meta">
+        <span class="pill">Python 3.11.14</span>
+        <span class="pill green">Confluent Cloud</span>
+        <span class="pill">confluent-kafka 2.15.0</span>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-box"><strong>Integrate</strong><span>Kafka Connect moves records between systems.</span></div>
+        <div class="hero-arrow">→</div>
+        <div class="hero-box"><strong>Retain</strong><span>Kafka stores ordered records in partition logs.</span></div>
+        <div class="hero-arrow">→</div>
+        <div class="hero-box"><strong>Compute</strong><span>A processor derives new facts and state.</span></div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lecture-6-overview">
+    <div class="frame">
+      <p class="kicker">Lecture 6 overview</p>
+      <h1>Five modules separate the responsibilities</h1>
+      <p class="subtitle">Start with the decision, inspect a managed connector, then build a bounded processor.</p>
+      <nav class="module-toc" aria-label="Lecture 6 modules">
+        <a href="#module-1-boundary"><span class="number">01</span><h2>Choose</h2><p>Native client, Connect, or processor?</p></a>
+        <a href="#module-2-connect"><span class="number">02</span><h2>Connect</h2><p>Source, sink, worker, connector, task, converter.</p></a>
+        <a href="#module-3-managed-demo"><span class="number">03</span><h2>Observe</h2><p>Run a managed source connector and inspect evidence.</p></a>
+        <a href="#module-4-processing"><span class="number">04</span><h2>Process</h2><p>State, keys, windows, delivery, and commit.</p></a>
+        <a href="#module-5-proof"><span class="number">05</span><h2>Prove</h2><p>Derived output, resume, replay, and cleanup.</p></a>
+      </nav>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="responsibility-overview">
+    <div class="frame">
+      <p class="kicker">The whole lecture in one picture</p>
+      <h1>Integration, storage, and computation are different jobs</h1>
+      <div class="responsibility-map">
+        <div class="map-node blue"><strong>Kafka Connect</strong><span>Moves records between Kafka and external systems.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node"><strong>Kafka</strong><span>Retains ordered records and consumer progress.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node green"><strong>Stream processor</strong><span>Validates, computes, manages state, and emits results.</span></div>
+      </div>
+      <div class="callout green"><strong>Decision rule:</strong> use Connect for integration, a client for application-specific I/O, and a processor for business computation.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-1-boundary" data-tone="blue">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">01</div><div class="module-label">Choose the boundary</div></div>
+        <div>
+          <h1>Start with the responsibility, not the tool</h1>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Integration</strong>Move records between systems.</div>
+            <div class="module-outcome"><strong>Application I/O</strong>Implement product-specific behavior.</div>
+            <div class="module-outcome"><strong>Computation</strong>Derive facts, state, or outputs.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="integration-problem">
+    <div class="frame">
+      <p class="kicker">The integration problem</p>
+      <h1>Copying data should not require a new application every time</h1>
+      <p class="subtitle">Common systems already expose recognizable source and sink patterns.</p>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">Database</p><h2>Rows change</h2><p class="bodycopy">Capture records and publish them to Kafka.</p></div>
+        <div class="card flat"><p class="eyebrow">Object storage</p><h2>Files arrive</h2><p class="bodycopy">Move records into or out of Kafka on a repeatable schedule.</p></div>
+        <div class="card flat"><p class="eyebrow">Analytics system</p><h2>Events need a destination</h2><p class="bodycopy">Deliver topic records without embedding sink code in producers.</p></div>
+      </div>
+      <div class="callout"><strong>Kafka Connect standardizes the plumbing.</strong> It does not own arbitrary product decisions.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="choose-the-tool">
+    <div class="frame">
+      <p class="kicker">Decision table</p>
+      <h1>Choose the smallest tool that owns the job</h1>
+      <table>
+        <thead><tr><th>Need</th><th>Best starting point</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Move records from a supported system</td><td><strong>Kafka Connect</strong></td><td>Configuration-first integration with managed lifecycle and offsets.</td></tr>
+          <tr><td>Implement an HTTP or domain application</td><td><strong>Native client</strong></td><td>The application owns validation, responses, and product behavior.</td></tr>
+          <tr><td>Filter, aggregate, classify, join, or maintain state</td><td><strong>Stream processor</strong></td><td>The computation has explicit keys, state, outputs, and recovery rules.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout amber"><strong>Use the smallest transformation boundary.</strong> SMTs fit lightweight record-at-a-time changes. State, windows, joins, and business decisions belong in a processor.</div>
+      <div class="source-row">Reference: <a href="https://docs.confluent.io/cloud/current/connectors/single-message-transforms.html" target="_blank" rel="noreferrer">Confluent Cloud Single Message Transformations</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="three-apis">
+    <div class="frame">
+      <p class="kicker">Avoid one common confusion</p>
+      <h1>Three interfaces serve three different audiences</h1>
+      <div class="grid3">
+        <div class="card"><p class="eyebrow">Business API</p><h2>FastAPI</h2><p class="bodycopy">Clients send commands and receive application responses.</p></div>
+        <div class="card"><p class="eyebrow">Control plane</p><h2>Connect REST API</h2><p class="bodycopy">Operators create, pause, update, and inspect connectors.</p></div>
+        <div class="card"><p class="eyebrow">Data plane</p><h2>Kafka records</h2><p class="bodycopy">Producers, connectors, and processors exchange durable events.</p></div>
+      </div>
+      <div class="callout green"><strong>Connect REST is not the business API.</strong> It manages connector lifecycle.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-2-connect" data-tone="green">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">02</div><div class="module-label">Kafka Connect</div></div>
+        <div>
+          <h1>Understand the runtime before operating it</h1>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Direction</strong>Source into Kafka, sink out of Kafka.</div>
+            <div class="module-outcome"><strong>Execution</strong>Workers run connector tasks.</div>
+            <div class="module-outcome"><strong>Representation</strong>Converters map Connect data to Kafka bytes.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="source-and-sink">
+    <div class="frame">
+      <p class="kicker">Direction of movement</p>
+      <h1>Source connectors write to Kafka; sink connectors read from Kafka</h1>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Source connector</p>
+          <div class="pipeline three">
+            <div class="map-node"><strong>External source</strong><span>Database, SaaS, files, synthetic generator</span></div>
+            <div class="map-arrow">→</div>
+            <div class="map-node blue"><strong>Connect</strong><span>Source connector + tasks</span></div>
+            <div class="map-arrow">→</div>
+            <div class="map-node green"><strong>Kafka</strong><span>Topic records</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Sink connector</p>
+          <div class="pipeline three">
+            <div class="map-node green"><strong>Kafka</strong><span>Topic records</span></div>
+            <div class="map-arrow">→</div>
+            <div class="map-node blue"><strong>Connect</strong><span>Sink connector + tasks</span></div>
+            <div class="map-arrow">→</div>
+            <div class="map-node"><strong>External sink</strong><span>Warehouse, database, object storage</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="callout"><strong>Direction is named relative to Kafka.</strong></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="worker-connector-task">
+    <div class="frame">
+      <p class="kicker">Execution hierarchy</p>
+      <h1>A worker runs connectors; connectors coordinate tasks</h1>
+      <div class="responsibility-map">
+        <div class="map-node"><strong>Worker</strong><span>The runtime process that hosts connector work.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node blue"><strong>Connector</strong><span>Configuration and coordination for one integration.</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node green"><strong>Tasks</strong><span>The units that copy records in parallel.</span></div>
+      </div>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">Scale</p><h3><code>tasks.max</code> sets an upper bound</h3><p class="bodycopy">Demo 06 uses one task for clarity, not as a production tuning rule.</p></div>
+        <div class="card flat"><p class="eyebrow">Recovery</p><h3>Tasks can restart or move between workers</h3></div>
+        <div class="card flat"><p class="eyebrow">Managed Cloud</p><h3>The platform operates the workers</h3></div>
+      </div>
+      <div class="source-row">Reference: <a href="https://docs.confluent.io/platform/current/connect/index.html" target="_blank" rel="noreferrer">Confluent Kafka Connect documentation</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="managed-vs-self-managed">
+    <div class="frame">
+      <p class="kicker">Operating model</p>
+      <h1>Managed Connect changes what students operate, not the core model</h1>
+      <table>
+        <thead><tr><th>Responsibility</th><th>Fully managed connector</th><th>Self-managed Connect</th></tr></thead>
+        <tbody>
+          <tr><td>Workers</td><td>Platform operated</td><td>You deploy and monitor them</td></tr>
+          <tr><td>Internal topics</td><td>Hidden</td><td>You configure them</td></tr>
+          <tr><td>Lifecycle</td><td>Cloud Console or API</td><td>Worker REST API</td></tr>
+          <tr><td>Access</td><td>You configure credentials</td><td>You own the full boundary</td></tr>
+        </tbody>
+      </table>
+      <div class="callout green"><strong>Course path:</strong> use a managed connector first; explain the hidden worker model without turning the lesson into platform administration.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="converter-vs-serde">
+    <div class="frame">
+      <p class="kicker">Record representation</p>
+      <h1>Connect uses converters; Python clients use serializers</h1>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Kafka Connect</p>
+          <h2>Converter</h2>
+          <p class="bodycopy">Maps Connect's internal data model and schema to Kafka key or value bytes.</p>
+          <span class="command">AvroConverter · JsonConverter · ProtobufConverter</span>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Python application</p>
+          <h2>Serializer / Deserializer</h2>
+          <p class="bodycopy">Maps application objects to bytes and bytes back to application data.</p>
+          <span class="command">AvroSerializer · AvroDeserializer</span>
+        </div>
+      </div>
+      <div class="callout purple"><strong>Schema Registry participates when schema-aware formats are configured.</strong> It stores schemas and compatibility metadata, not business records.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="connect-status-offsets">
+    <div class="frame">
+      <p class="kicker">Operational evidence</p>
+      <h1>Status and offsets answer different questions</h1>
+      <div class="status-strip">
+        <div class="status-item"><strong>Connector status</strong><span>Is the connector instance running, paused, or failed?</span></div>
+        <div class="status-item"><strong>Task status</strong><span>Which execution units are healthy or failing?</span></div>
+        <div class="status-item"><strong>Source offset</strong><span>Where has a source connector reached in the external system?</span></div>
+        <div class="status-item"><strong>Consumer offset</strong><span>Where has a sink or processor consumer group reached in Kafka?</span></div>
+      </div>
+      <div class="callout amber"><strong>Do not collapse these into one “offset.”</strong> Each offset belongs to a specific progress boundary.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="connect-errors">
+    <div class="frame">
+      <p class="kicker">Failure handling</p>
+      <h1>A running connector can still contain record-level failures</h1>
+      <div class="grid2 wide-left">
+        <div class="card flat">
+          <p class="eyebrow">Inspect separately</p>
+          <ul class="compact-list">
+            <li><strong>connector state:</strong> is coordination healthy?</li>
+            <li><strong>task state:</strong> did one execution unit fail?</li>
+            <li><strong>record errors:</strong> did conversion or destination writing fail?</li>
+            <li><strong>lag or stalled offsets:</strong> is progress continuing?</li>
+          </ul>
+        </div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Policy</p><h2>Fail, retry, log, or tolerate</h2><p class="bodycopy">Capabilities vary by connector and direction.</p></div>
+          <div class="callout red"><strong>DLQ is not universal.</strong> Do not promise that every source or sink connector handles bad records the same way.</div>
+        </div>
+      </div>
+      <div class="source-row">Reference: <a href="https://kafka.apache.org/43/kafka-connect/user-guide/" target="_blank" rel="noreferrer">Apache Kafka Connect user guide</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-3-managed-demo" data-tone="amber">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">03</div><div class="module-label">Managed connector demo</div></div>
+        <div>
+          <h1>Observe data movement before writing a processor</h1>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Create</strong>One dedicated input topic and source connector.</div>
+            <div class="module-outcome"><strong>Inspect</strong>Status, tasks, records, schema, and key.</div>
+            <div class="module-outcome"><strong>Read</strong>A bounded sample with the Python client.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo06-prerequisites">
+    <div class="frame">
+      <p class="kicker">Demo 06 prerequisites</p>
+      <h1>Start from a fresh Confluent environment</h1>
+      <p class="subtitle">No topic or data from Demo 01 through Demo 05 is required.</p>
+      <div class="grid2">
+        <div class="card flat"><p class="eyebrow">Kafka + Registry</p><h3>Two one-partition topics</h3><p class="bodycopy"><code>msds682.demo06.connector-orders-avro.v1</code><br><code>msds682.demo06.connector-order-metrics-avro.v1</code></p></div>
+        <div class="card flat"><p class="eyebrow">Python + access</p><h3>Course environment and separate credentials</h3><p class="bodycopy">Python 3.11.14, confluent-kafka 2.15.0, and secrets in <code>.env</code>.</p></div>
+      </div>
+      <div class="callout amber"><strong>No connector permission?</strong> Run the finite deterministic fallback once. Never run both sources or submit secrets.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo06a-create">
+    <div class="frame">
+      <p class="kicker">Demo 06A · Datagen source</p>
+      <h1>Create a small, observable source pipeline</h1>
+      <div class="pipeline four">
+        <div class="map-node"><strong>Datagen</strong><span>Synthetic Connect records</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node blue"><strong>Source task</strong><span><code>tasks.max=1</code></span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node purple"><strong>Avro converter</strong><span>Serializes values and registers the schema</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node green"><strong>Kafka input topic</strong><span>Confluent-framed record bytes</span></div>
+      </div>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">Contract</p><h3><code>ORDERS</code> + AVRO</h3><p class="bodycopy">Schema metadata goes to Registry; records go to Kafka.</p></div>
+        <div class="card flat"><p class="eyebrow">Key</p><h3><code>orderid</code></h3></div>
+        <div class="card flat"><p class="eyebrow">Rate</p><h3>2000 ms, then pause</h3></div>
+      </div>
+      <div class="source-row">Reference: <a href="https://docs.confluent.io/cloud/current/connectors/cc-datagen-source.html" target="_blank" rel="noreferrer">Confluent Cloud Datagen Source Connector</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo06a-evidence">
+    <div class="frame">
+      <p class="kicker">Demo 06A · Evidence</p>
+      <h1>Prove each boundary with one visible artifact</h1>
+      <div class="status-strip">
+        <div class="status-item"><strong>Connector</strong><span>Status shows the connector is running.</span></div>
+        <div class="status-item"><strong>Task</strong><span>Task 0 is running without a failure trace.</span></div>
+        <div class="status-item"><strong>Topic</strong><span>Records arrive with a stable key and increasing offsets.</span></div>
+        <div class="status-item"><strong>Registry</strong><span>A value subject and schema version are present.</span></div>
+      </div>
+      <div class="callout green"><strong>Evidence chain:</strong> running status + healthy task + records + schema.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo06b-consume">
+    <div class="frame">
+      <p class="kicker">Demo 06B · Python consumer</p>
+      <h1>Read a bounded sample from the connector-created topic</h1>
+      <div class="grid2 wide-left">
+        <div class="codecard"><pre>consumer.subscribe([INPUT_TOPIC])
+
+<span class="kw">while</span> consumed &lt; max_messages:
+    msg = consumer.poll(<span class="num">1.0</span>)
+    <span class="kw">if</span> msg <span class="kw">is</span> <span class="kw">None</span>:
+        <span class="kw">continue</span>
+    event = deserializer(msg.value(), context)
+    validate(event)
+    record_evidence(msg, event)
+
+consumer.close()</pre></div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Bounded</p><h2>Count plus timeout</h2><p class="bodycopy">The classroom run ends predictably.</p></div>
+          <div class="card flat"><p class="eyebrow">Schema-aware</p><h2>Deserialize, then validate</h2><p class="bodycopy">Wire compatibility and application meaning remain separate checks.</p></div>
+          <div class="callout amber"><strong>No processing commit yet.</strong> Demo 06B proves observation; Demo 06C adds a derived output and commit boundary.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo06-cleanup">
+    <div class="frame">
+      <p class="kicker">Cost and cleanup</p>
+      <h1>Stop synthetic data as soon as the evidence is complete</h1>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">1</p><h2>Pause or delete</h2><p class="bodycopy">Stop the Datagen connector after a small sample arrives.</p></div>
+        <div class="card flat"><p class="eyebrow">2</p><h2>Finish the processor</h2><p class="bodycopy">Use retained topic data for the remaining bounded demos.</p></div>
+        <div class="card flat"><p class="eyebrow">3</p><h2>Delete resources</h2><p class="bodycopy">Remove unused connector, topics, keys, and cluster after class.</p></div>
+      </div>
+      <div class="callout red"><strong>Datagen is for development and testing.</strong> It is not a production data source.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-4-processing" data-tone="purple">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">04</div><div class="module-label">Stream processing</div></div>
+        <div>
+          <h1>Turn retained events into new facts</h1>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Compute</strong>Filter, transform, aggregate, or classify.</div>
+            <div class="module-outcome"><strong>State</strong>Own keys, windows, and recovery.</div>
+            <div class="module-outcome"><strong>Deliver</strong>Acknowledge output before input commit.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="transport-vs-computation">
+    <div class="frame">
+      <p class="kicker">Responsibility boundary</p>
+      <h1>Kafka retains records; the processor gives them new meaning</h1>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Kafka broker</p>
+          <h2>Durable transport</h2>
+          <ul class="compact-list"><li>ordered partition logs;</li><li>keys, values, headers, offsets;</li><li>retention and independent consumer groups.</li></ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Stream processor</p>
+          <h2>Application computation</h2>
+          <ul class="compact-list"><li>validation and transformation;</li><li>state, windows, and business rules;</li><li>derived records written to another topic.</li></ul>
+        </div>
+      </div>
+      <div class="callout green"><strong>Kafka is the backbone, not the business computation.</strong></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="stateless-stateful">
+    <div class="frame">
+      <p class="kicker">Two processing shapes</p>
+      <h1>State begins when one record is not enough</h1>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Stateless</p>
+          <h2>One record in, one decision out</h2>
+          <p class="bodycopy">Examples: validate, redact, enrich from fixed configuration, convert units.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Stateful</p>
+          <h2>Current output depends on prior records</h2>
+          <p class="bodycopy">Examples: count, rolling feature, deduplication, table update, windowed classification.</p>
+        </div>
+      </div>
+      <div class="callout amber"><strong>State needs an owner.</strong> Define its key, lifetime, recovery path, and output contract.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="stream-and-table">
+    <div class="frame">
+      <p class="kicker">Two ways to interpret records</p>
+      <h1>A stream preserves events; a table represents current keyed state</h1>
+      <table>
+        <thead><tr><th>View</th><th>Question</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stream</strong></td><td>What happened, and in what order?</td><td>Trip requested, driver assigned, trip completed</td></tr>
+          <tr><td><strong>Table</strong></td><td>What is the latest known value for this key?</td><td>Current trip status by <code>trip_id</code></td></tr>
+        </tbody>
+      </table>
+      <div class="callout purple"><strong>The same Kafka records can support both interpretations.</strong> The processor defines how state is materialized.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="key-state-window">
+    <div class="frame">
+      <p class="kicker">Stateful processing ingredients</p>
+      <h1>Key, state, and window make correlation explicit</h1>
+      <div class="responsibility-map">
+        <div class="map-node blue"><strong>Key</strong><span>Which entity owns this sequence?</span></div>
+        <div class="map-arrow">+</div>
+        <div class="map-node amber"><strong>State</strong><span>What prior information must survive?</span></div>
+        <div class="map-arrow">+</div>
+        <div class="map-node purple"><strong>Window</strong><span>Which bounded interval belongs together?</span></div>
+      </div>
+      <div class="callout amber"><strong>Subscribe is not a join.</strong> Correlation requires explicit keys, state, time boundaries, and missing-data rules.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="safe-processing-boundary">
+    <div class="frame">
+      <p class="kicker">Delivery boundary</p>
+      <h1>Commit input only after the required output is acknowledged</h1>
+      <div class="pipeline five">
+        <div class="map-node"><strong>Consume</strong><span>Read one input record</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node blue"><strong>Validate</strong><span>Wire + application checks</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node amber"><strong>Process</strong><span>Compute the derived result</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node green"><strong>Output ack</strong><span>Broker confirms delivery</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node purple"><strong>Input commit</strong><span>Store next consumer offset</span></div>
+      </div>
+      <div class="callout green"><strong>Commit means consumer offset commit.</strong> It is not producer delivery acknowledgement and not Git commit.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="delivery-semantics">
+    <div class="frame">
+      <p class="kicker">Failure reasoning</p>
+      <h1>Correct ordering reduces loss, but duplicates are still possible</h1>
+      <div class="grid2 wide-left">
+        <div class="card flat">
+          <p class="eyebrow">Crash point</p>
+          <h2>Output succeeded; input commit did not</h2>
+          <p class="bodycopy">After restart, the consumer reads the same input again and may produce the output again.</p>
+        </div>
+        <div class="stack">
+          <div class="card flat"><p class="eyebrow">Baseline</p><h2>At-least-once</h2><p class="bodycopy">Prefer possible duplicates over silently losing completed work.</p></div>
+          <div class="card flat"><p class="eyebrow">Control</p><h2>Idempotency</h2><p class="bodycopy">Use stable event identity and make repeated processing safe.</p></div>
+        </div>
+      </div>
+      <div class="callout red"><strong>Do not promise exactly-once from commit order alone.</strong> Transactions and connector or framework support have additional requirements.</div>
+      <div class="source-row">Reference: <a href="https://kafka.apache.org/43/kafka-connect/user-guide/#exactly-once-support" target="_blank" rel="noreferrer">Kafka Connect exactly-once support and limitations</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-5-proof" data-tone="green">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">05</div><div class="module-label">Proof and recovery</div></div>
+        <div>
+          <h1>Prove the processor can continue and replay</h1>
+          <div class="module-outcomes">
+            <div class="module-outcome"><strong>Derived output</strong>Publish one explainable event.</div>
+            <div class="module-outcome"><strong>Resume</strong>Continue with the same group.</div>
+            <div class="module-outcome"><strong>Replay</strong>Read history without corrupting the base group.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo06c-processor">
+    <div class="frame">
+      <p class="kicker">Demo 06C · Bounded processor</p>
+      <h1>One input topic becomes one derived output topic</h1>
+      <div class="pipeline five">
+        <div class="map-node blue"><strong>Input topic</strong><span>Connector-created AVRO records</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node"><strong>Consumer group</strong><span>Bounded poll loop</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node amber"><strong>Processor</strong><span>Validate + deterministic transform</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node green"><strong>Output topic</strong><span>Derived event + delivery ack</span></div>
+        <div class="map-arrow">→</div>
+        <div class="map-node purple"><strong>Commit</strong><span>Input group progress</span></div>
+      </div>
+      <div class="grid3">
+        <div class="card flat"><p class="eyebrow">Input evidence</p><h3>topic, partition, offset, key</h3></div>
+        <div class="card flat"><p class="eyebrow">Output evidence</p><h3><code>OrderMetricV1</code> + delivery result</h3></div>
+        <div class="card flat"><p class="eyebrow">Recovery evidence</p><h3>committed next offset</h3></div>
+      </div>
+      <div class="callout"><strong>Stable derived key:</strong> <code>&lt;input-topic&gt;:&lt;partition&gt;:&lt;offset&gt;</code> makes replayed identity observable. Waiting for each output acknowledgement is a correctness-first classroom choice, not a throughput recipe.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo06d-resume-replay">
+    <div class="frame">
+      <p class="kicker">Demo 06D · Recovery behavior</p>
+      <h1>Resume and replay answer different questions</h1>
+      <div class="grid2">
+        <div class="card">
+          <p class="eyebrow">Resume</p>
+          <h2>Use the same group</h2>
+          <p class="bodycopy">Kafka starts after the group's committed offset. This proves normal recovery.</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Replay</p>
+          <h2>Use an explicit replay group</h2>
+          <p class="bodycopy">Read retained history without changing the production group's progress.</p>
+        </div>
+      </div>
+      <div class="callout amber"><strong>This transformation has no application state.</strong> A future stateful replay must reset or rebuild derived state as well as input offsets.</div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lecture-6-synthesis">
+    <div class="frame narrow">
+      <p class="kicker">Lecture 6 synthesis</p>
+      <h1>Five ideas organize the whole system</h1>
+      <div class="stack">
+        <div class="card flat"><h3>1. Connect moves records between systems.</h3></div>
+        <div class="card flat"><h3>2. Kafka retains ordered records.</h3></div>
+        <div class="card flat"><h3>3. A processor computes and may own state.</h3></div>
+        <div class="card flat"><h3>4. Output acknowledgement precedes input commit.</h3></div>
+        <div class="card flat"><h3>5. Resume continues; replay revisits history.</h3></div>
+      </div>
+      <div class="callout green"><strong>Next step:</strong> extend the same model with richer stateful processing, operational evidence, and recovery trade-offs.</div>
+      <div class="source-row"><a href="demo06.md">Open Demo 06 handout</a> · <a href="https://docs.confluent.io/platform/current/connect/index.html" target="_blank" rel="noreferrer">Confluent Kafka Connect</a> · <a href="https://docs.confluent.io/kafka-clients/python/current/overview.html" target="_blank" rel="noreferrer">Confluent Kafka Python client</a></div>
+    </div>
+    <div class="pager"></div>
+  </section>
+
+  <script>
+    const slides = [...document.querySelectorAll("section.slide")];
+
+    const systemPathSteps = [
+      { id: "client", step: "Source", title: "HTTP client", detail: "Sends one command" },
+      { id: "api", step: "API boundary", title: "FastAPI", detail: "Uvicorn + Pydantic + mapper" },
+      { id: "backbone", step: "Event backbone", title: "Publish + retain", detail: "Producer + Avro + Registry + Kafka" },
+      { id: "processing", step: "Processing boundary", title: "Consumer", detail: "Decode + validate + window/classifier" },
+      { id: "commit", step: "Recovery", title: "Consumer commit", detail: "Store the next offset" }
+    ];
+
+    document.querySelectorAll("section.system-cue").forEach((slide) => {
+      const activeSteps = new Set(slide.dataset.active.split(","));
+      const map = slide.querySelector(".system-cue-map");
+
+      systemPathSteps.forEach((item, index) => {
+        if (index > 0) {
+          const arrow = document.createElement("div");
+          arrow.className = "system-cue-arrow";
+          arrow.setAttribute("aria-hidden", "true");
+          arrow.textContent = "→";
+          map.appendChild(arrow);
+        }
+
+        const node = document.createElement("div");
+        node.className = `system-cue-node${activeSteps.has(item.id) ? " active" : ""}`;
+
+        const step = document.createElement("div");
+        step.className = "cue-step";
+        step.textContent = item.step;
+
+        const title = document.createElement("strong");
+        title.textContent = item.title;
+
+        const detail = document.createElement("span");
+        detail.textContent = item.detail;
+
+        node.append(step, title, detail);
+        map.appendChild(node);
+      });
+    });
+
+    slides.forEach((slide, index) => {
+      const pager = slide.querySelector(".pager");
+      if (pager) pager.textContent = `${index + 1} / ${slides.length}`;
+    });
+
+    function currentSlideIndex() {
+      const viewportCenter = window.scrollY + window.innerHeight / 2;
+
+      return slides.reduce((bestIndex, slide, index) => {
+        const best = slides[bestIndex];
+        const slideCenter = slide.offsetTop + slide.offsetHeight / 2;
+        const bestCenter = best.offsetTop + best.offsetHeight / 2;
+
+        return Math.abs(slideCenter - viewportCenter) < Math.abs(bestCenter - viewportCenter)
+          ? index
+          : bestIndex;
+      }, 0);
+    }
+
+    function move(delta) {
+      const current = currentSlideIndex();
+      const next = Math.max(0, Math.min(slides.length - 1, current + delta));
+      slides[next].scrollIntoView({ behavior: "smooth" });
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowDown", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        move(1);
+      } else if (["ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        move(-1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        slides[0].scrollIntoView({ behavior: "smooth" });
+      } else if (event.key === "End") {
+        event.preventDefault();
+        slides.at(-1).scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  </script>
+</body>
+</html>

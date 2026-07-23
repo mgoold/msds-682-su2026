@@ -483,6 +483,19 @@ const handouts = [
     summary: "Three anonymized examples compare real-time Kafka scoring, batch account risk, and account takeover detection."
   },
   {
+    slug: "lec6-kafka-connect-stream-processing",
+    section: "lec6",
+    category: "Slides",
+    title: "Lecture 6: Kafka Connect and Stream Processing",
+    kind: "html",
+    file: "handouts/lec6-kafka-connect-stream-processing.html",
+    createdAt: "Created at 11:00 PM PDT on July 22, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Choose the right integration boundary, operate a managed connector, and prove bounded processing, commit, resume, and replay."
+  },
+  {
     slug: "demo06",
     section: "lec6",
     category: "Demo",

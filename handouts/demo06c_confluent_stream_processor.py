@@ -12,6 +12,7 @@ from confluent_kafka.admin import AdminClient
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
 from confluent_kafka.serialization import MessageField, SerializationContext
+from pydantic import ValidationError
 
 from confluent_demo_common import (
     ensure_topic,
@@ -45,7 +46,7 @@ class DeliveryTracker:
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
-            self.failed.append("delivery_failed")
+            self.failed.append(str(error))
             return
         self.delivered.append(
             {
@@ -71,7 +72,15 @@ def process_one_message(
     """Process one input and commit only after its output is acknowledged."""
 
     raw = input_deserializer(message.value(), input_context)
-    order = DatagenOrderV1.model_validate(raw)
+    try:
+        order = DatagenOrderV1.model_validate(raw)
+    except ValidationError as exc:
+        coordinate = (
+            f"{message.topic()}:{message.partition()}:{message.offset()}"
+        )
+        raise RuntimeError(
+            f"Input validation failed at source coordinate {coordinate}"
+        ) from exc
     metric = derive_order_metric(
         order,
         source_topic=message.topic(),
@@ -134,6 +143,7 @@ def run_processor(
     partitions: int,
     replication_factor: int,
     report_demo_name: str | None,
+    force_beginning: bool = False,
 ) -> dict[str, Any]:
     """Run one bounded at-least-once processor pass."""
 
@@ -157,6 +167,7 @@ def run_processor(
             create=create_topics,
             partitions=partitions,
             replication_factor=replication_factor,
+            create_option="--create-topics",
         ),
         "output": ensure_topic(
             admin,
@@ -164,6 +175,7 @@ def run_processor(
             create=create_topics,
             partitions=partitions,
             replication_factor=replication_factor,
+            create_option="--create-topics",
         ),
     }
 
@@ -171,6 +183,9 @@ def run_processor(
         **base_kafka_conf,
         "client.id": "msds682-demo06c-consumer",
         "group.id": group_id,
+        # Pin the classic protocol because this bounded teaching callback uses
+        # the full assignment with consumer.assign(). KIP-848 callbacks are
+        # incremental and require incremental_assign().
         "group.protocol": "classic",
         "auto.offset.reset": "earliest",
         "enable.auto.commit": False,
@@ -183,7 +198,7 @@ def run_processor(
 
     consumer = Consumer(consumer_conf)
     producer = Producer(producer_conf)
-    assignment = AssignmentTracker()
+    assignment = AssignmentTracker(force_beginning=force_beginning)
     processed: list[dict[str, Any]] = []
     started = time.monotonic()
 
@@ -249,6 +264,7 @@ def run_processor(
         "demo": report_demo_name or "06C-internal-pass",
         "run_id": run_id,
         "group_id": group_id,
+        "force_beginning": force_beginning,
         "input_topic": input_topic,
         "output_topic": output_topic,
         "topic_status": topic_status,
@@ -310,6 +326,7 @@ def main() -> None:
         partitions=args.partitions,
         replication_factor=args.replication_factor,
         report_demo_name="demo06c",
+        force_beginning=False,
     )
     print(
         f"Processed {report['processed']} input records and committed only "

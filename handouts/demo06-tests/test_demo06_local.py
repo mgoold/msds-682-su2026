@@ -6,9 +6,16 @@ import sys
 from pathlib import Path
 
 import pytest
+from confluent_kafka import OFFSET_BEGINNING
 from confluent_kafka.serialization import MessageField, SerializationContext
 from pydantic import ValidationError
 
+from confluent_demo_common import (
+    TopicSetupError,
+    ensure_topic,
+    safe_kafka_config_report,
+    safe_registry_config_report,
+)
 from demo06_common import (
     AssignmentTracker,
     DatagenOrderV1,
@@ -103,7 +110,57 @@ def test_connector_plan_is_secret_free_and_bounded_for_class() -> None:
     assert plan["tasks_max"] == 1
     assert "api.secret" not in serialized
     assert "password" not in serialized
-    assert "pause or delete" in plan["stop_condition"].lower()
+    assert "pause the connector" in plan["stop_condition"].lower()
+    assert "delete it after the exercise" in plan["stop_condition"].lower()
+    assert "revoke" in plan["stop_condition"].lower()
+
+
+def test_safe_config_reports_never_include_credentials() -> None:
+    kafka_report = safe_kafka_config_report(
+        {
+            "bootstrap.servers": "broker.example:9092",
+            "security.protocol": "SASL_SSL",
+            "sasl.mechanisms": "PLAIN",
+            "sasl.username": "secret-user",
+            "sasl.password": "secret-password",
+        }
+    )
+    registry_report = safe_registry_config_report(
+        {
+            "url": "https://registry.example",
+            "basic.auth.user.info": "secret-key:secret-value",
+        }
+    )
+    serialized = json.dumps(
+        {"kafka": kafka_report, "registry": registry_report}
+    )
+    assert "secret-user" not in serialized
+    assert "secret-password" not in serialized
+    assert "secret-key" not in serialized
+    assert "secret-value" not in serialized
+    assert kafka_report["username_present"] is True
+    assert kafka_report["password_present"] is True
+    assert registry_report["basic_auth_present"] is True
+
+
+def test_missing_topic_error_uses_the_callers_create_option() -> None:
+    class Metadata:
+        topics: dict[str, object] = {}
+
+    class Admin:
+        def list_topics(self, *, timeout: float) -> Metadata:
+            assert timeout == 15
+            return Metadata()
+
+    with pytest.raises(TopicSetupError, match="--create-topics"):
+        ensure_topic(
+            Admin(),
+            topic="missing.topic",
+            create=False,
+            partitions=1,
+            replication_factor=3,
+            create_option="--create-topics",
+        )
 
 
 def test_assignment_poll_preserves_first_data_message() -> None:
@@ -137,6 +194,27 @@ def test_assignment_poll_preserves_first_data_message() -> None:
     consumer.subscribe(["test.input"], on_assign=tracker.on_assign)
     _wait, pending = wait_for_assignment(consumer, tracker, timeout=0.1)
     assert pending == [first_message]
+
+
+def test_assignment_tracker_forces_explicit_beginning_for_replay() -> None:
+    class Partition:
+        topic = "test.input"
+        partition = 0
+        offset = 17
+
+    class Consumer:
+        assigned: list[object] = []
+
+        def assign(self, partitions: list[object]) -> None:
+            self.assigned = partitions
+
+    partition = Partition()
+    consumer = Consumer()
+    tracker = AssignmentTracker(force_beginning=True)
+    tracker.on_assign(consumer, [partition])
+    assert partition.offset == OFFSET_BEGINNING
+    assert consumer.assigned == [partition]
+    assert tracker.assigned[0][0]["offset"] == OFFSET_BEGINNING
 
 
 class FakeMessage:
@@ -239,6 +317,24 @@ def test_output_failure_prevents_input_commit() -> None:
     assert commits == []
 
 
+def test_validation_failure_reports_source_coordinate() -> None:
+    with pytest.raises(
+        RuntimeError,
+        match=r"test\.input:0:4",
+    ):
+        process_one_message(
+            message=FakeMessage(),
+            consumer=object(),
+            producer=object(),
+            input_deserializer=lambda _value, _ctx: {"unexpected": True},
+            output_serializer=lambda _metric, _ctx: b"output",
+            input_context=SerializationContext("test.input", MessageField.VALUE),
+            output_context=SerializationContext("test.output", MessageField.VALUE),
+            output_topic="test.output",
+            delivery_timeout=1.0,
+        )
+
+
 def test_resume_replay_validation_distinguishes_group_behavior() -> None:
     def report(group: str, coordinates: list[str]) -> dict:
         return {
@@ -252,6 +348,21 @@ def test_resume_replay_validation_distinguishes_group_behavior() -> None:
         replay=report("replay", ["input:0:0", "input:0:1"]),
     )
     assert all(result["checks"].values())
+
+
+def test_resume_replay_validation_rejects_reused_replay_progress() -> None:
+    def report(group: str, coordinates: list[str]) -> dict:
+        return {
+            "group_id": group,
+            "records": [{"source_record_id": value} for value in coordinates],
+        }
+
+    with pytest.raises(AssertionError, match="new_group_replayed_first_batch"):
+        validate_resume_replay(
+            first=report("base", ["input:0:0", "input:0:1"]),
+            resume=report("base", ["input:0:2", "input:0:3"]),
+            replay=report("replay", ["input:0:2", "input:0:3"]),
+        )
 
 
 def test_handout_has_current_api_and_no_legacy_migration_notes() -> None:

@@ -122,7 +122,7 @@ Then open Confluent Cloud:
 4. Let Confluent Cloud manage or create the connector credentials.
 5. Wait until the connector and its task report `RUNNING`.
 6. Confirm at least 8 records in the input topic.
-7. **Pause or delete the connector before continuing.**
+7. **Pause the connector before continuing.** Delete it after the exercise.
 
 The advanced configuration should look like this. No API key or secret is
 visible in the screenshot:
@@ -165,6 +165,11 @@ python demo06_seed_source.py \
 The fallback writes finite deterministic values with the managed Datagen
 `ORDERS` value schema. Its report identifies itself as a Python fallback. It
 does not claim that Kafka Connect ran.
+
+The two source modes share the value contract, but not necessarily the raw key
+encoding. The managed connector encodes its configured `orderid` key; the
+fallback uses readable UTF-8 decimal bytes. Do not mix both source modes in one
+exercise or infer the value schema from key length.
 
 Use a fresh Demo 06 topic. Do not first register a different schema under the
 same `<topic>-value` subject and then point Datagen at that topic. Do not weaken
@@ -243,10 +248,15 @@ This makes replayed output identity observable to downstream systems.
 > stable output key supports deduplication, but it does not by itself create a
 > universal exactly-once guarantee.
 
+This classroom baseline deliberately flushes each derived record before
+committing its input offset so the acknowledgement boundary is visible.
+Production processors normally batch acknowledgements or use transactions
+instead of paying for one blocking flush per record.
+
 The validated live run produced and acknowledged four derived records before
 performing four synchronous consumer offset commits:
 
-![Demo 06C actual Confluent Cloud processing result](assets/demo06/demo06c-actual-result.jpg)
+![Demo 06C verified result summary](assets/demo06/demo06c-actual-result.jpg)
 
 ## 9. Demo 06D: same-group resume and new-group replay
 
@@ -264,19 +274,28 @@ The script runs three processor passes:
 |---|---|---|
 | First | New base group | First three records |
 | Resume | Same base group | Next three records |
-| Replay | New replay group | First three records again |
+| Replay | Distinct replay group with forced beginning | First three records again |
 
 The script fails unless:
 
 - first and resume source coordinates are disjoint;
 - replay coordinates equal the first-pass coordinates;
 - first and resume use the same group;
-- replay uses a distinct group.
+- replay uses a distinct group; and
+- replay overrides every assigned partition to `OFFSET_BEGINNING`.
+
+`auto.offset.reset=earliest` is only a fallback when a group has no committed
+position. It is not a reset command. Demo 06D forces the replay position in
+`on_assign`, so reusing the replay group cannot silently turn replay into
+resume.
 
 Replay intentionally republishes derived events. The report makes those stable
 duplicate keys visible.
 
-![Demo 06D same-group resume and new-group replay result](assets/demo06/demo06d-resume-replay.jpg)
+The following card summarizes a shorter two-record validation run. The command
+above remains the three-record classroom default.
+
+![Demo 06D verified resume and forced-replay summary](assets/demo06/demo06d-resume-replay.jpg)
 
 ## 10. Responsibility map
 
@@ -306,11 +325,11 @@ duplicate keys visible.
 
 After the exercise:
 
-1. pause or delete the Datagen connector;
+1. delete the Datagen connector;
 2. inspect both Demo 06 topics and Schema Registry subjects;
 3. download only secret-free reports if needed;
 4. delete the classroom cluster when you no longer need it; and
-5. revoke unused API keys.
+5. revoke an API key created only for this demo when it is no longer needed.
 
 The connector must not remain running after class.
 
@@ -318,7 +337,7 @@ The connector must not remain running after class.
 
 - [ ] I can explain Connect vs Kafka vs processor.
 - [ ] The connector used `ORDERS`, `AVRO`, one task, and a slow bounded classroom rate.
-- [ ] I paused or deleted the connector after enough records arrived.
+- [ ] I paused the connector after enough records arrived and deleted it after the exercise.
 - [ ] 06B consumed and validated exactly three records.
 - [ ] 06C acknowledged each output before committing its input.
 - [ ] 06D proved same-group resume and new-group replay.

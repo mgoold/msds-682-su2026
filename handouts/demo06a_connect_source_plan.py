@@ -51,6 +51,7 @@ def main() -> None:
                 create=True,
                 partitions=args.partitions,
                 replication_factor=args.replication_factor,
+                create_option="--create-topics",
             ),
             "output": ensure_topic(
                 admin,
@@ -58,6 +59,7 @@ def main() -> None:
                 create=True,
                 partitions=args.partitions,
                 replication_factor=args.replication_factor,
+                create_option="--create-topics",
             ),
         }
         connection = {
@@ -89,7 +91,8 @@ def main() -> None:
     print(f"Demo 06A plan written to {path}")
     print(f"Input topic: {input_topic}")
     print("Cloud Console: Connectors -> Add connector -> Datagen Source")
-    print("Pause or delete the connector after at least 8 records are visible.")
+    print("Pause the connector after at least 8 records are visible.")
+    print("Delete it after the exercise; revoke a demo-only key if unused.")
 
 
 if __name__ == "__main__":

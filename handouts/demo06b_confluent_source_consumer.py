@@ -47,6 +47,8 @@ def main() -> None:
     kafka_conf: dict[str, Any] = {
         **kafka_config(client_id="msds682-demo06b-source-consumer"),
         "group.id": group_id,
+        # Pin the classic protocol because AssignmentTracker accepts the full
+        # assignment with consumer.assign(). KIP-848 callbacks are incremental.
         "group.protocol": "classic",
         "auto.offset.reset": "earliest",
         "enable.auto.commit": False,

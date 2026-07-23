@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from confluent_kafka import KafkaError
+from confluent_kafka import KafkaError, OFFSET_BEGINNING
 from confluent_kafka.schema_registry import topic_subject_name_strategy
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -232,15 +232,18 @@ def connector_console_plan(
             "never paste secrets into source code or evidence."
         ),
         "stop_condition": (
-            "After at least 8 records are visible, pause or delete the connector."
+            "After at least 8 records are visible, pause the connector while "
+            "finishing the exercise. Delete it after the exercise, and revoke "
+            "a demo-only API key when it is no longer needed."
         ),
     }
 
 
 @dataclass
 class AssignmentTracker:
-    """Record real Kafka assignment callbacks for bounded demos."""
+    """Record assignments and optionally force an explicit replay."""
 
+    force_beginning: bool = False
     assigned: list[list[dict[str, int | str]]] = field(default_factory=list)
     revoked: list[list[dict[str, int | str]]] = field(default_factory=list)
 
@@ -256,8 +259,11 @@ class AssignmentTracker:
         ]
 
     def on_assign(self, consumer: Any, partitions: Any) -> None:
-        """Record assignment and explicitly accept the assigned partitions."""
+        """Accept assigned partitions, optionally overriding them to beginning."""
 
+        if self.force_beginning:
+            for partition in partitions:
+                partition.offset = OFFSET_BEGINNING
         self.assigned.append(self.rows(partitions))
         consumer.assign(partitions)
 
