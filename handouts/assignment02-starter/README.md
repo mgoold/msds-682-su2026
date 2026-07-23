@@ -22,9 +22,9 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 ```
 
-Before implementation, contract-only tests may pass while tests that exercise
-marked code blocks fail. All tests must pass after implementation. Tests do not
-replace the required real Confluent runs.
+Before implementation, the published starter currently yields 9 expected
+failures and 1 passing contract-only test. After implementation, all 10 tests
+must pass. Tests do not replace the required real Confluent runs.
 
 ## 3. Configure your independent Confluent environment
 

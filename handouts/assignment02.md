@@ -317,20 +317,20 @@ deliverables.
 
 ## Grading rubric: 20 base points
 
-The rubric has 12 focused decisions. Essential P0 outcomes are worth 2 points;
-supporting P1 outcomes are worth 1 point.
+The rubric has 12 focused decisions. Four core P0 outcomes are worth 3 points
+each; eight supporting P1 outcomes are worth 1 point each.
 
 | # | Priority | Grading criterion | Points | Pass condition |
 |---:|---|---|---:|---|
-| 1 | P0 | Real Confluent run and credential safety | 2 | Uses an independent real Confluent topic and Schema Registry with externalized configuration and no submitted secrets. |
-| 2 | P0 | FastAPI request and event boundary | 2 | Validates the HTTP request, maps it to `TripEventV1`, uses one lifespan publisher, and returns 202 only after acknowledgement. |
-| 3 | P0 | Avro and Pydantic consumer validation | 2 | Deserializes with Schema Registry, strictly validates `TripEventV1`, and verifies the stable UTF-8 key. |
-| 4 | P0 | Bounded consumer lifecycle | 2 | Uses subscribe/poll/error handling/time limits/finally-close and never relies on an infinite loop. |
-| 5 | P0 | Process-before-commit | 2 | Writes each accepted result before a successful synchronous message commit with auto commit/store disabled. |
-| 6 | P0 | Same-group resume | 2 | First run processes 8; the same group resumes and processes the remaining nonoverlapping 4. |
-| 7 | P0 | Explicit replay | 2 | A separate group forces assigned partitions to beginning and reprocesses all 12 without altering the base group. |
-| 8 | P0 | Complete secret-free evidence | 2 | Four reports and two JSONL files agree on topic, run ID, counts, sequence coverage, groups, and completion. |
-| 9 | P1 | Consumer reasoning | 1 | Correctly explains poll loop, commit, failure boundaries, offset fallback, resume, and replay. |
+| 1 | P0 | Real Confluent execution and credential safety | 3 | Uses an independent real Confluent topic and Schema Registry with externalized configuration and no submitted secrets. |
+| 2 | P1 | FastAPI request and event boundary | 1 | Validates the HTTP request, maps it to `TripEventV1`, uses one lifespan publisher, and returns 202 only after acknowledgement. |
+| 3 | P0 | Schema-aware consumer validation | 3 | Deserializes Avro with Schema Registry, strictly validates `TripEventV1`, and verifies the stable UTF-8 key before processing. |
+| 4 | P1 | Bounded consumer lifecycle | 1 | Uses subscribe/poll/error handling/visible stop conditions/finally-close and does not leave an assignment run waiting indefinitely. |
+| 5 | P0 | Process-before-commit | 3 | Writes each accepted result before a successful synchronous consumer offset commit with auto commit/store disabled. |
+| 6 | P0 | Consumer progress and recovery | 3 | The same group resumes for the remaining 4 records; a separate group explicitly replays all 12 without altering the base group. |
+| 7 | P1 | Required run outcomes | 1 | Seed, first, resume, and replay phases show 12 acknowledged, 8 processed, 4 nonoverlapping resumed, and 12 replayed records with correct identity coverage. |
+| 8 | P1 | Complete secret-free evidence | 1 | Four reports and two JSONL files agree on topic, run ID, counts, sequence coverage, groups, and completion. |
+| 9 | P1 | Consumer reasoning | 1 | Correctly explains poll loop, consumer offset commit, failure boundaries, offset fallback, resume, and replay. |
 | 10 | P1 | Completed and tested starter | 1 | Credential-free tests pass and no required marked block remains unimplemented. |
 | 11 | P1 | AI-use disclosure | 1 | `report.md` declares Yes/No and, when Yes, `AI_USAGE.md` identifies every tool/model, purpose, judgment, changes, and verification. |
 | 12 | P1 | Submission package quality | 1 | Required tree and runnable README are complete; credentials, environments, caches, and unrelated files are excluded. |
