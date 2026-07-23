@@ -2,7 +2,7 @@
 
 **Released:** Thursday, July 23, 2026
 
-**Due:** Friday, July 24, 2026 at 11:59 PM PDT
+**Due:** Friday, July 31, 2026 at 11:59 PM PDT
 
 **Submission:** Upload one ZIP file to [Canvas](https://usfca.instructure.com/courses/1633704).
 

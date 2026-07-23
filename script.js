@@ -81,20 +81,20 @@ const pages = {
               <td><strong>Thu · Jul 23</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
               <td>Kafka Connect and stream processing</td>
-              <td>Connectors and demo; Assignment 2 released Jul 23 and due Jul 24, 11:59pm PDT</td>
+              <td>Connectors and demo; Assignment 2 released Jul 23 and due Jul 31, 11:59pm PDT</td>
             </tr>
             <tr>
               <td>7</td>
               <td><strong>Mon · Jul 27</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
               <td>Stream processing and final project requirements</td>
-              <td>Demo, ksqlDB Pt. 1, joins, tables, streams</td>
+              <td>Demo, joins, streams, tables, and stateful processing</td>
             </tr>
             <tr>
               <td>8</td>
               <td><strong>Thu · Jul 30</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
-              <td>ksqlDB Pt. 2</td>
+              <td>Stateful stream processing</td>
               <td>Windowing, aggregation, querying basics; project proposal due Aug 01, 11:59pm PDT</td>
             </tr>
             <tr>
@@ -144,7 +144,7 @@ const pages = {
         <article class="assignment-card">
           <h3>Assignment 2</h3>
           <p>Use an independent real Confluent topic to connect a FastAPI input boundary to Avro and Schema Registry, then implement a bounded consumer with strict validation, process-before-commit, same-group resume, and explicit replay. The assignment is graded out of 20 base points, with up to 3 extra-credit points.</p>
-          <p><span class="tag">Released Thu Jul 23 · Due Fri Jul 24, 2026 · 11:59pm PDT · 20 points + up to 3 extra credit · 20% course weight</span></p>
+          <p><span class="tag">Released Thu Jul 23 · Due Fri Jul 31, 2026 · 11:59pm PDT · 20 points + up to 3 extra credit · 20% course weight</span></p>
           <p><a class="download-link" href="#/handouts/assignment02">Open Assignment 2</a> · <a href="handouts/assignment02-starter.zip">Download student starter</a></p>
         </article>
         <article class="assignment-card">
@@ -302,7 +302,7 @@ const handouts = [
     kind: "pdf",
     file: "assets/msds-682-syllabus.pdf",
     createdAt: "Created at 4:36 PM PDT on July 3, 2026",
-    lastUpdatedAt: "Last updated at 4:36 PM PDT on July 3, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
     summary: "Official syllabus covering course outcomes, grading, policies, and schedule."
   },
   {
@@ -370,7 +370,7 @@ const handouts = [
     kind: "html",
     file: "handouts/lec3-consumers.html",
     createdAt: "Created at 4:09 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 4:36 PM PDT on July 16, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
     wide: true,
     standalone: true,
     summary: "Consumers, offsets, commits, groups, replay, batching, and native asyncio."
@@ -466,7 +466,7 @@ const handouts = [
     kind: "md",
     file: "handouts/assignment02.md",
     createdAt: "Created at 11:01 PM PDT on July 22, 2026",
-    lastUpdatedAt: "Last updated at 11:48 PM PDT on July 22, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
     summary: "Independent real-Confluent FastAPI-to-Avro input plus bounded validation, commit, resume, and replay."
   },
   {
