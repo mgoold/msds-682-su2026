@@ -284,6 +284,12 @@ const handoutSections = [
     label: "Lecture 5",
     title: "Streaming APIs with FastAPI and Kafka",
     summary: "Review FastAPI, then connect a validated HTTP request to an independent schema-aware Kafka round trip."
+  },
+  {
+    id: "lec6",
+    label: "Lecture 6",
+    title: "Kafka Connect and Stream Processing",
+    summary: "Move data into Kafka with Connect, then validate, derive, acknowledge, commit, resume, and replay."
   }
 ];
 
@@ -475,6 +481,18 @@ const handouts = [
     wide: true,
     standalone: true,
     summary: "Three anonymized examples compare real-time Kafka scoring, batch account risk, and account takeover detection."
+  },
+  {
+    slug: "demo06",
+    section: "lec6",
+    category: "Demo",
+    title: "Demo 06: Kafka Connect and Bounded Stream Processing",
+    kind: "md",
+    file: "handouts/demo06.md",
+    createdAt: "Created at 11:00 PM PDT on July 22, 2026",
+    lastUpdatedAt: "Last updated at 11:32 PM PDT on July 22, 2026",
+    wide: true,
+    summary: "Managed source integration, schema-aware inspection, output-before-commit processing, resume, and replay."
   }
   // PDF example (uncomment and add the file to publish):
   // {
