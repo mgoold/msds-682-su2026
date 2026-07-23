@@ -464,9 +464,21 @@ tbody tr:hover {
   padding: 2px 0 24px;
 }
 
+.handout-section-latest {
+  padding: 18px;
+  border: 1px solid #bad3c8;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f3f8f5 0%, #ffffff 72%);
+  box-shadow: 0 6px 18px rgba(0, 84, 60, 0.07);
+}
+
 .handout-section + .handout-section {
   padding-top: 24px;
   border-top: 1px solid var(--line);
+}
+
+.handout-section-latest + .handout-section {
+  margin-top: 24px;
 }
 
 .handout-section-head {
@@ -474,6 +486,24 @@ tbody tr:hover {
   grid-template-columns: 104px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+.handout-section-badges {
+  display: grid;
+  gap: 7px;
+  justify-items: stretch;
+}
+
+.handout-section-latest .handout-section-head {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.handout-section-latest .handout-section-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;
 }
 
 .handout-section-label {
@@ -489,6 +519,24 @@ tbody tr:hover {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.handout-latest-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 1px solid #e6b64c;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: #66480b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .handout-section-head h3 {
@@ -510,13 +558,25 @@ tbody tr:hover {
   list-style: none;
 }
 
+.handout-section:not(.handout-section-latest) .handout-list {
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+
 .handout-card {
   min-width: 0;
   overflow: hidden;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.handout-section-latest .handout-card {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #ffffff;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
 .handout-card-link {
@@ -528,6 +588,11 @@ tbody tr:hover {
   padding: 13px 16px;
   color: inherit;
   text-decoration: none;
+}
+
+.handout-section:not(.handout-section-latest) .handout-card-link {
+  min-height: 72px;
+  padding: 12px 8px;
 }
 
 .handout-card-link:hover {
@@ -605,6 +670,11 @@ tbody tr:hover {
 }
 
 .handout-card:focus-within {
+  background: #f7faf8;
+  box-shadow: inset 3px 0 0 var(--usf-green);
+}
+
+.handout-section-latest .handout-card:focus-within {
   border-color: var(--usf-green);
   box-shadow: 0 0 0 3px rgba(0, 84, 60, 0.14);
 }
@@ -627,8 +697,11 @@ tbody tr:hover {
   }
 
   .handout-card:hover {
-    border-color: #8db9a6;
     background: #fbfdfc;
+  }
+
+  .handout-section-latest .handout-card:hover {
+    border-color: #8db9a6;
     box-shadow: 0 8px 22px rgba(22, 24, 29, 0.08);
     transform: translateY(-1px);
   }
@@ -1088,6 +1161,16 @@ tbody tr:hover {
 
   .handout-section-label {
     justify-self: start;
+  }
+
+  .handout-section-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-items: initial;
+  }
+
+  .handout-section-latest {
+    padding: 15px;
   }
 
   .standalone-handout-bar {

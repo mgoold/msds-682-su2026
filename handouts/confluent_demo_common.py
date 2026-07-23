@@ -127,6 +127,7 @@ def ensure_topic(
     create: bool,
     partitions: int,
     replication_factor: int,
+    create_option: str = "--create-topic",
 ) -> str:
     """Confirm a demo topic exists, optionally creating it once."""
 
@@ -136,7 +137,7 @@ def ensure_topic(
             return "already_exists"
         if not create:
             raise TopicSetupError(
-                f"Topic {topic!r} does not exist. Re-run with --create-topic or "
+                f"Topic {topic!r} does not exist. Re-run with {create_option} or "
                 "create it in Confluent Cloud first."
             )
         future = admin.create_topics(

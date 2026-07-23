@@ -1,0 +1,32 @@
+{
+  "type": "record",
+  "name": "TripEventV1",
+  "namespace": "edu.usf.msds682.assignment02",
+  "doc": "Independent Assignment 2 input event contract.",
+  "fields": [
+    {"name": "run_id", "type": "string"},
+    {"name": "sequence_number", "type": "int"},
+    {"name": "trip_id", "type": "string"},
+    {
+      "name": "event_type",
+      "type": {
+        "type": "enum",
+        "name": "TripEventType",
+        "symbols": ["trip_requested"]
+      }
+    },
+    {"name": "rider_id", "type": "string"},
+    {
+      "name": "event_time",
+      "type": {"type": "long", "logicalType": "timestamp-millis"}
+    },
+    {
+      "name": "zone",
+      "type": {
+        "type": "enum",
+        "name": "ServiceZone",
+        "symbols": ["north", "south", "west"]
+      }
+    }
+  ]
+}

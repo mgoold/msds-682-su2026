@@ -25,8 +25,10 @@ handouts/    .md, .html, and .pdf handouts
 
 1. Drop a file in `handouts/` — a Markdown file (`.md`), HTML file (`.html`), or PDF.
 2. Add one row to the `handouts` array in `script.js` and assign its existing
-   course-order section. The `handoutSections` registry is the single owner of
-   section order and labels; add to it only when introducing a new lecture.
+   lecture section. The `handoutSections` registry is the single owner of
+   section labels; add to it only when introducing a new lecture. Lecture
+   sections are derived from IDs such as `lec6`, displayed newest first, and
+   the highest lecture number is highlighted automatically.
 
    ```js
    {
@@ -45,7 +47,9 @@ handouts/    .md, .html, and .pdf handouts
 Markdown handouts render in the page with syntax-highlighted code blocks
 (via marked + highlight.js, loaded from CDN). Standalone HTML handouts can be
 embedded with `standalone: true`. PDF handouts open directly. Within each
-section, cards follow their order in the `handouts` array.
+section, materials follow their order in the `handouts` array. The newest
+lecture is the only featured panel; earlier lectures use compact list rows so
+the index retains a clear visual hierarchy as the course grows.
 
 The Handouts list derives its compact `Updated …` label from the full
 `lastUpdatedAt` value; do not maintain a second short-date field. Because the

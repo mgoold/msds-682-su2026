@@ -81,20 +81,20 @@ const pages = {
               <td><strong>Thu · Jul 23</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
               <td>Kafka Connect and stream processing</td>
-              <td>Connectors and demo; Assignment 2 due Jul 25, 11:59pm PDT</td>
+              <td>Connectors and demo; Assignment 2 released Jul 23 and due Jul 31, 11:59pm PDT</td>
             </tr>
             <tr>
               <td>7</td>
               <td><strong>Mon · Jul 27</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
               <td>Stream processing and final project requirements</td>
-              <td>Demo, ksqlDB Pt. 1, joins, tables, streams</td>
+              <td>Demo, joins, streams, tables, and stateful processing</td>
             </tr>
             <tr>
               <td>8</td>
               <td><strong>Thu · Jul 30</strong><span class="table-secondary">5:30–7:20pm PDT</span></td>
               <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
-              <td>ksqlDB Pt. 2</td>
+              <td>Stateful stream processing</td>
               <td>Windowing, aggregation, querying basics; project proposal due Aug 01, 11:59pm PDT</td>
             </tr>
             <tr>
@@ -143,8 +143,9 @@ const pages = {
         </article>
         <article class="assignment-card">
           <h3>Assignment 2</h3>
-          <p>Individual assignment graded out of 20 points and worth 20% of the course grade. Focus: FastAPI routes, Pydantic models, multiple logical streams, a replay or scheduler entrypoint, and a local processor output.</p>
-          <p><span class="tag">Due Jul 25, 2026 · 11:59pm PDT · 20 points · 20% course weight</span></p>
+          <p>Use an independent real Confluent topic to connect a FastAPI input boundary to Avro and Schema Registry, then implement a bounded consumer with strict validation, process-before-commit, same-group resume, and explicit replay. The assignment is graded out of 20 base points, with up to 3 extra-credit points.</p>
+          <p><span class="tag">Released Thu Jul 23 · Due Fri Jul 31, 2026 · 11:59pm PDT · 20 points + up to 3 extra credit · 20% course weight</span></p>
+          <p><a class="download-link" href="#/handouts/assignment02">Open Assignment 2</a> · <a href="handouts/assignment02-starter.zip">Download student starter</a></p>
         </article>
         <article class="assignment-card">
           <h3>Final Project</h3>
@@ -283,7 +284,29 @@ const handoutSections = [
     label: "Lecture 5",
     title: "Streaming APIs with FastAPI and Kafka",
     summary: "Review FastAPI, then connect a validated HTTP request to an independent schema-aware Kafka round trip."
+  },
+  {
+    id: "lec6",
+    label: "Lecture 6",
+    title: "Kafka Connect and Stream Processing",
+    summary: "Move data into Kafka with Connect, then validate, derive, acknowledge, commit, resume, and replay."
   }
+];
+
+function lectureNumber(section) {
+  const match = /^lec(\d+)$/.exec(section.id);
+  return match ? Number(match[1]) : null;
+}
+
+const lectureSectionsNewestFirst = handoutSections
+  .filter((section) => lectureNumber(section) !== null)
+  .sort((a, b) => lectureNumber(b) - lectureNumber(a));
+
+const latestLectureSectionId = lectureSectionsNewestFirst[0]?.id || "";
+
+const handoutSectionsForDisplay = [
+  ...lectureSectionsNewestFirst,
+  ...handoutSections.filter((section) => lectureNumber(section) === null)
 ];
 
 const handouts = [
@@ -295,7 +318,7 @@ const handouts = [
     kind: "pdf",
     file: "assets/msds-682-syllabus.pdf",
     createdAt: "Created at 4:36 PM PDT on July 3, 2026",
-    lastUpdatedAt: "Last updated at 4:36 PM PDT on July 3, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
     summary: "Official syllabus covering course outcomes, grading, policies, and schedule."
   },
   {
@@ -363,7 +386,7 @@ const handouts = [
     kind: "html",
     file: "handouts/lec3-consumers.html",
     createdAt: "Created at 4:09 PM PDT on July 13, 2026",
-    lastUpdatedAt: "Last updated at 4:36 PM PDT on July 16, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
     wide: true,
     standalone: true,
     summary: "Consumers, offsets, commits, groups, replay, batching, and native asyncio."
@@ -452,6 +475,17 @@ const handouts = [
     summary: "Local FastAPI contracts plus a bounded, independent Confluent Cloud Avro round trip with expected-result screenshots."
   },
   {
+    slug: "assignment02",
+    section: "lec5",
+    category: "Assignment",
+    title: "Assignment 2: Schema-Aware Kafka Consumer Application",
+    kind: "md",
+    file: "handouts/assignment02.md",
+    createdAt: "Created at 11:01 PM PDT on July 22, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
+    summary: "Independent real-Confluent FastAPI-to-Avro input plus bounded validation, commit, resume, and replay."
+  },
+  {
     slug: "lec5-realtime-ml-examples",
     section: "lec5",
     category: "Supplement",
@@ -463,6 +497,31 @@ const handouts = [
     wide: true,
     standalone: true,
     summary: "Three anonymized examples compare real-time Kafka scoring, batch account risk, and account takeover detection."
+  },
+  {
+    slug: "lec6-kafka-connect-stream-processing",
+    section: "lec6",
+    category: "Slides",
+    title: "Lecture 6: Kafka Connect and Stream Processing",
+    kind: "html",
+    file: "handouts/lec6-kafka-connect-stream-processing.html",
+    createdAt: "Created at 11:00 PM PDT on July 22, 2026",
+    lastUpdatedAt: "Last updated at 12:03 AM PDT on July 23, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Choose the right integration boundary, operate a managed connector, and prove bounded processing, commit, resume, and replay."
+  },
+  {
+    slug: "demo06",
+    section: "lec6",
+    category: "Demo",
+    title: "Demo 06: Kafka Connect and Bounded Stream Processing",
+    kind: "md",
+    file: "handouts/demo06.md",
+    createdAt: "Created at 11:00 PM PDT on July 22, 2026",
+    lastUpdatedAt: "Last updated at 11:32 PM PDT on July 22, 2026",
+    wide: true,
+    summary: "Managed source integration, schema-aware inspection, output-before-commit processing, resume, and replay."
   }
   // PDF example (uncomment and add the file to publish):
   // {
@@ -533,13 +592,17 @@ function handoutCardHtml(h) {
 function handoutSectionHtml(section) {
   const sectionHandouts = handouts.filter((h) => h.section === section.id);
   if (!sectionHandouts.length) return "";
+  const isLatestLecture = section.id === latestLectureSectionId;
   const cards = sectionHandouts
     .map(handoutCardHtml)
     .join("");
   return `
-    <section class="handout-section" aria-labelledby="handout-section-${escapeHtml(section.id)}">
+    <section class="handout-section${isLatestLecture ? " handout-section-latest" : ""}" aria-labelledby="handout-section-${escapeHtml(section.id)}">
       <header class="handout-section-head">
-        <span class="handout-section-label">${escapeHtml(section.label)}</span>
+        <div class="handout-section-badges">
+          <span class="handout-section-label">${escapeHtml(section.label)}</span>
+          ${isLatestLecture ? '<span class="handout-latest-badge" aria-label="Latest lecture">Latest</span>' : ""}
+        </div>
         <div>
           <h3 id="handout-section-${escapeHtml(section.id)}">${escapeHtml(section.title)}</h3>
           <p>${escapeHtml(section.summary)}</p>
@@ -550,10 +613,10 @@ function handoutSectionHtml(section) {
 }
 
 function handoutsListBody() {
-  const sections = handoutSections.map(handoutSectionHtml).join("");
+  const sections = handoutSectionsForDisplay.map(handoutSectionHtml).join("");
 
   return `
-    <p class="lede">Materials are grouped in course order. Start with the final syllabus, then follow each lecture section from top to bottom.</p>
+    <p class="lede">Newest lecture first. Open the slides, then follow the remaining materials in order.</p>
     <div class="handout-sections">${sections || '<p>Handouts will be posted as the course progresses.</p>'}</div>
   `;
 }
