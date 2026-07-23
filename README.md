@@ -47,7 +47,9 @@ handouts/    .md, .html, and .pdf handouts
 Markdown handouts render in the page with syntax-highlighted code blocks
 (via marked + highlight.js, loaded from CDN). Standalone HTML handouts can be
 embedded with `standalone: true`. PDF handouts open directly. Within each
-section, cards follow their order in the `handouts` array.
+section, materials follow their order in the `handouts` array. The newest
+lecture is the only featured panel; earlier lectures use compact list rows so
+the index retains a clear visual hierarchy as the course grows.
 
 The Handouts list derives its compact `Updated …` label from the full
 `lastUpdatedAt` value; do not maintain a second short-date field. Because the
