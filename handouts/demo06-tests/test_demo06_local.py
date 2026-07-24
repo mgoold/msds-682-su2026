@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from confluent_kafka import OFFSET_BEGINNING
+from confluent_kafka import KafkaError, KafkaException, OFFSET_BEGINNING
 from confluent_kafka.serialization import MessageField, SerializationContext
 from pydantic import ValidationError
 
@@ -263,10 +263,22 @@ def test_process_one_message_acknowledges_output_before_input_commit() -> None:
             return 0
 
     class Consumer:
-        def commit(self, *, message: object, asynchronous: bool) -> None:
+        def commit(self, *, message: object, asynchronous: bool) -> list[object]:
             assert isinstance(message, FakeMessage)
             assert asynchronous is False
             events.append("commit")
+            return [
+                type(
+                    "CommitResult",
+                    (),
+                    {
+                        "topic": message.topic(),
+                        "partition": message.partition(),
+                        "offset": message.offset() + 1,
+                        "error": None,
+                    },
+                )()
+            ]
 
     result = process_one_message(
         message=FakeMessage(),
@@ -282,6 +294,53 @@ def test_process_one_message_acknowledges_output_before_input_commit() -> None:
     assert events == ["produce", "ack", "flush", "commit"]
     assert result["source_record_id"] == "test.input:0:4"
     assert result["input_commit"] == "sync_after_output_ack"
+    assert result["input_commit_result"] == [
+        {"topic": "test.input", "partition": 0, "offset": 5}
+    ]
+
+
+def test_partition_level_commit_failure_is_not_reported_as_success() -> None:
+    order = deterministic_orders(1, seed_offset=4)[0]
+
+    class Producer:
+        def produce(self, _topic: str, **kwargs) -> None:
+            kwargs["on_delivery"](None, FakeOutputMessage())
+
+        def poll(self, _timeout: float) -> None:
+            return None
+
+        def flush(self, _timeout: float) -> int:
+            return 0
+
+    class Consumer:
+        def commit(self, *, message: object, asynchronous: bool) -> list[object]:
+            assert isinstance(message, FakeMessage)
+            assert asynchronous is False
+            return [
+                type(
+                    "CommitResult",
+                    (),
+                    {
+                        "topic": message.topic(),
+                        "partition": message.partition(),
+                        "offset": message.offset() + 1,
+                        "error": KafkaError(KafkaError._TIMED_OUT),
+                    },
+                )()
+            ]
+
+    with pytest.raises(KafkaException):
+        process_one_message(
+            message=FakeMessage(),
+            consumer=Consumer(),
+            producer=Producer(),
+            input_deserializer=lambda _value, _ctx: order.model_dump(),
+            output_serializer=lambda _metric, _ctx: b"output",
+            input_context=SerializationContext("test.input", MessageField.VALUE),
+            output_context=SerializationContext("test.output", MessageField.VALUE),
+            output_topic="test.output",
+            delivery_timeout=1.0,
+        )
 
 
 def test_output_failure_prevents_input_commit() -> None:
@@ -345,7 +404,9 @@ def test_resume_replay_validation_distinguishes_group_behavior() -> None:
     result = validate_resume_replay(
         first=report("base", ["input:0:0", "input:0:1"]),
         resume=report("base", ["input:0:2", "input:0:3"]),
-        replay=report("replay", ["input:0:0", "input:0:1"]),
+        # Kafka has no global ordering guarantee across partitions. Replay
+        # proves identity coverage even if those identities arrive reordered.
+        replay=report("replay", ["input:0:1", "input:0:0"]),
     )
     assert all(result["checks"].values())
 
@@ -385,6 +446,7 @@ def test_handout_screenshots_exist_and_are_referenced() -> None:
         handout = package_root / "README.md"
     text = handout.read_text(encoding="utf-8")
     expected = {
+        "assets/demo06/demo06a-topic-selection.jpg",
         "assets/demo06/demo06a-connector-configuration.jpg",
         "assets/demo06/demo06a-connector-running.jpg",
         "assets/demo06/demo06b-topic-messages.jpg",

@@ -27,6 +27,11 @@ from config import (
 from consumer_runtime import AssignmentTracker, JsonlWriter, consume_bounded
 
 Phase = Literal["first", "resume", "replay"]
+PHASE_MESSAGE_COUNTS: dict[Phase, int] = {
+    "first": 8,
+    "resume": 4,
+    "replay": 12,
+}
 
 
 @dataclass(frozen=True)
@@ -72,8 +77,12 @@ def main() -> dict[str, Any]:
     args = parser.parse_args()
     try:
         run_id = validate_run_id(args.run_id)
-        if args.max_messages < 1:
-            raise ValueError("max-messages must be positive")
+        expected_messages = PHASE_MESSAGE_COUNTS[args.phase]
+        if args.max_messages != expected_messages:
+            raise ValueError(
+                f"{args.phase} requires --max-messages {expected_messages} "
+                "for the published evidence contract"
+            )
         if min(args.poll_timeout, args.idle_timeout, args.run_timeout) <= 0:
             raise ValueError("all timeout values must be positive")
         selected = settings_for_phase(
@@ -92,6 +101,9 @@ def main() -> dict[str, Any]:
     consumer_config = {
         **base_config,
         "group.id": selected.group_id,
+        # Replay uses the classic full-assignment callback contract. Pin it
+        # explicitly so a future client default cannot change that behavior.
+        "group.protocol": "classic",
         "auto.offset.reset": "earliest",
         "enable.auto.commit": False,
         "enable.auto.offset.store": False,
@@ -125,6 +137,7 @@ def main() -> dict[str, Any]:
         "run_id": run_id,
         "topic": topic,
         "group_id": selected.group_id,
+        "group_protocol": consumer_config["group.protocol"],
         "force_beginning": selected.force_beginning,
         "auto_offset_reset": consumer_config["auto.offset.reset"],
         "enable_auto_commit": consumer_config["enable.auto.commit"],
@@ -161,7 +174,9 @@ def main() -> dict[str, Any]:
             f"{args.max_messages} required records"
         )
     if report["commit_requests"] != report["processed"]:
-        raise SystemExit("Every processed record must have one commit request")
+        raise SystemExit(
+            "Every processed record must have one broker-confirmed commit"
+        )
     return report
 
 

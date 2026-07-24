@@ -29,7 +29,10 @@ def validate_resume_replay(
         "same_group_resumed_without_reprocessing_first_batch": (
             set(first_coordinates).isdisjoint(resume_coordinates)
         ),
-        "new_group_replayed_first_batch": replay_coordinates == first_coordinates,
+        "new_group_replayed_first_batch": (
+            len(replay_coordinates) == len(first_coordinates)
+            and set(replay_coordinates) == set(first_coordinates)
+        ),
         "base_group_reused": first["group_id"] == resume["group_id"],
         "replay_group_is_distinct": replay["group_id"] != first["group_id"],
     }

@@ -22,8 +22,8 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 ```
 
-Before implementation, the published starter currently yields 9 expected
-failures and 1 passing contract-only test. After implementation, all 10 tests
+Before implementation, the published starter currently yields 10 expected
+failures and 1 passing contract-only test. After implementation, all 11 tests
 must pass. Tests do not replace the required real Confluent runs.
 
 ## 3. Configure your independent Confluent environment
@@ -89,8 +89,21 @@ results/replayed_events.jsonl
 `first` and `resume` share one base consumer group. `replay` uses another group
 and explicitly starts assigned partitions at the beginning.
 
-If a phase fails, read its error before rerunning. Do not change group IDs or
-delete evidence merely to hide an incomplete run.
+### Failure recovery
+
+Read the error before taking another action.
+
+- If a command fails before any event is acknowledged, processed, or committed,
+  correct the cause and retry the same command.
+- If the seeder, first run, or resume run may have partially succeeded, do not
+  reuse that run ID. Choose a new `--run-id`, seed 12 new events once, and
+  repeat first, resume, and replay with the new run ID. Group IDs are derived
+  from the run ID, so this creates one clean evidence chain without deleting
+  durable progress.
+- Do not edit JSONL or evidence files to conceal a partial run.
+
+The CLI rejects message counts other than 8 for `first`, 4 for `resume`, and 12
+for `replay`.
 
 ## 6. Write the report and disclose AI assistance
 

@@ -4,9 +4,15 @@
 
 **Due:** Friday, July 31, 2026 at 11:59 PM PDT
 
+**Late policy:** Up to 1 day late receives a 10% deduction; up to 2 days late
+receives a 20% deduction; day 3 or later is not accepted and receives zero
+credit.
+
 **Submission:** Upload one ZIP file to [Canvas](https://usfca.instructure.com/courses/1633704).
 
 **Score:** 20 base points plus up to 3 extra-credit points; maximum 23 points. The assignment is worth 20% of the course grade.
+
+This is the final homework assignment in the course.
 
 > The required assignment runs on **real Confluent Cloud Kafka**. Credential-free
 > tests help you develop safely, but they do not replace the required Cloud
@@ -51,6 +57,16 @@ provided interfaces so the included tests remain useful.
    complete the conditional AI disclosure.
 8. Audit the submission tree and checkbox list, create
    `assignment2_<usf_username>.zip`, and upload it to Canvas.
+
+### Failure recovery
+
+Kafka acknowledgements and consumer commits are durable, so a partially
+successful run cannot be made clean by editing local evidence. If a command
+fails before any event is acknowledged, processed, or committed, correct the
+cause and retry it. If the seeder, first run, or resume run may have partially
+succeeded, choose a new run ID, seed 12 new events once, and repeat all three
+consumer phases with that run ID. The starter derives fresh base and replay
+group IDs from the run ID.
 
 ## Objective: one pipeline, three proofs
 
@@ -174,11 +190,13 @@ The consumer must:
 - deserialize and validate before processing,
 - write one secret-free JSONL result before committing that input message,
 - commit synchronously with `consumer.commit(message=..., asynchronous=False)`,
+- reject a missing commit result or any partition-level commit error,
+- verify that the broker confirmed the expected next offset,
 - stop after 8 matching events or a bounded timeout, and
 - call `close()` in `finally`.
 
-The report must show exactly 8 processed records and 8 successful commit
-requests.
+The report must show exactly 8 processed records and 8 broker-confirmed
+successful commits.
 
 ### 5. Same-group resume
 
@@ -236,6 +254,7 @@ Write at least **150 words** explaining:
 
 - why the consumer processes and writes output before committing,
 - what can happen if the application fails before or after the commit,
+- why a synchronous commit's returned partition results still need checking,
 - why the same group resumes,
 - why `auto.offset.reset` does not normally reset an existing group,
 - why replay uses a separate group and explicit assignment override, and
@@ -326,11 +345,11 @@ each; eight supporting P1 outcomes are worth 1 point each.
 | 2 | P1 | FastAPI request and event boundary | 1 | Validates the HTTP request, maps it to `TripEventV1`, uses one lifespan publisher, and returns 202 only after acknowledgement. |
 | 3 | P0 | Schema-aware consumer validation | 3 | Deserializes Avro with Schema Registry, strictly validates `TripEventV1`, and verifies the stable UTF-8 key before processing. |
 | 4 | P1 | Bounded consumer lifecycle | 1 | Uses subscribe/poll/error handling/visible stop conditions/finally-close and does not leave an assignment run waiting indefinitely. |
-| 5 | P0 | Process-before-commit | 3 | Writes each accepted result before a successful synchronous consumer offset commit with auto commit/store disabled. |
+| 5 | P0 | Process-before-commit | 3 | Writes each accepted result before a synchronous consumer offset commit whose returned partition result confirms the expected next offset with no error; auto commit/store remain disabled. |
 | 6 | P0 | Consumer progress and recovery | 3 | The same group resumes for the remaining 4 records; a separate group explicitly replays all 12 without altering the base group. |
 | 7 | P1 | Required run outcomes | 1 | Seed, first, resume, and replay phases show 12 acknowledged, 8 processed, 4 nonoverlapping resumed, and 12 replayed records with correct identity coverage. |
 | 8 | P1 | Complete secret-free evidence | 1 | Four reports and two JSONL files agree on topic, run ID, counts, sequence coverage, groups, and completion. |
-| 9 | P1 | Consumer reasoning | 1 | Correctly explains poll loop, consumer offset commit, failure boundaries, offset fallback, resume, and replay. |
+| 9 | P1 | Consumer reasoning | 1 | Correctly explains poll loop, consumer offset commit and its returned partition results, failure boundaries, offset fallback, resume, and replay. |
 | 10 | P1 | Completed and tested starter | 1 | Credential-free tests pass and no required marked block remains unimplemented. |
 | 11 | P1 | AI-use disclosure | 1 | `report.md` declares Yes/No and, when Yes, `AI_USAGE.md` identifies every tool/model, purpose, judgment, changes, and verification. |
 | 12 | P1 | Submission package quality | 1 | Required tree and runnable README are complete; credentials, environments, caches, and unrelated files are excluded. |
@@ -378,7 +397,7 @@ credentials in submitted files.
 - [ ] Every marked code block is implemented and no required `NotImplementedError` remains.
 - [ ] `python -m pytest -q` passes.
 - [ ] The seeder produced exactly 12 acknowledged Avro events in my independent real Confluent topic.
-- [ ] The first consumer run processed and synchronously committed exactly 8 events.
+- [ ] The first consumer run processed exactly 8 events and confirmed 8 successful synchronous commits with no partition-level errors.
 - [ ] The same base group resumed and processed the remaining 4 nonoverlapping events.
 - [ ] The separate replay group explicitly started at the beginning and processed all 12 events.
 - [ ] All accepted values were deserialized through Schema Registry and validated as `TripEventV1` before processing and commit.

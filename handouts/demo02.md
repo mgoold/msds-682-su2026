@@ -35,15 +35,6 @@ Read this table first. It is the roadmap for the page.
 | 4 | Demo 02C: async vs sync-style | `demo02c_confluent_async_sync_compare.py` | Confluent Cloud | Async queues many messages; sync-style waits after each message |
 | 5 | Demo 02D: serialization producer | `demo02d_confluent_serialization_producer.py` | Confluent Cloud | Python objects must become bytes before Kafka stores them |
 
-These match the old Fall 2023 producer notebooks more directly:
-
-| Fall 2023 notebook style | 2026 script | What changed |
-|---|---|---|
-| Sync Producer | `demo02a_confluent_sync_style_producer.py` | Still waits after each message, but prints a JSON report instead of notebook cell lines |
-| Asynchronous Producer | `demo02b_confluent_async_producer.py` | Same callback idea; now uses the shared trip topic and shared helper functions |
-| Compare Async and Sync Producers | `demo02c_confluent_async_sync_compare.py` | Same comparison, with secret-free structured output |
-| Asynchronous Producer w/ Serialization | `demo02d_confluent_serialization_producer.py` | Same concept, now uses `TripEvent -> JSON string -> UTF-8 bytes` |
-
 The main lecture path is:
 
 ```text

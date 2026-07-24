@@ -1,0 +1,1262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MSDS 682 Lecture 7 slides: stateful stream processing, streams and tables, joins, delayed outcomes, and real-time model evaluation.">
+  <title>MSDS 682 · Lecture 7 · Stateful Stream Processing</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["$$", "$$"]] },
+      chtml: { scale: 1.05 }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-chtml.js" id="MathJax-script" async></script>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #626873;
+      --line: #e4e5e1;
+      --panel: #ffffff;
+      --accent: #3565f2;
+      --accent-soft: #eef1fe;
+      --accent-line: #ccd7fb;
+      --green: #0e7f66;
+      --green-soft: #e7f3f0;
+      --green-line: #c0e0d8;
+      --amber: #8a5a06;
+      --amber-soft: #fff3d9;
+      --amber-line: #eeda9f;
+      --purple: #6f4fc3;
+      --purple-soft: #f1edfb;
+      --purple-line: #dcd2f4;
+      --code-bg: #171b24;
+      --code-ink: #e9edf5;
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+      --shadow: 0 8px 28px rgba(22, 24, 29, .05);
+      --fs-body: clamp(17px, 1.1vw, 22px);
+      --fs-small: clamp(16px, 1vw, 20px);
+      --fs-kicker: clamp(13px, .85vw, 16px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    body { overflow-x: hidden; }
+
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      place-items: center;
+      padding: 4vh 3vw 6vh;
+      position: relative;
+    }
+
+    .frame { width: min(1320px, 92vw); }
+    .frame.narrow { width: min(1080px, 88vw); }
+
+    .kicker {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .kicker b { color: var(--accent); font-weight: 700; }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(36px, 2.8vw, 54px);
+      font-weight: 750;
+      letter-spacing: -.028em;
+      line-height: 1.06;
+    }
+
+    .hero h1 {
+      max-width: 1120px;
+      font-size: clamp(52px, 4.4vw, 84px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    .sub {
+      margin: 0 0 3vh;
+      color: var(--muted);
+      font-size: clamp(18px, 1.3vw, 25px);
+      line-height: 1.45;
+    }
+
+    p, li, td, th { font-size: var(--fs-body); line-height: 1.5; }
+    code { font-family: var(--mono); font-size: .9em; }
+
+    .duo {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(16px, 1.7vw, 28px);
+      align-items: stretch;
+    }
+
+    .trio {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(14px, 1.5vw, 24px);
+      align-items: stretch;
+    }
+
+    .quad {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(12px, 1.2vw, 20px);
+      align-items: stretch;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: clamp(20px, 2vw, 32px);
+      box-shadow: var(--shadow);
+    }
+
+    .card .tag {
+      display: block;
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: clamp(22px, 1.6vw, 31px);
+      line-height: 1.15;
+      letter-spacing: -.015em;
+    }
+
+    .card p { margin: 0; color: var(--muted); }
+    .card p strong, .card p code { color: var(--ink); }
+    .chip { text-align: center; }
+    .chip h2 { margin: 0; font-size: clamp(26px, 2vw, 40px); }
+    .chip p { margin-top: 6px; }
+
+    .rail {
+      display: flex;
+      align-items: stretch;
+      gap: clamp(8px, .8vw, 14px);
+      margin: 3vh 0 0;
+    }
+
+    .rail-node {
+      flex: 1;
+      min-height: clamp(120px, 15vh, 165px);
+      display: grid;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: clamp(16px, 1.5vw, 24px);
+      text-align: center;
+    }
+
+    .rail-node b {
+      font-size: clamp(19px, 1.4vw, 27px);
+      letter-spacing: -.015em;
+    }
+
+    .rail-node span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: var(--fs-small);
+      line-height: 1.4;
+    }
+
+    .rail-node.n-connect { background: var(--accent-soft); border-color: var(--accent-line); }
+    .rail-node.n-connect b { color: #2c4fab; }
+    .rail-node.n-kafka { background: var(--panel); border: 2px solid var(--ink); }
+    .rail-node.n-proc { background: var(--green-soft); border-color: var(--green-line); }
+    .rail-node.n-proc b { color: #14604e; }
+    .rail-node.n-reg { background: var(--purple-soft); border-color: var(--purple-line); }
+    .rail-node.n-reg b { color: #543f8f; }
+    .rail-node.sm { min-height: 106px; padding: 14px; }
+    .rail-node.sm b { font-size: clamp(16px, 1.15vw, 21px); }
+
+    .rail-arrow {
+      display: grid;
+      place-items: center;
+      color: #a9adb6;
+      font-size: clamp(22px, 1.8vw, 34px);
+      font-weight: 600;
+    }
+
+    .rail-title {
+      margin: 3vh 0 0;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .rail-title + .rail { margin-top: 10px; }
+    .factline { margin: 2.2vh 0 0; color: var(--muted); font-size: var(--fs-body); }
+    .factline strong, .factline code { color: var(--ink); }
+
+    table {
+      width: 100%;
+      margin-top: 2.5vh;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      box-shadow: var(--shadow);
+    }
+
+    th, td {
+      padding: clamp(13px, 1.3vh, 18px) 18px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .takeaway {
+      margin-top: 3vh;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      background: var(--accent-soft);
+      padding: 18px 22px;
+      color: #313b5a;
+      font-size: var(--fs-body);
+      line-height: 1.45;
+    }
+
+    .takeaway.point {
+      border-color: var(--green);
+      background: var(--green-soft);
+      color: #244b42;
+    }
+
+    .takeaway.caveat {
+      border-color: #e2a51f;
+      background: var(--amber-soft);
+      color: #5c481d;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 3vh;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      padding: 7px 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+    }
+
+    .module-toc {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(12px, 1.2vw, 20px);
+      margin-top: 3vh;
+    }
+
+    .module-toc a {
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--panel);
+      padding: 22px;
+      color: inherit;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .module-toc a:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-line);
+      box-shadow: 0 12px 30px rgba(22, 24, 29, .09);
+    }
+
+    .module-toc a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .module-toc .number {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 800;
+    }
+
+    .module-toc h2 {
+      margin: auto 0 7px;
+      font-size: clamp(22px, 1.6vw, 30px);
+    }
+
+    .module-toc p { margin: 0; color: var(--muted); font-size: var(--fs-small); }
+
+    .module-divider { background: #eceef5; }
+    .module-divider[data-tone="green"] { background: #e9f1ef; }
+    .module-divider[data-tone="amber"] { background: #f5efe3; }
+    .module-divider[data-tone="purple"] { background: #f0ecf8; }
+
+    .module-divider-shell {
+      display: grid;
+      grid-template-columns: 170px minmax(0, 1fr);
+      gap: clamp(28px, 4vw, 64px);
+      align-items: center;
+    }
+
+    .module-index {
+      color: rgba(53, 101, 242, .7);
+      font-family: var(--mono);
+      font-size: clamp(84px, 9vw, 142px);
+      font-weight: 800;
+      letter-spacing: -.08em;
+      line-height: .9;
+    }
+
+    .module-label {
+      margin-top: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .module-divider h1 { font-size: clamp(44px, 3.5vw, 68px); }
+
+    .module-points {
+      display: grid;
+      gap: 12px;
+      margin: 3vh 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .module-points li {
+      border-top: 1px solid rgba(22, 24, 29, .12);
+      padding-top: 12px;
+      color: var(--muted);
+    }
+
+    .module-points strong { color: var(--ink); }
+
+    .module-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 3vh;
+    }
+
+    .module-strip span {
+      border: 1px solid rgba(22, 24, 29, .15);
+      border-radius: 999px;
+      padding: 5px 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .module-strip span.here {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: white;
+    }
+
+    .metric {
+      margin: 3vh 0;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--panel);
+      padding: clamp(20px, 2.4vw, 34px);
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .metric mjx-container { font-size: clamp(20px, 1.7vw, 30px) !important; }
+    .metric p { margin: 14px 0 0; color: var(--muted); }
+
+    .coverage {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 2.5vh;
+    }
+
+    .coverage div {
+      min-height: 74px;
+      display: grid;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--panel);
+      padding: 12px 14px;
+    }
+
+    .coverage strong { font-size: var(--fs-small); }
+    .coverage span { margin-top: 3px; color: var(--muted); font-size: 14px; }
+    .coverage .done { border-color: var(--green-line); background: var(--green-soft); }
+    .coverage .partial { border-color: var(--amber-line); background: var(--amber-soft); }
+    .coverage .later { color: var(--muted); }
+
+    .final-list {
+      display: grid;
+      gap: 13px;
+      margin: 3vh 0 0;
+      padding: 0;
+      counter-reset: idea;
+      list-style: none;
+    }
+
+    .final-list li {
+      counter-increment: idea;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 0 0 13px;
+      font-size: clamp(20px, 1.4vw, 27px);
+    }
+
+    .final-list li::before {
+      content: counter(idea, decimal-leading-zero);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .term {
+      position: relative;
+      border-bottom: 1px dotted currentColor;
+      cursor: help;
+    }
+
+    .term::after {
+      content: attr(data-def);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 10px);
+      z-index: 5;
+      width: min(340px, 70vw);
+      transform: translate(-50%, 4px);
+      border-radius: 9px;
+      background: var(--ink);
+      padding: 10px 12px;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.35;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+
+    .term:hover::after,
+    .term:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+    .term:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .links { margin-top: 2.5vh; color: var(--muted); font-size: var(--fs-small); }
+    .links a { color: var(--accent); text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+
+    .pager, .crumb {
+      position: absolute;
+      bottom: 16px;
+      color: #8b9098;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .05em;
+    }
+
+    .pager { right: 24px; }
+    .crumb { left: 24px; }
+
+    .js .frame {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .28s ease, transform .28s ease;
+    }
+
+    .js .frame.in { opacity: 1; transform: translateY(0); }
+
+    .js .rail-seq > .rail-node,
+    .js .rail-seq > .rail-arrow {
+      opacity: .22;
+      transition: opacity .3s ease;
+    }
+
+    .js .in .rail-seq > .rail-node,
+    .js .in .rail-seq > .rail-arrow { opacity: 1; }
+
+    .js .in .rail-seq > :nth-child(1) { transition-delay: .05s; }
+    .js .in .rail-seq > :nth-child(2) { transition-delay: .15s; }
+    .js .in .rail-seq > :nth-child(3) { transition-delay: .25s; }
+    .js .in .rail-seq > :nth-child(4) { transition-delay: .35s; }
+    .js .in .rail-seq > :nth-child(5) { transition-delay: .45s; }
+    .js .in .rail-seq > :nth-child(6) { transition-delay: .55s; }
+    .js .in .rail-seq > :nth-child(7) { transition-delay: .65s; }
+    .js .in .rail-seq > :nth-child(8) { transition-delay: .75s; }
+    .js .in .rail-seq > :nth-child(9) { transition-delay: .85s; }
+    .js .in .rail-seq > :nth-child(10) { transition-delay: .95s; }
+    .js .in .rail-seq > :nth-child(11) { transition-delay: 1.05s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .js .frame { opacity: 1; transform: none; transition: none; }
+      .js .rail-seq > .rail-node,
+      .js .rail-seq > .rail-arrow { opacity: 1; transition: none; }
+      .module-toc a { transition: none; }
+    }
+
+    @media print {
+      html { scroll-snap-type: none; }
+      section.slide { min-height: auto; padding: 28px 0; break-after: page; }
+      .js .frame,
+      .js .rail-seq > .rail-node,
+      .js .rail-seq > .rail-arrow { opacity: 1 !important; transform: none !important; }
+      .crumb, .pager { display: none; }
+    }
+
+    @media (max-width: 1080px) {
+      .quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .module-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 980px) {
+      .trio, .coverage { grid-template-columns: 1fr; }
+      .rail { flex-direction: column; }
+      .rail-arrow { transform: rotate(90deg); }
+      .module-divider-shell { grid-template-columns: 120px 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      section.slide { padding: 7vh 5vw; }
+      .duo, .quad, .module-toc { grid-template-columns: 1fr; }
+      .module-divider-shell { grid-template-columns: 1fr; }
+      .module-index { font-size: 72px; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="slide" id="course-arc">
+    <div class="frame">
+      <p class="kicker">Where we are</p>
+      <h1>From Kafka mechanics to a real-time decision</h1>
+      <div class="rail">
+        <div class="rail-node sm"><b>L2–L3</b><span>Produce, consume, commit</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-reg"><b>L4</b><span>Contracts and schemas</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm"><b>L5</b><span>HTTP application boundary</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-connect"><b>L6</b><span>Connect and derived events</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-proc"><b>L7</b><span>State, join, evaluate</span></div>
+      </div>
+      <div class="takeaway point"><strong>Today we open the processor.</strong> What operations it runs, what state it must remember, and when it may commit.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="assignment-2-reminder">
+    <div class="frame narrow">
+      <p class="kicker">Assignment 2 reminder</p>
+      <h1>Consumer correctness remains the foundation</h1>
+      <div class="duo" style="margin-top: 3vh;">
+        <div class="card chip"><span class="tag">Released</span><h2>Thursday, July 23</h2></div>
+        <div class="card chip"><span class="tag">Due</span><h2>Friday, July 31</h2><p><strong>11:59 PM PDT</strong></p></div>
+      </div>
+      <div class="takeaway caveat"><strong>HW2 and Lecture 7 share patterns, not data.</strong> Follow the published HW2 handout as its SSOT.</div>
+      <div class="links"><a href="https://wgu9.github.io/msds-682-su2026/#/handouts/assignment02" target="_blank" rel="noreferrer">Open Assignment 2</a></div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide hero" id="lecture-7-title">
+    <div class="frame">
+      <p class="kicker">MSDS 682 · <b>Lecture 7</b></p>
+      <h1>State turns event history<br>into a decision.</h1>
+      <p class="sub">Stream processing, keyed state, joins, delayed outcomes, and real-time model evaluation.</p>
+      <div class="rail">
+        <div class="rail-node n-kafka"><b>Events</b><span>Requests, quotes, outcomes</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-proc"><b>Stateful processor</b><span>Remember, match, evaluate</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-reg"><b>Decision evidence</b><span>Which version is closer to target?</span></div>
+      </div>
+      <div class="hero-meta">
+        <span class="pill">Python 3.11.14</span>
+        <span class="pill">Confluent Cloud</span>
+        <span class="pill">confluent-kafka 2.15.0</span>
+        <span class="pill">scikit-learn 1.9.0</span>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lecture-7-overview">
+    <div class="frame">
+      <p class="kicker">Lecture 7 overview</p>
+      <h1>Five modules, one stateful decision path</h1>
+      <nav class="module-toc" aria-label="Lecture 7 modules">
+        <a href="#module-1-define"><span class="number">01</span><h2>Define</h2><p>What stream processing adds.</p></a>
+        <a href="#module-2-model"><span class="number">02</span><h2>Model</h2><p>Streams, tables, keys, and time.</p></a>
+        <a href="#module-3-join"><span class="number">03</span><h2>Join</h2><p>State, matching, and expiry.</p></a>
+        <a href="#module-4-demo"><span class="number">04</span><h2>Build</h2><p>Demo 07 pricing pipeline.</p></a>
+        <a href="#module-5-evaluate"><span class="number">05</span><h2>Evaluate</h2><p>Compare versions and limits.</p></a>
+      </nav>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-1-define" data-module="Define">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">01</div><div class="module-label">Define stream processing</div></div>
+        <div>
+          <h1>Computation begins while the event history is still growing</h1>
+          <ul class="module-points">
+            <li><strong>Continuous input:</strong> events keep arriving.</li>
+            <li><strong>Incremental work:</strong> process new records as they appear.</li>
+            <li><strong>New facts:</strong> emit transformed, aggregated, or joined results.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="broker-vs-processor">
+    <div class="frame">
+      <p class="kicker">Responsibility boundary</p>
+      <h1>Kafka stores the history; a processor interprets it</h1>
+      <div class="duo" style="margin-top: 3vh;">
+        <div class="card">
+          <span class="tag">Kafka broker</span>
+          <h2>Retain and deliver</h2>
+          <p>Topics, partitions, offsets, replication, replay.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Processor</span>
+          <h2>Compute and remember</h2>
+          <p>Filter, transform, aggregate, join, classify, and emit.</p>
+        </div>
+      </div>
+      <p class="factline">Classroom scripts stay <strong>bounded</strong> for evidence; the production processor keeps polling as new records arrive.</p>
+      <div class="takeaway caveat"><strong>Kafka is not the business computation.</strong> Client code or a processing framework performs that work.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="stateless-vs-stateful">
+    <div class="frame narrow">
+      <p class="kicker">The first design question</p>
+      <h1>Does one input record contain everything you need?</h1>
+      <table>
+        <thead><tr><th>Pattern</th><th>Needs memory?</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stateless</strong></td><td>No prior record required</td><td>Validate one order and compute one metric</td></tr>
+          <tr><td><strong>Stateful</strong></td><td>Must remember earlier records</td><td>Wait for a fare quote and its later trip outcome</td></tr>
+        </tbody>
+      </table>
+      <div class="takeaway point"><strong><span class="term" tabindex="0" data-def="Information a processor retains across records so later inputs can update or complete a result.">State</span> begins when one record is not enough.</strong></div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="processing-operations">
+    <div class="frame">
+      <p class="kicker">Operation map</p>
+      <h1>Four operations cover most teaching examples</h1>
+      <div class="quad" style="margin-top: 3vh;">
+        <div class="card"><span class="tag">Filter</span><h2>Keep?</h2><p>One record in, zero or one out.</p></div>
+        <div class="card"><span class="tag">Map</span><h2>Transform</h2><p>One record becomes a new record.</p></div>
+        <div class="card"><span class="tag">Aggregate</span><h2>Accumulate</h2><p>Many records update one result.</p></div>
+        <div class="card"><span class="tag">Join</span><h2>Relate</h2><p>Records from two histories become one fact.</p></div>
+      </div>
+      <div class="takeaway caveat"><strong>Filter and map are often stateless.</strong> Aggregate and join normally require state.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-2-model" data-tone="green" data-module="Model">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">02</div><div class="module-label">Model the data</div></div>
+        <div>
+          <h1>Keys and time determine what can be remembered</h1>
+          <ul class="module-points">
+            <li><strong>Stream:</strong> the history of events.</li>
+            <li><strong>Table:</strong> the latest value by key.</li>
+            <li><strong>Time:</strong> when an event happened and how long state remains useful.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="stream-and-table">
+    <div class="frame">
+      <p class="kicker">Two views of changing data</p>
+      <h1>A stream records changes; a table represents current state</h1>
+      <div class="duo" style="margin-top: 3vh;">
+        <div class="card">
+          <span class="tag">Stream</span>
+          <h2><span class="term" tabindex="0" data-def="An append-oriented history in which each event remains meaningful.">Every event matters</span></h2>
+          <p><code>trip-requested</code>, <code>fare-quoted</code>, <code>trip-completed</code>. History is append-oriented.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Table</span>
+          <h2><span class="term" tabindex="0" data-def="A current-state view that keeps the latest value associated with each key.">Latest value by key</span></h2>
+          <p><code>trip_id → latest trip status</code>. Later updates replace the current view.</p>
+        </div>
+      </div>
+      <div class="takeaway point"><strong>Stream and table are interpretations.</strong> Kafka topics remain ordered event logs.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="keys-and-partitions">
+    <div class="frame">
+      <p class="kicker">Keyed computation</p>
+      <h1>The key decides which events belong together</h1>
+      <div class="rail">
+        <div class="rail-node"><b><code>trip_id=682-A</code></b><span>Fare quote</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-kafka"><b>Aligned partitions</b><span>Same key and compatible partitioning</span></div>
+        <div class="rail-arrow">←</div>
+        <div class="rail-node"><b><code>trip_id=682-A</code></b><span>Delayed outcome</span></div>
+      </div>
+      <div class="takeaway caveat"><strong>A shared key is necessary for a keyed join, but not sufficient.</strong> Contracts, time bounds, state, and recovery policy still matter.</div>
+      <p class="factline">Demo 07 uses <strong>one partition per topic</strong>. Larger systems must align partition count and partitioning strategy across joined inputs.</p>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="event-time-processing-time">
+    <div class="frame narrow">
+      <p class="kicker">Two clocks</p>
+      <h1>When did the event happen, and when did we process it?</h1>
+      <table>
+        <thead><tr><th>Clock</th><th>Meaning</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td><strong><span class="term" tabindex="0" data-def="The timestamp describing when the business event occurred.">Event time</span></strong></td><td>Time recorded by the business event</td><td>Windows should reflect when the activity occurred</td></tr>
+          <tr><td><strong><span class="term" tabindex="0" data-def="The clock time at which the processor observes and handles the record.">Processing time</span></strong></td><td>Time the processor sees the record</td><td>Network delay and replay can move it later</td></tr>
+        </tbody>
+      </table>
+      <div class="takeaway point"><strong>Demo 07 uses a finite classroom join.</strong> Production systems must state which clock governs expiry.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="windows-and-late-events">
+    <div class="frame">
+      <p class="kicker">Bounded state</p>
+      <h1>A <span class="term" tabindex="0" data-def="A declared time bound within which records may be matched or aggregated.">join window</span> bounds how long related records may arrive</h1>
+      <div class="rail">
+        <div class="rail-node n-connect"><b>Open</b><span>First side arrives; store keyed state</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-proc"><b>Match</b><span>Other side arrives within policy</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node"><b>Expire</b><span>No match by the declared boundary</span></div>
+      </div>
+      <div class="takeaway caveat"><strong>A <span class="term" tabindex="0" data-def="A record that arrives after its join window or watermark has passed.">late event</span> is a policy decision.</strong> Drop, update, compensate, quarantine, or reprocess. The business must choose.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-3-join" data-tone="amber" data-module="Join">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">03</div><div class="module-label">Stateful joins</div></div>
+        <div>
+          <h1>Subscribing receives records; joining creates a relationship</h1>
+          <ul class="module-points">
+            <li><strong>Store</strong> the unmatched side by key.</li>
+            <li><strong>Match</strong> when the other side arrives.</li>
+            <li><strong>Expire or recover</strong> state under an explicit policy.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="subscribe-is-not-join">
+    <div class="frame">
+      <p class="kicker">Common misconception</p>
+      <h1>Two subscriptions do not automatically produce one joined fact</h1>
+      <div class="duo" style="margin-top: 3vh;">
+        <div class="card">
+          <span class="tag">Subscribe</span>
+          <h2>Receive both histories</h2>
+          <p>The consumer sees quote records and outcome records.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Join</span>
+          <h2><span class="term" tabindex="0" data-def="A stateful operation that relates records from two inputs under a key and time policy.">Implement correlation</span></h2>
+          <p>Extract key, store unmatched input, match, compute, emit, and clean up.</p>
+        </div>
+      </div>
+      <div class="takeaway point"><strong>The application owns the join semantics.</strong></div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="join-lifecycle">
+    <div class="frame">
+      <p class="kicker">Join lifecycle</p>
+      <h1>One key moves through four explicit states</h1>
+      <div class="rail rail-seq">
+        <div class="rail-node"><b>1 · Receive</b><span>Decode and validate</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-connect"><b>2 · Remember</b><span>Store by <code>trip_id</code></span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-proc"><b>3 · Match</b><span>Quote + outcome</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-reg"><b>4 · Emit</b><span>Pricing evaluation</span></div>
+      </div>
+      <div class="takeaway caveat"><strong>State is not the output.</strong> It is temporary information required to produce the output.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="join-policy">
+    <div class="frame narrow">
+      <p class="kicker">A join needs more than a key</p>
+      <h1>Write the policy before writing the loop</h1>
+      <table>
+        <thead><tr><th>Question</th><th>Demo 07 answer</th></tr></thead>
+        <tbody>
+          <tr><td>What matches?</td><td>Fare quote and trip outcome with the same <code>trip_id</code></td></tr>
+          <tr><td>How many results?</td><td>One evaluation per quote version and trip</td></tr>
+          <tr><td>When is input complete?</td><td>Eight expected quote-outcome pairs in the bounded run</td></tr>
+          <tr><td>What is late or missing?</td><td>Reported as a production gap, not silently invented</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="state-recovery">
+    <div class="frame">
+      <p class="kicker">Crash boundary</p>
+      <h1>In-memory state teaches the join, not production recovery</h1>
+      <div class="trio" style="margin-top: 3vh;">
+        <div class="card"><span class="tag">Classroom</span><h2>Finite dictionaries</h2><p>Transparent and easy to inspect.</p></div>
+        <div class="card"><span class="tag">Failure</span><h2>Memory disappears</h2><p>A restart must rebuild or restore state.</p></div>
+        <div class="card"><span class="tag">Production</span><h2>Durable state</h2><p>Checkpoint, changelog, replay, or managed state store.</p></div>
+      </div>
+      <div class="takeaway caveat"><strong>Bounded stateful teaching code is not a durable stream processor.</strong></div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-4-demo" data-tone="purple" data-module="Build">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">04</div><div class="module-label">Demo 07</div></div>
+        <div>
+          <h1>Build one pricing pipeline from request to delayed evaluation</h1>
+          <ul class="module-points">
+            <li><strong>Estimate</strong> distance and duration.</li>
+            <li><strong>Quote</strong> with a rule and a trained model.</li>
+            <li><strong>Evaluate</strong> both versions after the outcome arrives.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="pricing-business-problem">
+    <div class="frame">
+      <p class="kicker">Ridesharing pricing case</p>
+      <h1>Set an upfront fare before actual trip cost is known</h1>
+      <div class="rail">
+        <div class="rail-node"><b>Trip request</b><span>Request time + pickup/dropoff coordinates</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-connect"><b>Routing response</b><span>Estimated miles + minutes</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-proc"><b>Fare quote</b><span>Fixed before the trip begins</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node"><b>Delayed outcome</b><span>Synthetic realized miles, minutes, and cost</span></div>
+      </div>
+      <div class="metric">
+        $$\text{realized markup} = \frac{\text{fare} - \text{actual cost}}{\text{actual cost}}$$
+        <p>Business target: realized markup close to 20%.</p>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo07-route-simulation">
+    <div class="frame">
+      <p class="kicker">Inputs, estimates, and outcomes</p>
+      <h1>Request coordinates, route estimates, and outcomes are different facts</h1>
+      <div class="trio" style="margin-top: 3vh;">
+        <div class="card">
+          <span class="tag">Request</span>
+          <h2>Predefined coordinates</h2>
+          <p>Four fixed latitude/longitude pairs in decimal degrees.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Quote time</span>
+          <h2>Fixture or OSRM</h2>
+          <p>Meters/seconds become miles/minutes. Fixture is controlled; OSRM is live.</p>
+        </div>
+        <div class="card">
+          <span class="tag">After pricing</span>
+          <h2>Synthetic outcome</h2>
+          <p>07D varies miles/minutes and computes synthetic cost in cents.</p>
+        </div>
+      </div>
+      <div class="takeaway caveat"><strong>07D has no GPS and does not wait for a real trip.</strong> It is an independent bounded outcome source.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo07-system-loop">
+    <div class="frame">
+      <p class="kicker">Demo 07 workflow</p>
+      <h1>Offline training feeds online quoting and delayed evaluation</h1>
+      <p class="rail-title">Offline · 07A</p>
+      <div class="rail">
+        <div class="rail-node sm"><b>Historical examples</b><span>Deterministic labels</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-reg"><b>Train ridge-v2</b><span>Validated artifact</span></div>
+      </div>
+      <p class="rail-title">Quote path · 07B to 07C</p>
+      <div class="rail rail-seq">
+        <div class="rail-node sm n-kafka"><b>07B Request</b><span>Trip request</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-connect"><b>Route provider</b><span>Fixture or OSRM</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-proc"><b>07C Quotes</b><span>Rule and Ridge</span></div>
+      </div>
+      <p class="rail-title">Delayed evaluation · 07D to 07F</p>
+      <div class="rail rail-seq">
+        <div class="rail-node sm"><b>07D Outcome</b><span>Independent synthetic label</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-proc"><b>07E Bounded join</b><span>Complete set first</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-reg"><b>07F Compare</b><span>Selection recommendation</span></div>
+      </div>
+      <div class="takeaway point"><strong>Expected scale:</strong> 4 requests, 8 quotes, 4 outcomes, 8 evaluations.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo07-four-topics">
+    <div class="frame">
+      <p class="kicker">Event boundaries</p>
+      <h1>Four topics represent four natural business events</h1>
+      <div class="quad" style="margin-top: 3vh;">
+        <div class="card"><span class="tag">01 · Input</span><h2>Trip requests</h2><p>Key <code>trip_id</code></p></div>
+        <div class="card"><span class="tag">02 · Prediction</span><h2>Fare quotes</h2><p>Key <code>trip_id</code></p></div>
+        <div class="card"><span class="tag">03 · Delayed label</span><h2>Trip outcomes</h2><p>Key <code>trip_id</code></p></div>
+        <div class="card"><span class="tag">04 · Comparison</span><h2>Pricing evaluations</h2><p>Key <code>quote_id</code></p></div>
+      </div>
+      <div class="takeaway point"><strong>Distance, duration, and fare stay together in the quote event.</strong> They are not split into artificial field-level topics.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="rule-vs-ridge">
+    <div class="frame narrow">
+      <p class="kicker">Two pricing versions</p>
+      <h1>Compare a transparent rule with a trained cost model</h1>
+      <table>
+        <thead><tr><th>Version</th><th>Computation</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><strong>rule-v1</strong></td><td><code>USD fare = 3.50 × estimated miles + 0.20 × estimated minutes</code></td><td>Hand-calculable heuristic baseline</td></tr>
+          <tr><td><strong>ridge-v2</strong></td><td><code>USD fare = predicted cost × 1.20</code></td><td>Trained model plus explicit markup policy</td></tr>
+        </tbody>
+      </table>
+      <div class="takeaway caveat"><strong>The rule is not ML.</strong> Ridge is a small, stable teaching model, not a claim about the best production pricing model.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="demo07-evaluator">
+    <div class="frame">
+      <p class="kicker">07E · The stateful center</p>
+      <h1>The evaluator joins each quote with one delayed outcome</h1>
+      <div class="rail">
+        <div class="rail-node"><b>FareQuoteV1</b><span><code>trip_id</code> + model version + fare</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-proc"><b>Bounded keyed state</b><span>Collect the complete expected set</span></div>
+        <div class="rail-arrow">←</div>
+        <div class="rail-node"><b>TripOutcomeV1</b><span><code>trip_id</code> + actual cost</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-reg"><b>PricingEvaluationV1</b><span>Realized markup and target error</span></div>
+      </div>
+      <div class="takeaway caveat"><strong>07E validates all 8 quotes and 4 outcomes before emitting 8 evaluations.</strong> A continuous production join could emit each eligible pair earlier.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="architecture-a-vs-b">
+    <div class="frame narrow">
+      <p class="kicker">Architecture decision</p>
+      <h1>Keep fields together when one owner computes them together</h1>
+      <table>
+        <thead><tr><th>Design</th><th>Pipeline</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A · Built</strong></td><td>One route call → miles + minutes → quote</td><td>No artificial join</td></tr>
+          <tr><td><strong>B · Rejected</strong></td><td>Split mileage + duration topics → join → quote</td><td>Extra topics, state, failure policy</td></tr>
+        </tbody>
+      </table>
+      <div class="takeaway point"><strong>The meaningful join is quote plus delayed outcome,</strong> not split route fields.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="safe-commit-boundary">
+    <div class="frame">
+      <p class="kicker">Correctness boundary</p>
+      <h1>Publish the derived fact before committing its input</h1>
+      <div class="rail rail-seq">
+        <div class="rail-node sm"><b>Consume</b><span>Read one input</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm"><b>Validate</b><span>Contract check</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-proc"><b>State</b><span>Update or read</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-kafka"><b>Produce + ack</b><span>Broker confirms output</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node sm n-proc"><b>Commit</b><span>Input offset</span></div>
+      </div>
+      <div class="takeaway caveat"><strong>This is <span class="term" tabindex="0" data-def="A crash between output acknowledgement and input commit can reprocess the same input, so a duplicate output is possible.">at-least-once</span>.</strong> A stable key exposes duplicates for downstream deduplication.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide module-divider" id="module-5-evaluate" data-tone="green" data-module="Evaluate">
+    <div class="frame">
+      <div class="module-divider-shell">
+        <div><div class="module-index">05</div><div class="module-label">Evaluate and bound</div></div>
+        <div>
+          <h1>A model comparison needs shared outcomes and one declared metric</h1>
+          <ul class="module-points">
+            <li><strong>Measure</strong> both versions on the same trips.</li>
+            <li><strong>Select</strong> the lower-error version under the stated rule.</li>
+            <li><strong>Separate</strong> recommendation from production deployment.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="evaluation-metric">
+    <div class="frame narrow">
+      <p class="kicker">One business metric</p>
+      <h1>Compare absolute distance from the 20% markup target</h1>
+      <div class="metric">
+        $$\text{MAE}_{\text{markup}} = \operatorname{average}\bigl|\,\text{realized markup} - 20\%\,\bigr|$$
+        <p>Lower error is better. The report expresses the result in percentage points.</p>
+      </div>
+      <div class="duo">
+        <div class="card"><span class="tag">Fair comparison</span><h2>Same evidence</h2><p>Both versions use the same requests, routes, and delayed outcomes.</p></div>
+        <div class="card"><span class="tag">Selection rule</span><h2>Lower target error</h2><p>Recommend the version with the smaller reported error.</p></div>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="selection-not-deployment">
+    <div class="frame">
+      <p class="kicker">Governance boundary</p>
+      <h1>A recommendation is evidence, not a deployment</h1>
+      <div class="rail">
+        <div class="rail-node n-proc"><b>Evaluate</b><span>Compute the declared metric</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node n-reg"><b>Recommend</b><span>Prefer the lower-error version</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node"><b>Review</b><span>Check sample size, risk, and limits</span></div>
+        <div class="rail-arrow">→</div>
+        <div class="rail-node"><b>Deploy later</b><span>Outside Demo 07</span></div>
+      </div>
+      <div class="takeaway caveat"><strong><span class="term" tabindex="0" data-def="The governed production decision to approve a model version for serving.">Model promotion</span></strong> is the production act of approving a version. Demo 07 stops at a selection recommendation.</div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="real-time-ml-coverage">
+    <div class="frame">
+      <p class="kicker">Coverage map</p>
+      <h1>Demo 07 closes a teaching loop, not a production ML platform</h1>
+      <div class="coverage">
+        <div class="done"><strong>Event source</strong><span>Complete</span></div>
+        <div class="done"><strong>Kafka event log</strong><span>Four topics</span></div>
+        <div class="done"><strong>Contracts</strong><span>Pydantic + Avro</span></div>
+        <div class="done"><strong>Route features</strong><span>Distance, duration</span></div>
+        <div class="partial"><strong>Stateful join</strong><span>In-memory</span></div>
+        <div class="done"><strong>Online inference</strong><span>Ridge artifact</span></div>
+        <div class="done"><strong>Prediction event</strong><span>FareQuoteV1</span></div>
+        <div class="done"><strong>Delayed label</strong><span>TripOutcomeV1</span></div>
+        <div class="partial"><strong>Monitoring</strong><span>Finite metrics</span></div>
+        <div class="partial"><strong>Retraining</strong><span>Initial only</span></div>
+        <div class="partial"><strong>Version selection</strong><span>Recommend only</span></div>
+        <div class="later"><strong>Deploy + rollback</strong><span>Not built</span></div>
+      </div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lecture-7-synthesis">
+    <div class="frame narrow">
+      <p class="kicker">Lecture 7 synthesis</p>
+      <h1>Five ideas organize stateful streaming</h1>
+      <ol class="final-list">
+        <li>Kafka retains history; the processor computes meaning.</li>
+        <li>State begins when one record is not enough.</li>
+        <li>Keys and time define what may relate.</li>
+        <li>Joining stores, matches, emits, and expires.</li>
+        <li>A prediction needs a later outcome to evaluate.</li>
+      </ol>
+      <div class="takeaway point"><strong>Demo 07:</strong> train, request, quote, outcome, join, compare.</div>
+      <div class="links"><a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo07" target="_blank" rel="noreferrer">Demo 07 handout</a> · <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec6-kafka-connect-stream-processing" target="_blank" rel="noreferrer">Review Lecture 6</a></div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <script>
+    document.documentElement.classList.add("js");
+
+    const slides = [...document.querySelectorAll("section.slide")];
+
+    let currentModule = "";
+    slides.forEach((slide, index) => {
+      if (slide.dataset.module) currentModule = slide.dataset.module;
+      const pager = slide.querySelector(".pager");
+      if (pager) pager.textContent = `${index + 1} / ${slides.length}`;
+      const crumb = slide.querySelector(".crumb");
+      if (crumb) crumb.textContent = currentModule;
+    });
+
+    const moduleDividers = slides.filter((slide) => slide.classList.contains("module-divider"));
+    const moduleNames = moduleDividers.map((slide) => slide.dataset.module);
+
+    moduleDividers.forEach((slide) => {
+      const strip = document.createElement("div");
+      strip.className = "module-strip";
+      strip.setAttribute("aria-label", "Module progress");
+
+      moduleNames.forEach((name) => {
+        const item = document.createElement("span");
+        item.textContent = name;
+        if (name === slide.dataset.module) item.classList.add("here");
+        strip.appendChild(item);
+      });
+
+      slide.querySelector(".module-divider-shell > div:last-child").appendChild(strip);
+    });
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const frame = entry.target.querySelector(".frame");
+        if (frame) frame.classList.add("in");
+        if (entry.intersectionRatio > .6 && entry.target.id) {
+          history.replaceState(null, "", `#${entry.target.id}`);
+        }
+      });
+    }, { threshold: [.18, .65] });
+
+    slides.forEach((slide) => revealObserver.observe(slide));
+
+    function currentSlideIndex() {
+      const viewportCenter = window.scrollY + window.innerHeight / 2;
+
+      return slides.reduce((bestIndex, slide, index) => {
+        const best = slides[bestIndex];
+        const slideCenter = slide.offsetTop + slide.offsetHeight / 2;
+        const bestCenter = best.offsetTop + best.offsetHeight / 2;
+
+        return Math.abs(slideCenter - viewportCenter) < Math.abs(bestCenter - viewportCenter)
+          ? index
+          : bestIndex;
+      }, 0);
+    }
+
+    function move(delta) {
+      const current = currentSlideIndex();
+      const next = Math.max(0, Math.min(slides.length - 1, current + delta));
+      slides[next].scrollIntoView({ behavior: "smooth" });
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        move(1);
+      } else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        move(-1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        slides[0].scrollIntoView({ behavior: "smooth" });
+      } else if (event.key === "End") {
+        event.preventDefault();
+        slides.at(-1).scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from confluent_kafka import KafkaError, KafkaException
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
@@ -37,7 +38,7 @@ from contracts import (  # noqa: E402
     request_to_event,
     schema_str,
 )
-from run_consumer import settings_for_phase  # noqa: E402
+from run_consumer import PHASE_MESSAGE_COUNTS, settings_for_phase  # noqa: E402
 
 
 class FakePublisher:
@@ -97,9 +98,16 @@ class FakeMessage:
 class FakeConsumer:
     """Finite consumer double that records synchronous commit order."""
 
-    def __init__(self, messages: list[FakeMessage], operations: list[tuple]) -> None:
+    def __init__(
+        self,
+        messages: list[FakeMessage],
+        operations: list[tuple],
+        *,
+        commit_error: KafkaError | None = None,
+    ) -> None:
         self.messages = list(messages)
         self.operations = operations
+        self.commit_error = commit_error
 
     def poll(self, _timeout: float) -> FakeMessage | None:
         return self.messages.pop(0) if self.messages else None
@@ -111,6 +119,7 @@ class FakeConsumer:
                 topic=message.topic(),
                 partition=message.partition(),
                 offset=message.offset() + 1,
+                error=self.commit_error,
             )
         ]
 
@@ -289,9 +298,38 @@ def test_processing_failure_prevents_offset_commit() -> None:
     assert operations == []
 
 
+def test_partition_level_commit_failure_is_not_counted_as_success() -> None:
+    """A synchronous return still fails when its partition carries an error."""
+
+    event = request_to_event(deterministic_requests("commit-failure")[0])
+    message = FakeMessage(event, 0)
+    operations: list[tuple] = []
+    consumer = FakeConsumer(
+        [message],
+        operations,
+        commit_error=KafkaError(KafkaError._TIMED_OUT),
+    )
+
+    with pytest.raises(KafkaException):
+        consume_bounded(
+            consumer,
+            fake_deserializer_for(message),
+            run_id="commit-failure",
+            max_messages=1,
+            poll_timeout=0.01,
+            idle_timeout=0.2,
+            run_timeout=1.0,
+            record_writer=lambda record: operations.append(
+                ("write", record["offset"])
+            ),
+        )
+    assert operations == [("write", 0), ("commit", 0, False)]
+
+
 def test_first_resume_and_replay_group_contracts(tmp_path: Path) -> None:
     """Base phases share history while replay has a separate beginning."""
 
+    assert PHASE_MESSAGE_COUNTS == {"first": 8, "resume": 4, "replay": 12}
     first = settings_for_phase(
         "first",
         run_id="run-a",

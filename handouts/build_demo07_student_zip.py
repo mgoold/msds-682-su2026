@@ -1,4 +1,4 @@
-"""Build Demo 06 student ZIP directly from published handout sources."""
+"""Build Demo 07 student ZIP directly from published handout sources."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from pathlib import Path, PurePosixPath
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 HANDOUTS_DIR = Path(__file__).resolve().parent
-OUTPUT_PATH = HANDOUTS_DIR / "demo06-student.zip"
-PACKAGE_ROOT = "demo06-student"
-ARCHIVE_TIMESTAMP = (2026, 7, 22, 0, 0, 0)
-PACKAGE_DIRECTORIES = ("assets", "assets/demo06", "tests")
+OUTPUT_PATH = HANDOUTS_DIR / "demo07-student.zip"
+PACKAGE_ROOT = "demo07-student"
+ARCHIVE_TIMESTAMP = (2026, 7, 23, 0, 0, 0)
+PACKAGE_DIRECTORIES = ("tests",)
 SECRET_ENV_KEYS = (
     "BOOTSTRAP_SERVERS",
     "SASL_USERNAME",
@@ -21,56 +21,36 @@ SECRET_ENV_KEYS = (
 )
 
 SOURCE_MAP: dict[str, Path] = {
-    "README.md": HANDOUTS_DIR / "demo06.md",
+    "README.md": HANDOUTS_DIR / "demo07.md",
     "requirements.txt": HANDOUTS_DIR / "requirements.txt",
     ".env.example": HANDOUTS_DIR / ".env.example",
     "confluent_demo_common.py": HANDOUTS_DIR / "confluent_demo_common.py",
-    "demo06_datagen_order_v1.avsc": HANDOUTS_DIR
-    / "demo06_datagen_order_v1.avsc",
-    "demo06_order_metric_v1.avsc": HANDOUTS_DIR
-    / "demo06_order_metric_v1.avsc",
-    "demo06_common.py": HANDOUTS_DIR / "demo06_common.py",
-    "demo06a_connect_source_plan.py": HANDOUTS_DIR
-    / "demo06a_connect_source_plan.py",
-    "demo06_seed_source.py": HANDOUTS_DIR / "demo06_seed_source.py",
-    "demo06b_confluent_source_consumer.py": HANDOUTS_DIR
-    / "demo06b_confluent_source_consumer.py",
-    "demo06c_confluent_stream_processor.py": HANDOUTS_DIR
-    / "demo06c_confluent_stream_processor.py",
-    "demo06d_confluent_resume_replay.py": HANDOUTS_DIR
-    / "demo06d_confluent_resume_replay.py",
-    "assets/demo06/demo06a-topic-selection.jpg": HANDOUTS_DIR.parent
-    / "assets"
-    / "demo06"
-    / "demo06a-topic-selection.jpg",
-    "assets/demo06/demo06a-connector-configuration.jpg": HANDOUTS_DIR.parent
-    / "assets"
-    / "demo06"
-    / "demo06a-connector-configuration.jpg",
-    "assets/demo06/demo06a-connector-running.jpg": HANDOUTS_DIR.parent
-    / "assets"
-    / "demo06"
-    / "demo06a-connector-running.jpg",
-    "assets/demo06/demo06b-topic-messages.jpg": HANDOUTS_DIR.parent
-    / "assets"
-    / "demo06"
-    / "demo06b-topic-messages.jpg",
-    "assets/demo06/demo06b-topic-schema.jpg": HANDOUTS_DIR.parent
-    / "assets"
-    / "demo06"
-    / "demo06b-topic-schema.jpg",
-    "assets/demo06/demo06c-actual-result.jpg": HANDOUTS_DIR.parent
-    / "assets"
-    / "demo06"
-    / "demo06c-actual-result.jpg",
-    "assets/demo06/demo06d-resume-replay.jpg": HANDOUTS_DIR.parent
-    / "assets"
-    / "demo06"
-    / "demo06d-resume-replay.jpg",
-    "tests/conftest.py": HANDOUTS_DIR / "demo06-tests" / "conftest.py",
-    "tests/test_demo06_local.py": HANDOUTS_DIR
-    / "demo06-tests"
-    / "test_demo06_local.py",
+    "demo07_common.py": HANDOUTS_DIR / "demo07_common.py",
+    "demo07_kafka.py": HANDOUTS_DIR / "demo07_kafka.py",
+    "demo07_processor_runtime.py": HANDOUTS_DIR / "demo07_processor_runtime.py",
+    "demo07_routing.py": HANDOUTS_DIR / "demo07_routing.py",
+    "demo07_trip_request_v1.avsc": HANDOUTS_DIR
+    / "demo07_trip_request_v1.avsc",
+    "demo07_fare_quote_v1.avsc": HANDOUTS_DIR / "demo07_fare_quote_v1.avsc",
+    "demo07_trip_outcome_v1.avsc": HANDOUTS_DIR
+    / "demo07_trip_outcome_v1.avsc",
+    "demo07_pricing_evaluation_v1.avsc": HANDOUTS_DIR
+    / "demo07_pricing_evaluation_v1.avsc",
+    "demo07a_train_cost_model.py": HANDOUTS_DIR
+    / "demo07a_train_cost_model.py",
+    "demo07b_produce_trip_requests.py": HANDOUTS_DIR
+    / "demo07b_produce_trip_requests.py",
+    "demo07c_confluent_fare_quote_processor.py": HANDOUTS_DIR
+    / "demo07c_confluent_fare_quote_processor.py",
+    "demo07d_produce_trip_outcomes.py": HANDOUTS_DIR
+    / "demo07d_produce_trip_outcomes.py",
+    "demo07e_confluent_quote_outcome_evaluator.py": HANDOUTS_DIR
+    / "demo07e_confluent_quote_outcome_evaluator.py",
+    "demo07f_compare_models.py": HANDOUTS_DIR / "demo07f_compare_models.py",
+    "tests/conftest.py": HANDOUTS_DIR / "demo07-tests" / "conftest.py",
+    "tests/test_demo07_local.py": HANDOUTS_DIR
+    / "demo07-tests"
+    / "test_demo07_local.py",
 }
 
 STUDENT_GITIGNORE = """# Credentials
@@ -78,7 +58,7 @@ STUDENT_GITIGNORE = """# Credentials
 .env.*
 !.env.example
 
-# Environments and generated evidence
+# Environments, generated artifacts, and evidence
 .venv/
 venv/
 outputs/
@@ -93,8 +73,8 @@ __pycache__/
 """
 
 README_REPLACEMENTS = {
-    "- [Download `demo06-student.zip`](handouts/demo06-student.zip)": (
-        "- This extracted package already contains all Demo 06 student files."
+    "- [Download `demo07-student.zip`](handouts/demo07-student.zip)": (
+        "- This extracted package already contains all Demo 07 student files."
     ),
 }
 
@@ -111,7 +91,7 @@ def _zip_info(name: str, *, is_dir: bool = False) -> ZipInfo:
 def _validate_package_inputs() -> None:
     missing = [str(path) for path in SOURCE_MAP.values() if not path.is_file()]
     if missing:
-        raise FileNotFoundError(f"Missing Demo 06 source files: {missing}")
+        raise FileNotFoundError(f"Missing Demo 07 source files: {missing}")
     unsafe = [
         name
         for name in SOURCE_MAP

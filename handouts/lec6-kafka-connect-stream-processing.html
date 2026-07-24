@@ -430,14 +430,14 @@
 
     .map-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-template-columns: repeat(8, minmax(0, 1fr));
       gap: 8px;
       margin-top: 2.5vh;
     }
 
     .map-grid .rail-node { position: relative; }
 
-    .map-grid .rail-node:not(:nth-child(7))::after {
+    .map-grid .rail-node:not(:nth-child(8))::after {
       content: "→";
       position: absolute;
       right: -12px;
@@ -467,7 +467,7 @@
 
     .map-span.a { grid-column: 1 / span 3; }
     .map-span.b { grid-column: 4 / span 3; }
-    .map-span.c { grid-column: 7 / span 1; border-top-color: #c9cdd8; color: var(--muted); }
+    .map-span.c { grid-column: 7 / span 2; border-top-color: #c9cdd8; color: var(--muted); }
 
     /* ---- links + chrome ---- */
 
@@ -478,6 +478,189 @@
     }
 
     .links a { color: var(--accent); text-decoration: none; }
+
+    .course-materials {
+      margin: 2.5vh 0 0;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      list-style: none;
+    }
+
+    .course-materials li {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .course-materials li:last-child { border-bottom: 0; }
+
+    .course-materials .lecture-number {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(13px, .9vw, 16px);
+      font-weight: 800;
+    }
+
+    .course-materials .lecture-topic {
+      font-size: clamp(16px, 1.1vw, 21px);
+      font-weight: 700;
+    }
+
+    .course-material-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .course-material-links a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 3px 9px;
+      border: 1px solid #c6d3fb;
+      border-radius: 999px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: clamp(11px, .72vw, 13px);
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .course-material-links a:hover { background: var(--accent-soft); }
+
+    .announcement-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(14px, 1.5vw, 22px);
+      margin-top: 2.5vh;
+    }
+
+    .announcement-card {
+      padding: clamp(16px, 1.6vw, 24px);
+    }
+
+    .announcement-card h2 {
+      margin-bottom: 6px;
+      font-size: clamp(24px, 1.7vw, 34px);
+    }
+
+    .announcement-card .announcement-date {
+      margin-top: 10px;
+      color: var(--ink);
+      font-size: clamp(18px, 1.25vw, 24px);
+      font-weight: 750;
+    }
+
+    .announcement-policy {
+      grid-column: 1 / -1;
+    }
+
+    .late-policy {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .late-tier {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 10px 12px;
+      background: var(--bg);
+    }
+
+    .late-tier strong,
+    .late-tier span {
+      display: block;
+    }
+
+    .late-tier strong {
+      color: var(--ink);
+      font-size: clamp(16px, 1.05vw, 20px);
+    }
+
+    .late-tier span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: clamp(13px, .85vw, 16px);
+    }
+
+    .late-tier.stop {
+      border-color: var(--amber-line);
+      background: var(--amber-soft);
+    }
+
+    .policy-example {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: clamp(13px, .85vw, 16px);
+    }
+
+    .celebration-layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: clamp(28px, 4vw, 64px);
+      align-items: center;
+      margin-top: 3vh;
+    }
+
+    .halfway-ring {
+      width: min(260px, 30vw);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--accent) 0 50%, #e7e9ef 50% 100%);
+      box-shadow: var(--shadow);
+    }
+
+    .halfway-ring-inner {
+      width: 72%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--bg);
+      text-align: center;
+    }
+
+    .halfway-ring strong {
+      display: block;
+      color: var(--accent);
+      font-size: clamp(42px, 4.5vw, 72px);
+      line-height: 1;
+    }
+
+    .halfway-ring span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: clamp(12px, .8vw, 15px);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .celebration-copy h2 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 2.2vw, 44px);
+    }
+
+    .celebration-copy p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: clamp(18px, 1.25vw, 24px);
+    }
 
     .pager, .crumb {
       position: absolute;
@@ -657,24 +840,108 @@
 
     @media (max-width: 680px) {
       section.slide { padding: 7vh 5vw; }
-      .duo { grid-template-columns: 1fr; }
+      .duo, .announcement-grid, .late-policy, .celebration-layout { grid-template-columns: 1fr; }
       .module-divider-shell { grid-template-columns: 1fr; }
       .module-index { font-size: 72px; }
+      .course-materials li { grid-template-columns: 34px minmax(0, 1fr); }
+      .course-material-links { grid-column: 2; justify-content: flex-start; }
+      .announcement-policy { grid-column: auto; }
+      .halfway-ring { width: min(210px, 55vw); justify-self: center; }
     }
   </style>
 </head>
 <body>
 
-  <section class="slide" id="assignment-2-schedule-update">
+  <section class="slide" id="course-materials-map">
     <div class="frame narrow">
-      <p class="kicker">Course schedule update</p>
-      <h1>Assignment 2 opens July 23 and is due July 31</h1>
-      <div class="duo" style="margin-top: 3vh;">
-        <div class="card chip"><span class="tag">Release</span><h2>Thursday, July 23</h2></div>
-        <div class="card chip"><span class="tag">Due</span><h2>Friday, July 31</h2><p><strong>11:59 PM PDT</strong></p></div>
+      <p class="kicker">Course materials</p>
+      <h1>Lectures 1 to 6: slides and demos</h1>
+      <p class="sub">Use the primary lecture slides first, then open the corresponding demo or supplement.</p>
+      <ol class="course-materials">
+        <li>
+          <span class="lecture-number">L1</span>
+          <span class="lecture-topic">Course introduction and environment setup</span>
+          <span class="course-material-links">
+            <a href="https://docs.google.com/presentation/d/1Nl0_unoyMPKwfC8ZFaqxA1kC1oYU7lm1KPK7MiNrgWU/edit" target="_blank" rel="noreferrer">Slides ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo00" target="_blank" rel="noreferrer">Demo 00 ↗</a>
+          </span>
+        </li>
+        <li>
+          <span class="lecture-number">L2</span>
+          <span class="lecture-topic">Kafka topics and producers</span>
+          <span class="course-material-links">
+            <a href="https://docs.google.com/presentation/d/1Z4BnBibYTy6Hwgvfc7IwidpbhqgmyrwSMtXLS--4eBw/edit?slide=id.g3f44cdb5d93_0_0#slide=id.g3f44cdb5d93_0_0" target="_blank" rel="noreferrer">Slides ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec2-topic-vs-table" target="_blank" rel="noreferrer">Supplement ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo01" target="_blank" rel="noreferrer">Demo 01 ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo02" target="_blank" rel="noreferrer">Demo 02 ↗</a>
+          </span>
+        </li>
+        <li>
+          <span class="lecture-number">L3</span>
+          <span class="lecture-topic">Kafka consumers</span>
+          <span class="course-material-links">
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec3-consumers" target="_blank" rel="noreferrer">Slides ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo03" target="_blank" rel="noreferrer">Demo 03 ↗</a>
+          </span>
+        </li>
+        <li>
+          <span class="lecture-number">L4</span>
+          <span class="lecture-topic">Data contracts, Avro, and Schema Registry</span>
+          <span class="course-material-links">
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec4-data-contracts" target="_blank" rel="noreferrer">Slides ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo04" target="_blank" rel="noreferrer">Demo 04 ↗</a>
+          </span>
+        </li>
+        <li>
+          <span class="lecture-number">L5</span>
+          <span class="lecture-topic">Streaming APIs with FastAPI and Kafka</span>
+          <span class="course-material-links">
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec5-streaming-apis" target="_blank" rel="noreferrer">Slides ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo05" target="_blank" rel="noreferrer">Demo 05 ↗</a>
+          </span>
+        </li>
+        <li>
+          <span class="lecture-number">L6</span>
+          <span class="lecture-topic">Kafka Connect and Stream Processing</span>
+          <span class="course-material-links">
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec6-kafka-connect-stream-processing" target="_blank" rel="noreferrer">Slides ↗</a>
+            <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo06" target="_blank" rel="noreferrer">Demo 06 ↗</a>
+          </span>
+        </li>
+      </ol>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="course-announcements">
+    <div class="frame">
+      <p class="kicker">Before we begin</p>
+      <h1>Three quick announcements</h1>
+      <div class="announcement-grid">
+        <article class="card announcement-card">
+          <span class="tag">1 · Assignment 2</span>
+          <h2>Released today</h2>
+          <p class="announcement-date">Due Friday, July 31<br>11:59 PM PDT</p>
+          <p>This is the final homework assignment.</p>
+        </article>
+        <article class="card announcement-card">
+          <span class="tag">2 · Project proposal</span>
+          <h2>More time to prepare</h2>
+          <p class="announcement-date">Due Tuesday, August 4<br>11:59 PM PDT</p>
+          <p>The proposal remains worth <strong>10%</strong> of the final course grade.</p>
+        </article>
+        <article class="card announcement-card announcement-policy">
+          <span class="tag">3 · Late submission policy</span>
+          <h2>Applies to homework and project deliverables</h2>
+          <div class="late-policy">
+            <div class="late-tier"><strong>Up to 1 day late</strong><span>10% deduction</span></div>
+            <div class="late-tier"><strong>Up to 2 days late</strong><span>20% deduction</span></div>
+            <div class="late-tier stop"><strong>Day 3 or later</strong><span>Not accepted · zero credit</span></div>
+          </div>
+          <p class="policy-example">Example for a 20-point homework: one day late deducts 2 points; two days late deducts 4 points.</p>
+        </article>
       </div>
-      <div class="takeaway caveat"><strong>Start this week.</strong> The published handout is the source of truth for requirements and submission.</div>
-      <div class="links"><a href="assignment02.md">Open the Assignment 2 handout</a></div>
+      <div class="links"><a href="https://wgu9.github.io/msds-682-su2026/#/assignments" target="_blank" rel="noreferrer">Open course assignments and deadlines</a></div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -684,13 +951,13 @@
       <p class="kicker">Recap · Lectures 3 to 5</p>
       <h1>One validated path carries every event</h1>
       <div class="rail">
-        <div class="rail-node"><b>HTTP request</b><span>FastAPI accepts the command</span></div>
+        <div class="rail-node"><b>FastAPI</b><span>HTTP boundary accepts the command</span></div>
         <div class="rail-arrow">→</div>
         <div class="rail-node"><b>Pydantic</b><span>Application meaning validated</span></div>
         <div class="rail-arrow">→</div>
-        <div class="rail-node n-reg"><b>Avro + Registry</b><span>Wire contract, governed versions</span></div>
+        <div class="rail-node n-reg"><b>Producer + Avro</b><span>Serialize and publish a governed event</span></div>
         <div class="rail-arrow">→</div>
-        <div class="rail-node n-kafka"><b>Kafka topic</b><span>Ordered, durable records</span></div>
+        <div class="rail-node n-kafka"><b>Kafka topic</b><span>Durable; ordered per partition</span></div>
         <div class="rail-arrow">→</div>
         <div class="rail-node n-proc"><b>Consumer</b><span>Decode, validate, process, commit</span></div>
       </div>
@@ -729,7 +996,7 @@
         <a href="#module-1-boundary"><span class="number">01</span><h2>Choose</h2><p>Which tool owns which job?</p></a>
         <a href="#module-2-connect"><span class="number">02</span><h2>Connect</h2><p>Source, sink, worker, task, converter.</p></a>
         <a href="#module-3-managed-demo"><span class="number">03</span><h2>Observe</h2><p>Run a managed source connector.</p></a>
-        <a href="#module-4-processing"><span class="number">04</span><h2>Process</h2><p>State, keys, windows, delivery.</p></a>
+        <a href="#module-4-processing"><span class="number">04</span><h2>Process</h2><p>Stateless transformation and delivery.</p></a>
         <a href="#module-5-proof"><span class="number">05</span><h2>Prove</h2><p>Derived output, resume, replay.</p></a>
       </nav>
     </div>
@@ -779,7 +1046,7 @@
         <div class="card"><span class="tag">Control plane</span><h2>Connect REST API</h2><p>Operators create, pause, and inspect connectors.</p></div>
         <div class="card"><span class="tag">Data plane</span><h2>Kafka records</h2><p>Systems exchange durable events.</p></div>
       </div>
-      <div class="takeaway point"><strong>Connect REST manages connector lifecycle.</strong> It is not your business API.</div>
+      <div class="takeaway point"><strong>FastAPI is the HTTP boundary; its Kafka Producer client writes records.</strong> Connect REST only manages connector lifecycle.</div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -875,7 +1142,7 @@
           <p>Maps application objects to bytes and back. <code>AvroSerializer</code>, <code>AvroDeserializer</code>.</p>
         </div>
       </div>
-      <div class="takeaway point"><strong>Schema Registry governs both paths.</strong> It stores schemas and compatibility, not business records.</div>
+      <div class="takeaway point"><strong>With Avro configured, Schema Registry governs both paths.</strong> It stores schemas and compatibility, not business records.</div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -886,7 +1153,7 @@
       <h1>A running connector can still fail record by record</h1>
       <div class="trio" style="margin-top: 3vh;">
         <div class="card"><span class="tag">Health</span><h2>Connector + task status</h2><p>Is the connector and each task healthy?</p></div>
-        <div class="card"><span class="tag">Progress</span><h2>Two kinds of offsets</h2><p>Source offsets track the external system; consumer offsets track Kafka.</p></div>
+        <div class="card"><span class="tag">Progress</span><h2>Two independent positions</h2><p>Connector tracks the external position; consumer app commits group progress to Kafka.</p></div>
         <div class="card"><span class="tag">Records</span><h2>Record-level errors</h2><p>Conversion or destination failures; handling varies.</p></div>
       </div>
       <div class="takeaway caveat"><strong>A <span class="term" tabindex="0" data-def="A side topic where some connectors route records that fail processing.">dead letter queue</span> is not universal.</strong> Check each connector's error policy.</div>
@@ -998,7 +1265,7 @@
         <div class="codecard"><pre>consumer.subscribe([INPUT_TOPIC])
 
 <span class="kw">while</span> consumed &lt; max_messages:
-    msg = consumer.poll(<span class="num">1.0</span>)
+    msg = consumer.poll(<span class="num">0.5</span>)
     <span class="kw">if</span> msg <span class="kw">is</span> <span class="kw">None</span>:
         <span class="kw">continue</span>
     event = deserializer(msg.value(), context)
@@ -1023,7 +1290,7 @@ consumer.close()</pre></div>
       <div class="trio" style="margin-top: 3vh;">
         <div class="card"><span class="tag">1</span><h2>Pause after 8+</h2><p>Keep the sample; stop new synthetic records.</p></div>
         <div class="card"><span class="tag">2</span><h2>Finish on retained data</h2><p>The remaining demos replay what Kafka kept.</p></div>
-        <div class="card"><span class="tag">3</span><h2>Delete after class</h2><p>Delete the connector, then unused topics and keys.</p></div>
+        <div class="card"><span class="tag">3</span><h2>Delete after class</h2><p>Delete the connector and resources created only for this demo.</p></div>
       </div>
       <div class="takeaway caveat"><strong>Datagen is a development tool,</strong> not a production data source.</div>
     </div>
@@ -1038,7 +1305,7 @@ consumer.close()</pre></div>
           <h1>Turn retained events into new facts</h1>
           <ul class="module-points">
             <li><strong>Kafka retains;</strong> the processor computes.</li>
-            <li><strong>Own</strong> keys, state, and windows explicitly.</li>
+            <li><strong>Demo 06C is stateless;</strong> stateful joins come next.</li>
             <li><strong>Acknowledge output</strong> before committing input.</li>
           </ul>
         </div>
@@ -1063,39 +1330,7 @@ consumer.close()</pre></div>
           <p>Count, deduplicate, window, join, maintain a table.</p>
         </div>
       </div>
-      <div class="takeaway caveat"><strong>State needs an owner:</strong> a key, a lifetime, and a recovery path.</div>
-    </div>
-    <div class="crumb"></div><div class="pager"></div>
-  </section>
-
-  <section class="slide" id="stream-and-table">
-    <div class="frame narrow">
-      <p class="kicker">Two interpretations</p>
-      <h1>A stream remembers events; a table holds current state</h1>
-      <table>
-        <thead><tr><th>View</th><th>Question</th><th>Example</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Stream</strong></td><td>What happened, in what order?</td><td>Requested, assigned, completed</td></tr>
-          <tr><td><strong>Table</strong></td><td>Latest value for this key?</td><td>Current trip status by <code>trip_id</code></td></tr>
-        </tbody>
-      </table>
-      <div class="takeaway point"><strong>The same records support both views.</strong> The processor decides what to materialize.</div>
-    </div>
-    <div class="crumb"></div><div class="pager"></div>
-  </section>
-
-  <section class="slide" id="key-state-window">
-    <div class="frame">
-      <p class="kicker">Stateful ingredients</p>
-      <h1>Key, state, and window make correlation explicit</h1>
-      <div class="rail">
-        <div class="rail-node n-proc"><b>Key</b><span>Which entity owns the sequence?</span></div>
-        <div class="rail-arrow">+</div>
-        <div class="rail-node n-proc"><b>State</b><span>What must survive between records?</span></div>
-        <div class="rail-arrow">+</div>
-        <div class="rail-node n-proc"><b>Window</b><span>Which interval belongs together?</span></div>
-      </div>
-      <div class="takeaway caveat"><strong>Subscribing is not joining.</strong> Correlation needs keys, state, and time bounds.</div>
+      <div class="takeaway caveat"><strong>Demo 06C is stateless.</strong> Lecture 7 adds keyed state, bounded windows, and joins.</div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -1113,7 +1348,7 @@ consumer.close()</pre></div>
         <div class="rail-arrow">→</div>
         <div class="rail-node n-kafka"><b>Output ack</b><span>Broker confirms delivery</span></div>
         <div class="rail-arrow">→</div>
-        <div class="rail-node n-proc"><b>Commit</b><span>Broker confirms next offset</span></div>
+        <div class="rail-node n-proc"><b>Consumer commit</b><span>Store the next input offset</span></div>
       </div>
       <div class="takeaway point"><strong>Commit means <span class="term" tabindex="0" data-def="Storing the group's next read position durably in Kafka.">consumer offset commit</span>.</strong> Not producer delivery. Not Git.</div>
     </div>
@@ -1133,7 +1368,7 @@ consumer.close()</pre></div>
         <div class="card">
           <span class="tag">The control</span>
           <h2>Stable event identity</h2>
-          <p>A deterministic key makes repeated processing safe to deduplicate.</p>
+          <p>A deterministic key exposes duplicate identity and enables downstream deduplication.</p>
         </div>
       </div>
       <div class="takeaway caveat"><strong>Do not promise <span class="term" tabindex="0" data-def="Each input affects the output exactly once; needs transactional support, not just commit order.">exactly-once</span> from commit order alone.</strong> Transactions have extra requirements.</div>
@@ -1151,7 +1386,7 @@ consumer.close()</pre></div>
           <ul class="module-points">
             <li><strong>Publish</strong> one explainable derived event.</li>
             <li><strong>Resume</strong> with the same group.</li>
-            <li><strong><span class="term" tabindex="0" data-def="Intentionally rereading retained history with an independent consumer group.">Replay</span></strong> with a new group, from the beginning.</li>
+            <li><strong><span class="term" tabindex="0" data-def="Intentionally rereading retained history with an independent consumer group.">Replay</span></strong> with a separate group and explicit beginning.</li>
           </ul>
         </div>
       </div>
@@ -1212,15 +1447,16 @@ consumer.close()</pre></div>
         <div class="rail-node sm n-reg"><b>04</b><span>Contracts</span></div>
         <div class="rail-node sm"><b>05</b><span>API</span></div>
         <div class="rail-node sm n-connect"><b>06</b><span>Connect</span></div>
+        <div class="rail-node sm n-proc"><b>07</b><span>Price + evaluate</span></div>
         <div class="map-span a">HW1 · producer</div>
         <div class="map-span b">HW2 · consumer</div>
-        <div class="map-span c">Lecture 6 extension</div>
+        <div class="map-span c">Processing + real-time ML</div>
       </div>
       <div class="duo" style="margin-top: 2.4vh;">
-        <div class="card"><span class="tag">Shared chain</span><p>02 and HW1 write the 01 topic; 03 reads it.</p></div>
-        <div class="card"><span class="tag">Self-contained</span><p>04, 05, HW2, and 06 each create their own topics.</p></div>
+        <div class="card"><span class="tag">Shared chain</span><p>02/HW1 write the 01 topic; 03 reads it.</p></div>
+        <div class="card"><span class="tag">Self-contained</span><p>04–07 and HW2 own separate data and topics.</p></div>
       </div>
-      <div class="takeaway point"><strong>HW2 reuses patterns from 03 to 05,</strong> never their data.</div>
+      <div class="takeaway point"><strong>HW2 reuses 03–05 patterns,</strong> never their data.</div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -1231,13 +1467,34 @@ consumer.close()</pre></div>
       <h1>Five ideas organize the whole system</h1>
       <ol class="final-list">
         <li>Connect moves records between systems.</li>
-        <li>Kafka retains ordered records.</li>
+        <li>Kafka retains records ordered within each partition.</li>
         <li>A processor computes and may own state.</li>
         <li>Output acknowledgement precedes input commit.</li>
         <li>Resume continues; replay revisits history.</li>
       </ol>
-      <div class="takeaway point"><strong>Next lecture:</strong> joins, tables, and windows on this same processing model.</div>
-      <div class="links"><a href="demo06.md">Open Demo 06 handout</a> · <a href="https://docs.confluent.io/platform/current/connect/index.html" target="_blank" rel="noreferrer">Confluent Kafka Connect</a> · <a href="https://docs.confluent.io/kafka-clients/python/current/overview.html" target="_blank" rel="noreferrer">Confluent Python client</a></div>
+      <div class="takeaway point"><strong>Next lecture:</strong> real-time pricing, delayed outcomes, and a bounded stateful evaluation join.</div>
+      <div class="links"><a href="https://wgu9.github.io/msds-682-su2026/#/handouts" target="_blank" rel="noreferrer">All course materials</a> · <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo06" target="_blank" rel="noreferrer">Open Demo 06 handout</a> · <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo07" target="_blank" rel="noreferrer">Preview Demo 07</a> · <a href="https://docs.confluent.io/platform/current/connect/index.html" target="_blank" rel="noreferrer">Confluent Kafka Connect</a> · <a href="https://docs.confluent.io/kafka-clients/python/current/overview.html" target="_blank" rel="noreferrer">Confluent Python client</a></div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="halfway-celebration">
+    <div class="frame narrow">
+      <p class="kicker">Course progress</p>
+      <h1>We are halfway there! 🎉</h1>
+      <div class="celebration-layout">
+        <div class="halfway-ring" role="img" aria-label="Course progress: 50 percent complete">
+          <div class="halfway-ring-inner">
+            <div><strong>50%</strong><span>complete</span></div>
+          </div>
+        </div>
+        <div class="celebration-copy">
+          <h2>You have built the core streaming path.</h2>
+          <p>Producers, consumers, schemas, APIs, Kafka Connect, and bounded stream processing are now connected.</p>
+          <p><strong>Next:</strong> state, joins, evaluation, real-time ML, and your final project.</p>
+          <div class="takeaway point"><strong>Keep going.</strong> You can now explain and build a real end-to-end streaming pipeline. 🚀</div>
+        </div>
+      </div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>

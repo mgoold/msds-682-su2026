@@ -132,7 +132,9 @@ def consume_bounded(
     # ==================== CODE START HERE ====================
     # TODO: implement a finite poll loop. Handle None and partition EOF,
     # surface real errors, skip other run IDs, call record_writer(record)
-    # before consumer.commit(message=..., asynchronous=False), collect commit
-    # evidence, and stop on max_messages, idle_timeout, or run_timeout.
+    # before consumer.commit(message=..., asynchronous=False), reject a missing
+    # result or any partition-level commit error, confirm offset+1, collect
+    # successful commit evidence, and stop on max_messages, idle_timeout, or
+    # run_timeout.
     raise NotImplementedError("Implement the bounded process-before-commit loop")
     # ===================== CODE ENDS HERE =====================

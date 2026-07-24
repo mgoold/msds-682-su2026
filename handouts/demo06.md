@@ -1,4 +1,4 @@
-# Demo 06: Kafka Connect and bounded stream processing
+# Demo 06: Kafka Connect and Bounded Stream Processing
 
 - **Lecture:** Lecture 6 - Kafka Connect and Stream Processing
 - **Python:** 3.11.14
@@ -14,17 +14,30 @@
 > processor validates input, computes a new fact, publishes a derived event,
 > and records its consumer progress.
 
-## 1. Goal and 50-minute route
+## 1. Objective, expected outcome, and 40-50-minute route
+
+### What you will build
+
+Build and verify one self-contained Confluent pipeline:
+
+```text
+managed source
+  -> Kafka Connect
+  -> Avro input records in Kafka
+  -> bounded Python processor
+  -> Avro derived records in Kafka
+  -> output acknowledgement
+  -> input consumer offset commit
+  -> verified resume and replay
+```
 
 By the end of Demo 06, you should be able to:
 
-1. distinguish Kafka Connect, Kafka, and a stream processor;
-2. explain source connector, worker, connector, task, and converter;
-3. inspect schema-aware records written by a managed source connector;
-4. follow `consume -> validate -> derive -> produce -> output ack -> commit`;
-5. prove same-group resume and explicit new-group replay; and
-6. explain why this baseline is at-least-once, not an automatic exactly-once
-   guarantee.
+1. use Kafka Connect to place schema-aware source records in Kafka;
+2. validate connector-created records before processing them;
+3. enforce `consume -> validate -> derive -> produce -> output ack -> commit`;
+4. prove same-group resume and explicit replay; and
+5. explain why this baseline is at-least-once.
 
 | Step | Demo | Main question | Time |
 |---:|---|---|---:|
@@ -33,27 +46,12 @@ By the end of Demo 06, you should be able to:
 | 3 | 06C: processor | When is it safe to commit an input offset? | 12-15 minutes |
 | 4 | 06D: resume and replay | What changes when the group ID changes? | 8-10 minutes |
 
-The whole route, including the no-permission fallback branch:
+**Start here:**
 
-```text
-   06A managed Datagen connector          fallback seed (only if the
-   ORDERS / AVRO / orderid / 2000 ms      account cannot create a
-              |                           managed connector; run once)
-              +------------+------------------------+
-                           v
-        input topic  msds682.demo06.connector-orders-avro.v1
-                           |
-                           v
-   06B inspect   read 3 records, validate, commit nothing
-                           |
-                           v
-   06C process   consume -> validate -> derive -> produce
-                 -> output ack -> commit input offset
-                           |
-                           v
-   06D prove     resume: same group continues after commits
-                 replay: new group forced to OFFSET_BEGINNING
-```
+- Standard route: Section 4 -> Section 5 -> Section 7 -> Section 8 ->
+  Section 9 -> Section 12 -> Section 13.
+- No managed connector permission: Section 4 -> Section 6 -> Section 7 ->
+  Section 8 -> Section 9 -> Section 12 -> Section 13.
 
 ## 2. Relationship to Demo 05
 
@@ -68,22 +66,15 @@ No Demo 05 topic, data, offsets, server, or process is required.
 | A bounded consumer processes before commit | Output acknowledgement occurs before input commit |
 | One API request becomes one durable event | One durable input event becomes one derived event |
 
-The system boundary is:
-
-```text
-External source
-  -> Kafka Connect source connector
-  -> input topic
-  -> Python consumer processor
-  -> Pydantic validation
-  -> derived event
-  -> output topic
-  -> output broker acknowledgement
-  -> input consumer offset commit
-```
-
 `commit` in this demo always means a **Kafka consumer offset commit**. It is
 not a producer acknowledgement and it is unrelated to a Git commit.
+
+### Bridge to Demo 07
+
+Demo 06 is the conceptual foundation for Demo 07, but it is not a runtime
+prerequisite. Demo 07 reuses the same acknowledgement-before-commit discipline,
+then adds model versions, delayed outcomes, a bounded join, and evaluation. It
+creates its own topics, schemas, data, groups, and offsets.
 
 ## 3. Direct prerequisites
 
@@ -93,7 +84,8 @@ not a producer acknowledgement and it is unrelated to a Git commit.
 |---|---:|---:|---:|---:|
 | Python 3.11.14 and the published requirements | Required | Required | Required | Required |
 | Confluent Cloud Kafka cluster | Required | Required | Required | Required |
-| Schema Registry and its separate credentials | Required | Required | Required | Required |
+| Schema Registry enabled for Avro | Required | Required | Required | Required |
+| Local Schema Registry credentials in `.env` | No | Required | Required | Required |
 | Managed connector permission | Preferred | No | No | No |
 | Existing Demo 06 topics | No; create them | Required | Required | Required |
 | Existing source records | No | At least 3 | At least 3 | At least 6 |
@@ -122,6 +114,17 @@ credentials. `.env` is ignored and must never be submitted.
 
 ## 5. Demo 06A: managed Datagen Source connector
 
+**Objective:** Establish the source-integration boundary: a managed connector,
+not a custom Python producer, creates schema-aware input records in Kafka.
+
+**Why:** Production data often begins in databases, object stores, or external
+services. Kafka Connect separates that integration work from application
+processing logic and lets the converter govern the Kafka wire format.
+
+**Done when:** The connector and task are `RUNNING`, the input topic contains at
+least 8 connector-created `ORDERS` records, and its Avro value subject is
+registered in Schema Registry. Pause the connector before continuing.
+
 First create and verify the two one-partition topics:
 
 ```bash
@@ -130,21 +133,33 @@ python demo06a_connect_source_plan.py \
   --create-topics
 ```
 
+Expected terminal lines:
+
+```text
+Demo 06A plan written to outputs/runs/.../demo06a/report.json
+Input topic: msds682.demo06.connector-orders-avro.v1
+Cloud Console: Connectors -> Add connector -> Datagen Source
+```
+
 Then open Confluent Cloud:
 
 1. Select your current Kafka cluster.
-2. Open **Connectors** and choose **Datagen Source**.
-3. Use the fields written in the 06A report:
-   - output topic: `msds682.demo06.connector-orders-avro.v1`;
+2. Open **Connectors**, then choose **Sample Data / Datagen Source**.
+3. If the one-click **Launch Sample Data** dialog appears, choose
+   **Additional configuration** so you can select the published topic.
+4. Select `msds682.demo06.connector-orders-avro.v1`, then continue:
+
+![Demo 06A topic selection in the Datagen wizard](assets/demo06/demo06a-topic-selection.jpg)
+
+5. Use the remaining fields written in the 06A report:
    - output data format: `AVRO`;
    - quickstart: `ORDERS`;
    - schema key field: `orderid`;
    - tasks: `1`;
    - maximum interval: `2000 ms`.
-4. Let Confluent Cloud manage or create the connector credentials.
-5. Wait until the connector and its task report `RUNNING`.
-6. Confirm at least 8 records in the input topic.
-7. **Pause the connector before continuing.** Delete it after the exercise.
+6. Let Confluent Cloud manage or create the connector credentials.
+7. Wait for `RUNNING`, confirm at least 8 records, and then pause the
+   connector. Delete it after the exercise.
 
 The advanced configuration should look like this. No API key or secret is
 visible in the screenshot:
@@ -162,16 +177,8 @@ set, and the dedicated input topic:
 > exercise but is not a production source. A production source connector would
 > read from an external database, object store, or service.
 
-### What 06A proves
-
-- the integration runtime can create source records without a custom Python
-  producer;
-- the connector owns one or more tasks;
-- the Avro converter registers the value schema in Schema Registry;
-- connector/task status is operational evidence.
-
-It does not prove that your Python processing logic is correct. That begins in
-06B and 06C.
+`RUNNING` proves that the integration is active. Record validation and
+processing correctness are verified separately in 06B and 06C.
 
 ## 6. Connector-permission fallback
 
@@ -184,14 +191,9 @@ python demo06_seed_source.py \
   --create-topics
 ```
 
-The fallback writes finite deterministic values with the managed Datagen
-`ORDERS` value schema. Its report identifies itself as a Python fallback. It
-does not claim that Kafka Connect ran.
-
-The two source modes share the value contract, but not necessarily the raw key
-encoding. The managed connector encodes its configured `orderid` key; the
-fallback uses readable UTF-8 decimal bytes. Do not mix both source modes in one
-exercise or infer the value schema from key length.
+The fallback writes finite deterministic `ORDERS` values and clearly identifies
+itself as Python-generated, not Kafka Connect. The two source modes share the
+value contract but may encode keys differently, so do not mix them in one run.
 
 Use a fresh Demo 06 topic. Do not first register a different schema under the
 same `<topic>-value` subject and then point Datagen at that topic. Do not weaken
@@ -199,18 +201,27 @@ Schema Registry compatibility to work around a subject ownership conflict.
 
 ## 7. Demo 06B: inspect connector-created source records
 
+**Objective:** Verify the source boundary before allowing a processor to claim
+progress: deserialize, validate, and record evidence for three input records
+without committing offsets.
+
+**Why:** A running connector proves only that integration infrastructure is
+active. It does not prove that the application can decode and understand the
+records. The inspection group must also remain separate from the processor's
+committed progress.
+
+**Done when:** Three Avro values pass `DatagenOrderV1` validation, the report
+contains their topic-partition-offset coordinates, and `manual_commits` is
+zero.
+
 ```bash
 python demo06b_confluent_source_consumer.py \
   --run-id lec6-demo06b-yourname \
   --max-messages 3
 ```
 
-06B uses a new isolated group, starts at `earliest`, reads exactly three
-records, fetches each writer schema through Schema Registry, and validates the
-decoded value with `DatagenOrderV1`.
-
-It deliberately makes zero commits. The inspection group must not alter the
-processor group's progress.
+06B uses an isolated group, reads exactly three records, resolves writer schemas
+through Schema Registry, validates `DatagenOrderV1`, and commits nothing.
 
 Expected result:
 
@@ -235,6 +246,17 @@ topic:
 > deserializer, and the Pydantic model?
 
 ## 8. Demo 06C: bounded stream processor
+
+**Objective:** Turn each durable input event into one durable derived fact while
+enforcing the processing order `output acknowledgement -> input offset commit`.
+
+**Why:** Committing first could lose work after a crash. Waiting for the derived
+record's broker acknowledgement before committing the input establishes the
+demo's explainable at-least-once correctness boundary.
+
+**Done when:** Three inputs produce three acknowledged `OrderMetricV1` records,
+each synchronous commit returns the expected next input offset, and the report
+shows the acknowledgement-before-commit sequence.
 
 ```bash
 python demo06c_confluent_stream_processor.py \
@@ -275,12 +297,37 @@ committing its input offset so the acknowledgement boundary is visible.
 Production processors normally batch acknowledgements or use transactions
 instead of paying for one blocking flush per record.
 
-The validated live run produced and acknowledged four derived records before
-performing four synchronous consumer offset commits:
+Expected result for the published three-record command:
+
+```text
+Processed 3 input records and committed only after output acknowledgement
+Secret-free report: outputs/runs/.../demo06c/report.json
+```
+
+The verified result card below records an earlier four-record live run. The
+published classroom command above uses three records; both runs follow the same
+acknowledge-before-commit sequence:
 
 ![Demo 06C verified result summary](assets/demo06/demo06c-actual-result.jpg)
 
+Each successful record in the generated report also includes the
+broker-confirmed next offset returned by the synchronous commit. A
+partition-level commit error stops the run and is never counted as success.
+
 ## 9. Demo 06D: same-group resume and new-group replay
+
+**Objective:** Prove two different recovery behaviors: the same consumer group
+resumes after its committed position, while a distinct replay group
+intentionally rereads retained history.
+
+**Why:** Resume and replay solve different operational problems. Resume supports
+normal recovery; replay supports backfills, reprocessing, and verification.
+Changing `auto.offset.reset` alone is not a reliable replay command once a group
+already has committed offsets.
+
+**Done when:** The first and resume passes use the same group and read disjoint
+coordinates, while the replay group is distinct, forces
+`OFFSET_BEGINNING`, and covers the first-pass coordinates again.
 
 Use a new run ID and at least six available input records:
 
@@ -298,21 +345,20 @@ The script runs three processor passes:
 | Resume | Same base group | Next three records |
 | Replay | Distinct replay group with forced beginning | First three records again |
 
-The script fails unless:
-
-- first and resume source coordinates are disjoint;
-- replay coordinates equal the first-pass coordinates;
-- first and resume use the same group;
-- replay uses a distinct group; and
-- replay overrides every assigned partition to `OFFSET_BEGINNING`.
-
-`auto.offset.reset=earliest` is only a fallback when a group has no committed
-position. It is not a reset command. Demo 06D forces the replay position in
-`on_assign`, so reusing the replay group cannot silently turn replay into
-resume.
+The run fails unless resume is disjoint from the first pass and replay covers
+the first-pass coordinates. `auto.offset.reset=earliest` is only a fallback,
+not a reset command, so 06D forces every replay assignment to
+`OFFSET_BEGINNING`.
 
 Replay intentionally republishes derived events. The report makes those stable
 duplicate keys visible.
+
+Expected result:
+
+```text
+Same-group resume and new-group replay checks passed
+Secret-free report: outputs/runs/.../demo06d/report.json
+```
 
 The following card summarizes a shorter two-record validation run. The command
 above remains the three-record classroom default.
@@ -371,3 +417,4 @@ The connector must not remain running after class.
 - [Confluent Cloud Datagen Source Connector](https://docs.confluent.io/cloud/current/connectors/cc-datagen-source.html)
 - [Kafka Connect concepts and internal state](https://docs.confluent.io/platform/current/connect/index.html)
 - [Confluent Python client overview](https://docs.confluent.io/kafka-clients/python/current/overview.html)
+- [Confluent Python transactional API](https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#transactional-api)

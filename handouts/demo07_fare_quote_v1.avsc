@@ -1,0 +1,41 @@
+{
+  "type": "record",
+  "name": "FareQuoteV1",
+  "namespace": "edu.usfca.msds682.demo07",
+  "fields": [
+    {"name": "run_id", "type": "string"},
+    {"name": "trip_id", "type": "string"},
+    {
+      "name": "requested_at",
+      "type": {"type": "long", "logicalType": "timestamp-millis"}
+    },
+    {
+      "name": "pickup",
+      "type": {
+        "type": "record",
+        "name": "FareQuotePointV1",
+        "fields": [
+          {"name": "latitude", "type": "double"},
+          {"name": "longitude", "type": "double"}
+        ]
+      }
+    },
+    {"name": "dropoff", "type": "FareQuotePointV1"},
+    {"name": "source_record_id", "type": "string"},
+    {"name": "quote_id", "type": "string"},
+    {"name": "estimated_miles", "type": "double"},
+    {"name": "estimated_minutes", "type": "double"},
+    {"name": "predicted_cost_cents", "type": ["null", "long"], "default": null},
+    {"name": "fare_cents", "type": "long"},
+    {"name": "currency", "type": "string"},
+    {"name": "pricing_method", "type": "string"},
+    {"name": "model_version", "type": "string"},
+    {"name": "model_feature_names", "type": {"type": "array", "items": "string"}},
+    {"name": "target_markup_pct", "type": "double"},
+    {"name": "routing_provider", "type": "string"},
+    {
+      "name": "quoted_at",
+      "type": {"type": "long", "logicalType": "timestamp-millis"}
+    }
+  ]
+}

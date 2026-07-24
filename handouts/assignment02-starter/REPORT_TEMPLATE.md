@@ -23,8 +23,8 @@ union is 0 through 11:
 ## Analysis
 
 Write at least 150 words addressing the required process-before-commit,
-failure-boundary, resume, offset-reset, replay, and component-responsibility
-questions:
+failure-boundary, synchronous commit-result checking, resume, offset-reset,
+replay, and component-responsibility questions:
 
 [Write here.]
 

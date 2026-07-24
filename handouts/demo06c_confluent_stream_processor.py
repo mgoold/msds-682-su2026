@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from confluent_kafka import Consumer, KafkaError, Producer
+from confluent_kafka import Consumer, KafkaError, KafkaException, Producer
 from confluent_kafka.admin import AdminClient
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
@@ -116,7 +116,34 @@ def process_one_message(
     # acknowledgement and it is unrelated to a Git commit. Output delivery is
     # confirmed first; only then may this consumer record input progress.
     # ========================================================================
-    consumer.commit(message=message, asynchronous=False)
+    committed = consumer.commit(message=message, asynchronous=False)
+    if committed is None:
+        raise RuntimeError("Synchronous input commit returned no result")
+    commit_failures = [
+        partition
+        for partition in committed
+        if getattr(partition, "error", None) is not None
+    ]
+    if commit_failures:
+        raise KafkaException(commit_failures[0].error)
+    expected_offset = message.offset() + 1
+    if not any(
+        partition.topic == message.topic()
+        and partition.partition == message.partition()
+        and partition.offset == expected_offset
+        for partition in committed
+    ):
+        raise RuntimeError(
+            "Synchronous input commit did not confirm the expected next offset"
+        )
+    commit_result = [
+        {
+            "topic": partition.topic,
+            "partition": partition.partition,
+            "offset": partition.offset,
+        }
+        for partition in committed
+    ]
     return {
         "source_topic": message.topic(),
         "source_partition": message.partition(),
@@ -128,6 +155,7 @@ def process_one_message(
         "size_band": metric.size_band,
         "output": tracker.delivered[0],
         "input_commit": "sync_after_output_ack",
+        "input_commit_result": commit_result,
     }
 
 

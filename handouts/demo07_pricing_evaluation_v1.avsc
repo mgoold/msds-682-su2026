@@ -1,0 +1,28 @@
+{
+  "type": "record",
+  "name": "PricingEvaluationV1",
+  "namespace": "edu.usfca.msds682.demo07",
+  "fields": [
+    {"name": "run_id", "type": "string"},
+    {"name": "trip_id", "type": "string"},
+    {"name": "quote_id", "type": "string"},
+    {"name": "model_version", "type": "string"},
+    {"name": "fare_cents", "type": "long"},
+    {"name": "actual_cost_cents", "type": "long"},
+    {"name": "profit_cents", "type": "long"},
+    {"name": "realized_markup_pct", "type": "double"},
+    {"name": "target_markup_pct", "type": "double"},
+    {"name": "markup_error_pp", "type": "double"},
+    {"name": "absolute_markup_error_pp", "type": "double"},
+    {
+      "name": "cost_prediction_error_cents",
+      "type": ["null", "long"],
+      "default": null
+    },
+    {"name": "within_target_tolerance", "type": "boolean"},
+    {
+      "name": "evaluated_at",
+      "type": {"type": "long", "logicalType": "timestamp-millis"}
+    }
+  ]
+}
