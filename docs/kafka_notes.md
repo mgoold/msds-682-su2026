@@ -10,15 +10,20 @@ The notes are in three parts:
 |---|---|---|
 | **I. Concepts** (§1–9) | What Kafka *is*: brokers, topics, partitions, offsets, replication | — |
 | **II. Skills** (§10–17) | How to *use* it from Python: connect, create, produce, consume, evolve | Demo 00–04 |
-| **III. Reference** (§18–20) | File map, command cheat sheet, troubleshooting | all |
+| **II. Skills, continued** (§18–22) | Putting an HTTP boundary in front of Kafka, and building a stream processor: FastAPI, native async clients, Kafka Connect, deriving events, resume vs. replay | Demo 05–06 |
+| **III. Reference** (§23–25) | File map, command cheat sheet, troubleshooting | all |
 
 > **How to read this:** Start at the top. Each section assumes only the ones
 > above it, with two deliberate exceptions, both flagged inline where they occur:
 > §4 names *partition* and *offset* as a map before §5 and §6 zoom in on them,
 > and the schema layer (§16) is introduced late, matching the demo order, even
 > though §12 already uses a validated model. Part I is theory with no code you
-> run; Part II is where you write and run things. A companion
-> [`glossary.md`](glossary.md) defines every term precisely.
+> run; Part II is where you write and run things. §18–22 assume everything in
+> §1–17 — Demo 05 puts a FastAPI application in front of the same producer
+> concepts from §12, and Demo 06 puts a stream processor behind the same
+> consumer concepts from §14, so nothing before them is repeated, only
+> extended. A companion [`glossary.md`](glossary.md) defines every term
+> precisely.
 
 ---
 ---
@@ -1778,12 +1783,418 @@ One event, end to end, with every concept in place:
 
 Everything above is the shape of every real Kafka application you will write.
 
+The five sections below extend that same shape two ways: Demo 05 puts an HTTP
+API in **front** of the producer half (§12), and Demo 06 puts a **second Kafka
+topic** behind the consumer half (§14), so a stream processor's own output
+becomes the input to whatever runs downstream.
+
+---
+
+## 18. FastAPI as a Kafka producer boundary (Demo 05A/05B)
+
+Every producer so far ([`demo02a`](../handouts/demo02a_confluent_sync_style_producer.py)
+onward) was a **script**: it generates its own events and calls `produce()`
+directly. Demo 05 asks a different question: what if the events come from an
+**HTTP request** made by someone else's code (a phone app, a browser, `curl`)?
+The answer is a small **web API**, built with **FastAPI**, that sits in front
+of the exact same `Producer` machinery.
+
+### 18.1 Two contracts, not one
+
+The tempting shortcut is to let FastAPI parse an HTTP request straight into
+the same event model Kafka carries. Demo 05 deliberately keeps them **separate**
+([`demo05_common.py`](../handouts/demo05_common.py)):
+
+```
+HTTP JSON  →  CreateTripRequest  →  request_to_event()  →  TripEventV1
+              (the HTTP contract)                          (the SAME Kafka
+                                                             event model
+                                                             Demo 04 defined)
+```
+
+`CreateTripRequest` is allowed to be more forgiving than `TripEventV1` — it
+parses a timestamp out of a JSON **string** and normalizes its timezone —
+precisely because HTTP callers cannot be expected to already speak the
+strict, timezone-aware, `extra="forbid"` dialect the Kafka event requires
+(§16.1). The HTTP contract's *only* job is to get untrusted input into a shape
+`request_to_event()` can safely turn into the real event.
+
+### 18.2 The seven FastAPI ideas this course cares about
+
+| Idea | What it is | Where |
+|---|---|---|
+| **Application** | the one `FastAPI(...)` object; everything below is registered on it | `create_app()` in [`demo05_app.py`](../handouts/demo05_app.py) |
+| **Path operation** | a Python function decorated `@app.get(...)` / `@app.post(...)` that handles one URL + HTTP method | `health()`, `create_trip()` |
+| **Request model** | a Pydantic `BaseModel` type-hinted on a path operation's parameter; FastAPI parses and validates the body against it automatically | `CreateTripRequest` |
+| **Response model** | the `response_model=` FastAPI validates the *return value* against, and documents in OpenAPI | `TripAcceptedResponse` |
+| **Status code** | the HTTP code FastAPI sends for a given outcome | `202` accepted, `422` bad input (automatic), `503` publisher failure |
+| **Lifespan** | an `async` context manager that runs once at process startup and once at shutdown, wrapping the entire time the app serves requests | the `lifespan` function inside `create_app()` |
+| **OpenAPI** | the machine-readable schema FastAPI generates from the type hints above, at `/openapi.json`; Swagger UI (§19.3) renders it visually at `/docs` | checked by [`demo05a`](../handouts/demo05a_fastapi_contract.py) |
+
+**Why 422 needs no code of yours.** A malformed POST body never reaches your
+path operation at all — FastAPI rejects it against the request model *before*
+your function runs, and reports exactly which field failed. This is the exact
+same "schema-on-write, reject before it can do damage" idea from §12.2 and
+§16.1, just enforced one layer earlier, at the HTTP boundary instead of at
+`TripEventV1(...)`.
+
+### 18.3 Why the publisher lives in lifespan, not in the route
+
+A naive route might construct a `Producer(config)` on every request. That
+repeats the exact mistake §12 warns against for a plain script — except worse,
+because a route runs on *every* request, not once. Constructing a Kafka
+producer is expensive (TLS handshake, SASL auth, a metadata fetch — the same
+warm-up cost §13.3 measures for the first async batch) and it starts a
+background I/O thread (§12.4). **Lifespan** exists precisely so that cost is
+paid once, matching FastAPI's own process lifetime to the one place a Kafka
+client's lifetime should also match:
+
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    publisher = await publisher_factory()   # runs ONCE, before serving starts
+    app.state.publisher = publisher
+    try:
+        yield                                # every request happens here
+    finally:
+        await publisher.close()              # runs ONCE, at shutdown
+```
+
+Every route reads `request.app.state.publisher` — the **one** shared
+publisher — rather than building its own.
+
+### 18.4 The local publisher: learning FastAPI before Cloud setup
+
+[`demo05a`](../handouts/demo05a_fastapi_contract.py) and
+[`demo05b`](../handouts/demo05b_fastapi_local_service.py) run against
+`LocalTripPublisher`, which talks to **memory**, not Kafka — no `.env`, no
+credentials, no socket. This is possible because `create_app()` is written
+entirely against a narrow `AsyncTripPublisher` **protocol** (`publish()` +
+`close()`), not against a concrete Kafka class, so the identical routes work
+whether the object behind them is a Python list or a real producer. Demo 05C
+swaps in the Cloud version (§19) without changing one line of routing code.
+
+`demo05a` exercises this with FastAPI's own `TestClient`
+([`demo05a_fastapi_contract.py`](../handouts/demo05a_fastapi_contract.py)),
+which runs requests through the whole pipeline — routing, validation,
+lifespan — via plain function calls instead of a real socket. `demo05b` runs
+the same app for real with **Uvicorn** (the ASGI server that actually accepts
+TCP connections and speaks HTTP), so you can open `/docs` in a browser.
+
+---
+
+## 19. Native async Kafka clients inside a running service (Demo 05C/05D)
+
+§15 already met asyncio Kafka clients (`AIOProducer` / `AIOConsumer`) running
+side by side in one script. Demo 05C reuses the **same** `AIOProducer` class,
+but for a new reason: FastAPI already owns an asyncio event loop serving
+*other requests concurrently*, and that loop must never be blocked.
+
+### 19.1 Why "async" here is not optional the way it was in §15
+
+```
+Demo 03D (§15):  producer and consumer are two tasks YOU chose to run together
+Demo 05C:        the event loop belongs to FASTAPI; every route shares it
+```
+
+Using the plain, blocking `Producer` (§12) inside an `async def` route would
+work — but every `.produce()`/`.flush()` call would freeze FastAPI's entire
+event loop until it returned, stalling *every other in-flight request* on the
+server. That is a much larger blast radius than blocking a one-shot script.
+`AIOProducer`, together with `AsyncSchemaRegistryClient` and
+`AsyncAvroSerializer` (the awaitable counterparts of §16.2's
+`SchemaRegistryClient`/`AvroSerializer`), let a route `await` Kafka and
+Registry work instead of blocking on it — nothing new conceptually versus
+§16.2's Avro pipeline, just every I/O step is now `await`-able.
+
+### 19.2 The three stages of one publish, made explicit
+
+[`demo05_kafka.py`](../handouts/demo05_kafka.py)'s `publish_one_event()` splits
+what `producer.produce()` + `flush()` (§12.4) does into three separately
+awaited stages:
+
+```python
+value_bytes      = await serializer(event, context)       # 1. object → Avro bytes
+delivery_future  = await producer.produce(topic, key=..., value=value_bytes)
+message          = await asyncio.wait_for(delivery_future, timeout=...)  # 3. wait for the ack
+```
+
+Stage 2 deserves a second look: `await producer.produce(...)` returns
+**another awaitable** — a delivery future — once the record is queued. That
+future is the async equivalent of the delivery **callback** (§12.3): instead
+of registering a function to be called later, you hold a handle and `await`
+it yourself, whenever you are ready to know the outcome.
+
+### 19.3 Acceptance, acknowledgement, and completion are three different claims
+
+Demo 05's whole API surface is designed so a caller cannot confuse these:
+
+| Response | What it actually proves |
+|---|---|
+| `202` with `"delivery": "local"` | the credential-free teaching boundary accepted it — no Kafka involved at all |
+| `202` with `"delivery": "broker_acknowledged"` | the Kafka **delivery future resolved** — the broker genuinely has the record (§8's `acks` guarantee, now visible in an HTTP body) |
+| `422` | FastAPI rejected the **HTTP contract** before your code ran (§18.2) |
+| `503` | the publisher raised `PublishError` — Kafka/Registry could not confirm acceptance in time |
+| a downstream consumer's own report | **processing** finished — a claim `202` never makes |
+
+**"Accepted" is not "processed."** An HTTP `202` — by definition, in the HTTP
+spec, not just in this course — means "your request was accepted for
+processing," not "processing is done." Demo 05C's independent consumer exists
+specifically to supply the one proof `202` cannot: that a published record was
+also read back and validated.
+
+### 19.4 Verifying delivery with an independent background-thread consumer
+
+Demo 05C's `BoundedTripConsumer` ([`demo05_kafka.py`](../handouts/demo05_kafka.py))
+is a plain, blocking `Consumer` (§14) — not an async one — running on a
+`threading.Thread`, separate from FastAPI's event loop entirely. It has no
+event loop of its own to protect, so there is no reason to pay for the async
+client here; this is the same "use async only where you already have a loop
+to protect" rule §15's closing note states.
+
+Because it lives on a different **thread**, not a `Task`, it cannot coordinate
+with the main thread via `asyncio.Event` the way §15's producer/consumer pair
+does. It uses `threading.Event` instead — the same *signal, not sleep*
+principle, translated to a different concurrency primitive:
+
+```python
+ready = threading.Event()                # set once real partition assignment arrives
+publishing_complete = threading.Event()  # set once the LAST HTTP request has returned
+
+worker.start()
+worker.wait_until_ready()      # blocks the main thread until `ready` is set
+# ... only now does the API start posting requests ...
+worker.mark_publishing_complete()   # starts the consumer's completion-timeout clock
+consumed = worker.join()
+```
+
+This is the same coordination hazard §15 described for `latest`-offset
+consumers — produce before assignment is confirmed, and the earliest records
+are missed forever — just solved with `threading.Event` because the consumer
+here is a thread, not a coroutine.
+
+---
+
+## 20. Kafka Connect: getting data in without a producer (Demo 06A/06B)
+
+Every demo through Demo 05 wrote its **own** producer in Python. Demo 06 asks:
+what if the data source is not something you wrote at all — a database, a
+SaaS API, a synthetic generator — and hand-writing a producer for it is either
+impossible or the wrong layer to own it? **Kafka Connect** is Kafka's answer:
+a managed integration runtime that moves data between an external system and
+a topic, with **no custom producer code**.
+
+### 20.1 The four Connect vocabulary words
+
+| Term | What it is | Who owns it |
+|---|---|---|
+| **Connector** | a configured integration job — "read from X, write Avro to topic Y" | you configure it (Confluent Cloud Console, in this course); Connect runs it |
+| **Worker** | the running process that executes connectors | the managed Connect runtime — never something you administer directly on Confluent Cloud |
+| **Task** | one parallel unit of work a connector splits into (`tasks.max`) | the connector; Demo 06 uses exactly 1 |
+| **Converter** | translates the external system's data into a Kafka record (here: Avro, via the same Schema Registry from §16.2) | the connector's configuration (`output.data.format=AVRO`) |
+
+**A source connector still produces a `(topic, partition, offset, key,
+value)`** — everything from §4 and §6 still applies to the record it writes.
+What is different is *who* calls the equivalent of `produce()`: the Connect
+worker, not your Python process.
+
+### 20.2 What 06A proves, and what it deliberately does not
+
+[`demo06a_connect_source_plan.py`](../handouts/demo06a_connect_source_plan.py)
+**never calls a Connect API** — it only prepares topics and prints the exact
+field values to type into the Confluent Cloud Console. The actual connector
+(a "Datagen Source" using the `ORDERS` quickstart) is created **by hand**, on
+purpose, so you see the connector/task reach `RUNNING` status directly in the
+Console rather than through an automated wrapper.
+
+06A proves the runtime can create valid Avro records with no Python producer,
+and that its converter registers a schema in the same Schema Registry every
+other Avro demo uses. It does **not** prove any of your own processing logic —
+that begins in 06C.
+
+### 20.3 The no-permission fallback, and why it is honest about being one
+
+Not every classroom account can create a managed connector.
+[`demo06_seed_source.py`](../handouts/demo06_seed_source.py) is a **plain
+Python producer** (the same `Producer` + `AvroSerializer` shape as §16.2/§16.3)
+that writes finite, deterministic records satisfying the **same** Avro schema
+the managed connector would produce — so 06B/06C/06D behave identically either
+way. Its report labels itself `"finite deterministic Python fallback, not
+Kafka Connect"` — it never claims to prove anything about Connect, converters,
+or connector lifecycle, only about the shape of the data it left behind.
+
+### 20.4 06B: an inspection consumer that commits nothing, on purpose
+
+[`demo06b_confluent_source_consumer.py`](../handouts/demo06b_confluent_source_consumer.py)
+is an ordinary bounded consumer (§14.2) with one deliberate twist: it commits
+**zero** offsets. It uses its own group ID
+(`consumer_group_id("demo06b-inspect", run_id)`), isolated from the group
+Demo 06C's real processor will use — so an inspection run can never advance
+the processor's progress. This is the same "different groups are independent"
+rule from §14.4, used here as a **safety boundary** rather than for
+parallelism: one group inspects, a different group processes.
+
+---
+
+## 21. Stream processing: deriving a new event (Demo 06C)
+
+Demo 06's real lesson: a **stream processor** is a consumer and a producer
+combined into one loop, where each input record causes a **new** fact to be
+computed and published, before the input's progress is recorded.
+
+### 21.1 The six-stage pipeline
+
+```
+poll input
+  → Avro deserialize
+  → Pydantic validate
+  → derive OrderMetricV1        ← the NEW fact; not in the input record at all
+  → Avro serialize
+  → produce to the DERIVED topic
+  → wait for OUTPUT broker acknowledgement
+  → commit the INPUT offset synchronously
+```
+
+This is §14.3's `poll → decode → validate → process → commit` rule, with
+**"process" expanded into three concrete steps** (derive, serialize, produce)
+and a new twist: "commit" now happens only after a **second topic's** producer
+has confirmed delivery, not merely after in-process work finished.
+
+> **"Commit" still means exactly one thing.** Just as in §14.3: a Kafka
+> **consumer offset commit** on the *input* topic. Never a producer
+> acknowledgement (that already happened one step earlier, on the *output*
+> topic) and never a Git commit.
+
+### 21.2 Why flush-then-commit, and what breaks if you reorder it
+
+[`demo06c_confluent_stream_processor.py`](../handouts/demo06c_confluent_stream_processor.py)'s
+`process_one_message()` calls `producer.flush(delivery_timeout)` on the
+**output** producer and checks it succeeded *before* calling
+`consumer.commit()` on the **input** consumer. Committing first would mean: if
+the process crashed before the derived record actually left the process, the
+input offset would already say "done" — and that derived fact would be lost
+forever, with no evidence it was ever supposed to exist. Flushing first, and
+only committing once that succeeds, means the worst case is a **duplicate**,
+never a **silent loss**.
+
+### 21.3 At-least-once, now across two topics
+
+§14.3 explained at-least-once for one consumer committing its own progress.
+Demo 06C has the same crash window, just spanning two topics instead of one:
+
+```
+... → produce output → wait for output ack → [ CRASH HERE ] → commit input offset
+                                                    ↑
+                                    output was already written and acknowledged;
+                                    input offset was never recorded
+                                    → next run reprocesses this input
+                                    → produces a SECOND derived record
+```
+
+**The mitigation is the same idea as §14.3's "make duplicates harmless," at a
+different altitude.** Instead of deduplicating on `(topic, partition, offset)`
+of the *input* (option 2 in §14.3), Demo 06C bakes that exact coordinate into
+the **derived** record's own key:
+
+```python
+source_record_id = f"{source_topic}:{source_partition}:{source_offset}"
+```
+
+Re-deriving from the same input always produces a derived record with the
+identical key — so a downstream system doing key-based deduplication can
+recognize the duplicate. This does not *prevent* the duplicate (only Kafka
+transactions or a true exactly-once design would); it makes the duplicate
+**observable and traceable back to its cause**, which is this classroom
+baseline's actual, stated guarantee.
+
+### 21.4 Verifying a commit actually landed — not just that it didn't raise
+
+`consumer.commit(message=msg, asynchronous=False)` returns a **list** of
+`TopicPartition` objects, one per partition included in the commit — and a
+multi-partition commit can partially fail without raising at all. Demo 06C's
+processor checks this explicitly:
+
+```python
+committed = consumer.commit(message=message, asynchronous=False)
+failures = [p for p in committed if p.error is not None]
+if failures:
+    raise KafkaException(failures[0].error)
+```
+
+**`KafkaException`** is the library's general-purpose error type, carrying a
+Kafka error code — the same kind of object `.result()` raises for a failed
+topic creation (§11) or a failed `create_topics()` call, just raised here
+explicitly, by application code, after inspecting a result that would
+otherwise look like quiet success. The processor goes one step further and
+confirms the committed offset is *exactly* `message.offset() + 1` — Kafka's
+convention that a committed offset always points at the **next** record to
+read — for this specific `(topic, partition)`, not merely that *some*
+partition somewhere committed successfully.
+
+---
+
+## 22. Resume vs. replay, formalized (Demo 06D)
+
+§14.4 first showed `OFFSET_BEGINNING` as a way to force a consumer back to the
+start. Demo 06D turns that into a controlled experiment proving **resume** and
+**replay** are genuinely different actions, not two names for one thing —
+by running the *same* processor (§21) three times with different arguments.
+
+### 22.1 Three passes, one function
+
+[`demo06d_confluent_resume_replay.py`](../handouts/demo06d_confluent_resume_replay.py)
+calls `run_processor()` from Demo 06C three times:
+
+| Pass | `group.id` | `force_beginning` | What happens |
+|---|---|---|---|
+| **First** | a brand-new base group | `False` | no committed offsets exist yet → reads from the start, naturally |
+| **Resume** | the **same** base group | `False` | the group already committed offsets in the First pass → continues from there |
+| **Replay** | a **distinct** replay group | `True` | every assigned partition's start offset is overridden, explicitly |
+
+### 22.2 `auto.offset.reset` is a fallback; `OFFSET_BEGINNING` is a command
+
+§14.1 already flagged this, and Demo 06D is exactly the scenario where getting
+it backwards would quietly break the experiment: `auto.offset.reset` only
+applies to a group with **no** committed position at all. If the replay group
+ID were ever reused on a second run, it would by then have committed offsets
+from its first replay, and `earliest` would do **nothing** — the second
+"replay" would silently become a resume. `AssignmentTracker.force_beginning`
+(in [`demo06_common.py`](../handouts/demo06_common.py)) avoids that trap by
+rewriting every assigned partition's offset in `on_assign`, **every single
+time this group runs**, whether or not it has committed offsets:
+
+```python
+def on_assign(self, consumer, partitions):
+    if self.force_beginning:
+        for partition in partitions:
+            partition.offset = OFFSET_BEGINNING   # a command, not a fallback
+    consumer.assign(partitions)
+```
+
+### 22.3 What the validation actually checks
+
+`validate_resume_replay()` compares each pass's `source_record_id` values
+(§21.3's stable input coordinates) and fails loudly if any of these do not
+hold:
+
+| Check | What it would mean if false |
+|---|---|
+| First and Resume coordinates are **disjoint** | the Resume pass reprocessed something the First pass already committed — resume did not actually resume |
+| Replay coordinates equal First's coordinates, **as sets** | the replay did not reproduce the same original input (set, not list order, because partitions can interleave differently between runs even for identical underlying records) |
+| First and Resume share one `group_id` | the "same group" claim is actually true |
+| Replay's `group_id` differs from First's | the "distinct group" claim is actually true |
+
+**Replayed output is an intentional duplicate**, not a bug: the whole point of
+§21.3's stable derived key is that a replayed input produces a
+recognizably-identical derived record, and Demo 06D's report says so
+explicitly rather than treating the duplicate as a failure.
+
 ---
 ---
 
 # Part III — Reference
 
-## 18. Demo file map
+## 23. Demo file map
 
 | File | Role in this story | Sections |
 |---|---|---|
@@ -1807,10 +2218,25 @@ Everything above is the shape of every real Kafka application you will write.
 | [`demo04b_local_avro_roundtrip.py`](../handouts/demo04b_local_avro_roundtrip.py) | **Avro + mock Registry**, schema evolution (local) | §16.2 |
 | [`demo04c_confluent_avro_roundtrip.py`](../handouts/demo04c_confluent_avro_roundtrip.py) | Avro round trip on **real Confluent Cloud** | §16.3 |
 | [`demo04d_asyncio_avro_roundtrip.py`](../handouts/demo04d_asyncio_avro_roundtrip.py) | Avro + **asyncio** round trip | §15, §16.3 |
+| [`demo05.md`](../handouts/demo05.md) | FastAPI + Kafka lecture notes | §18–19 |
+| [`demo05_common.py`](../handouts/demo05_common.py) | HTTP request/response models; maps `CreateTripRequest` → the Demo 04 `TripEventV1` | §18.1 |
+| [`demo05_app.py`](../handouts/demo05_app.py) | FastAPI application factory: routes, lifespan, the local/Cloud publisher abstraction | §18.2, §18.3 |
+| [`demo05_kafka.py`](../handouts/demo05_kafka.py) | Native async Cloud publisher (`AIOProducer`) + independent bounded verification consumer | §19 |
+| [`demo05a_fastapi_contract.py`](../handouts/demo05a_fastapi_contract.py) | FastAPI contract — fully local, via `TestClient` | §18.2, §18.4 |
+| [`demo05b_fastapi_local_service.py`](../handouts/demo05b_fastapi_local_service.py) | The same app as a real interactive Uvicorn service | §18.4 |
+| [`demo05c_confluent_fastapi_roundtrip.py`](../handouts/demo05c_confluent_fastapi_roundtrip.py) | Bounded, automated HTTP → Avro → Kafka → consumer round trip on real Confluent Cloud | §19 |
+| [`demo05d_live_confluent_service.py`](../handouts/demo05d_live_confluent_service.py) | The Cloud publisher as an interactive Uvicorn service (optional) | §19.3 |
+| [`demo06.md`](../handouts/demo06.md) | Kafka Connect + stream processing lecture notes | §20–22 |
+| [`demo06_common.py`](../handouts/demo06_common.py) | Input/output Pydantic models, deterministic fallback data, `AssignmentTracker` with forced-replay support | §20, §22.2 |
+| [`demo06_seed_source.py`](../handouts/demo06_seed_source.py) | The no-managed-connector-permission fallback producer | §20.3 |
+| [`demo06a_connect_source_plan.py`](../handouts/demo06a_connect_source_plan.py) | Prepares topics and the Confluent Cloud Console fields for the managed Datagen connector | §20.2 |
+| [`demo06b_confluent_source_consumer.py`](../handouts/demo06b_confluent_source_consumer.py) | Read-only inspection consumer — zero commits, isolated group | §20.4 |
+| [`demo06c_confluent_stream_processor.py`](../handouts/demo06c_confluent_stream_processor.py) | The **stream processor**: consume → validate → derive → produce → output ack → commit | §21 |
+| [`demo06d_confluent_resume_replay.py`](../handouts/demo06d_confluent_resume_replay.py) | Same-group resume vs. distinct-group forced replay, proved with three passes | §22 |
 
 ---
 
-## 19. Command cheat sheet
+## 24. Command cheat sheet
 
 ```bash
 # Setup (once)
@@ -1841,14 +2267,30 @@ python demo03d_confluent_asyncio_produce_consume.py --count 6
 python demo04a_schema_validation.py
 python demo04b_local_avro_roundtrip.py
 python demo04c_confluent_avro_roundtrip.py
+
+# 5. FastAPI + Kafka  (05a/05b need no cloud account)
+python demo05a_fastapi_contract.py --count 3
+python demo05b_fastapi_local_service.py --port 8001        # open http://127.0.0.1:8001/docs
+python demo05c_confluent_fastapi_roundtrip.py --run-id lec5-demo05c --count 3 --create-topic
+python demo05d_live_confluent_service.py --port 8001 --create-topic   # optional, interactive
+
+# 6. Kafka Connect + stream processing
+python demo06a_connect_source_plan.py --run-id lec6-demo06a --create-topics
+# then create the managed Datagen Source connector in Confluent Cloud, OR:
+python demo06_seed_source.py --run-id lec6-demo06-seed --count 8 --create-topics   # fallback
+python demo06b_confluent_source_consumer.py --run-id lec6-demo06b --max-messages 3
+python demo06c_confluent_stream_processor.py --run-id lec6-demo06c --max-messages 3
+python demo06d_confluent_resume_replay.py --run-id lec6-demo06d --messages-per-pass 3
 ```
 
 Common flags: `--run-id` (names the evidence folder), `--count`, `--seed 682`
 (reproducibility), `--max-messages` / `--idle-timeout` (bound consumer loops).
+Demo 05/06 add `--create-topic` / `--create-topics` (opt-in, safe to omit on a
+second run) and, in Demo 06, `--max-interval-ms` for the Datagen connector plan.
 
 ---
 
-## 20. Troubleshooting
+## 25. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
@@ -1862,6 +2304,15 @@ Common flags: `--run-id` (names the evidence folder), `--count`, `--seed 682`
 | `_PARTITION_EOF` raised as an error | treating EOF as fatal | Skip it — it is informational (§14.2) |
 | `UnicodeDecodeError` / `JSONDecodeError` on consume | reading **Avro** bytes as JSON | Use the Avro deserializer; Avro is not text (§16.2) |
 | Sync line looks flat at zero on the chart | linear y-axis with a ~200× gap | Use `plt.yscale("log")` (§13.4) |
+| HTTP `422` on `POST /trip-requests` | invalid ID/timestamp/zone, or an extra field | Read the response's error `loc`; the request model rejected it before Kafka was involved (§18.2) |
+| HTTP `503` on `POST /trip-requests` | Kafka or Schema Registry unreachable, or the delivery future timed out | Check `.env` credentials and cluster state (§10, §16.3); the failure is in `PublishError`, not your route (§19.3) |
+| Demo 05C: `broker_acknowledged` count is less than `requested` | the verification consumer started polling before its partition assignment was confirmed | Confirm `wait_until_ready()` runs before any HTTP POST (§19.4) |
+| Connector stuck `PROVISIONING` or `FAILED` in Confluent Cloud | topic, credential, or Schema Registry access is incomplete | Open the connector/task status panel and fix the reported field (§20.2) |
+| Connector reports an incompatible existing schema | another schema already owns that `<topic>-value` subject | Use a fresh Demo 06 topic rather than weakening compatibility (§16.2, §20.2) |
+| Demo 06B consumes zero records | the connector never produced, was paused too early, or the fallback was never run | Run the managed connector or `demo06_seed_source.py` first (§20.3) |
+| Demo 06C processes zero records | its own new group has no accessible input | Confirm input-topic access and ACLs; 06B and 06C use deliberately different groups (§20.4) |
+| Demo 06D "resume" repeats the first batch | the base `group_id` changed between passes, or its commit failed | Keep the same generated base group; inspect the First pass's commit evidence (§22.1, §21.4) |
+| Demo 06D "replay" does not reproduce the first batch | `force_beginning` was not set, or the replay group had prior committed offsets from an earlier run | Use a fresh replay group; `auto.offset.reset` alone will not replay a group with existing commits (§22.2) |
 
 ---
 
