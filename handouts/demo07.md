@@ -1,12 +1,15 @@
 # Demo 07: Real-Time Pricing, Delayed Outcomes, and Model Evaluation
 
-- **Lecture:** Lecture 7, State, Features, and Real-Time ML
+- **Lecture:** Lecture 7B, Stateful Stream Processing
 - **Python:** 3.11.14
 - **Kafka client:** `confluent-kafka[avro,schemaregistry]==2.15.0`
 - **ML library:** `scikit-learn==1.9.0`
 - **Validation:** `pydantic==2.13.4`
 - **Routing:** open-source OSRM Route service or an explicit offline fixture
 - **Cloud platform:** your Confluent Cloud environment
+
+> **Naming:** Lecture 7B is the lecture. Demo 07A-07F are six runnable steps
+> inside Demo 07; they are not additional lecture sections.
 
 > ##### KEY CONCEPT
 >
@@ -646,7 +649,7 @@ fare quote + delayed trip outcome -> business evaluation
 
 ### Streaming join versus database join
 
-Demo 07 implements the streaming path because Lecture 7 is about keyed state:
+Demo 07 implements the streaming path because Lecture 7B is about keyed state:
 
 | Question | Kafka event-driven join | Database join |
 |---|---|---|

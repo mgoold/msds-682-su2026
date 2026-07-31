@@ -87,15 +87,15 @@ const pages = {
               <td>7</td>
               <td><strong>Mon · Jul 27</strong><span class="table-secondary">5:30–7:20 PM PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Stream processing and final project requirements</td>
-              <td>Demo, joins, streams, tables, and stateful processing</td>
+              <td>Lecture 7A/7B: Final Project and Stateful Stream Processing</td>
+              <td>Project scope and proposal contract, followed by joins, delayed outcomes, and stateful correctness</td>
             </tr>
             <tr>
               <td>8</td>
               <td><strong>Thu · Jul 30</strong><span class="table-secondary">5:30–7:20 PM PDT</span></td>
               <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
-              <td>Stateful stream processing</td>
-              <td>Windowing, aggregation, and querying basics</td>
+              <td>Lecture 8: Project Systems and End-to-End Architecture</td>
+              <td>Proposal scope through 2023 examples, an insurance document-to-answer system, and a minimum compute-owner framework</td>
             </tr>
             <tr>
               <td>9</td>
@@ -133,7 +133,7 @@ const pages = {
   "/assignments": {
     title: "Assignments",
     body: `
-      <p class="lede">There are two individual assignments and one final project. <a href="https://usfca.instructure.com/courses/1633704" target="_blank" rel="noopener">Canvas</a> is the official submission platform; submit homework and final-project materials there as ZIP files.</p>
+      <p class="lede">There are two individual assignments and one final project. <a href="https://usfca.instructure.com/courses/1633704" target="_blank" rel="noopener">Canvas</a> is the official submission platform; submit the proposal as one PDF and the assignment/final packages in their required formats.</p>
       <div class="assignment-list">
         <article class="assignment-card">
           <h3>Assignment 1</h3>
@@ -148,13 +148,14 @@ const pages = {
           <p><a class="download-link" href="#/handouts/assignment02">Open Assignment 2</a> · <a href="handouts/assignment02-starter.zip">Download student starter</a></p>
         </article>
         <article class="assignment-card">
-          <h3>Final Project</h3>
-          <p>Final project worth 50% total: proposal 10%, written report/code 20%, presentation 20%. Projects may be completed individually or in two-person teams; individual projects are always allowed.</p>
+          <h3>Final Project Proposal</h3>
+          <p>Submit one PDF of no more than 550 words and no more than 2 pages; ideally, use 1 page. The proposal is worth 10 points and 10% of the course grade. Projects may be completed individually or in a two-person team. For a team, contributions to the proposal and final project must remain approximately 50-50.</p>
           <div class="milestone-list">
             <div><strong>Proposal</strong><span>Due Tue Aug 4, 2026 · 11:59 PM PDT · 10% course weight</span></div>
             <div><strong>Report/code</strong><span>Due Aug 14, 2026 · 11:59 PM PDT</span></div>
             <div><strong>Presentation</strong><span>Timing will be announced on Canvas</span></div>
           </div>
+          <p><a class="download-link" href="#/handouts/final-project-proposal-template">Open proposal template</a> · <a href="#/handouts/final-project-proposal-rubric">Open 10-point proposal rubric</a> · <a href="#/handouts/final-project">Open full project requirements</a></p>
         </article>
       </div>
 
@@ -164,7 +165,7 @@ const pages = {
         <li><strong>Late policy for homework and project deliverables:</strong> up to 1 day late receives a 10% deduction; up to 2 days late receives a 20% deduction; day 3 or later is not accepted and receives zero credit.</li>
         <li>GitHub is used for code management, collaboration, and portfolio development.</li>
         <li>AI tools, coding agents, open-source resources, and online references are permitted with clear attribution. Students must understand and verify submitted work and use another method when an AI tool cannot resolve the problem reliably.</li>
-        <li>For two-person final projects, each student must document individual contributions and be able to explain the design, code, AI usage, and evaluation results.</li>
+        <li>For two-person final projects, contributions, including the proposal, must be approximately 50-50. Each student must document contributions and be able to explain the design, code, AI usage, and evaluation results.</li>
       </ul>
     `
   },
@@ -293,27 +294,59 @@ const handoutSections = [
     summary: "Move data into Kafka with Connect, then validate, derive, acknowledge, commit, resume, and replay."
   },
   {
-    id: "lec7",
-    label: "Lecture 7",
-    title: "State, Features, and Real-Time ML",
-    summary: "Train a cost model, quote trips, join delayed outcomes, evaluate versions, and recommend one version."
+    id: "lec7a",
+    label: "Lecture 7A",
+    title: "Final Project",
+    summary: "Define the project contract, proposal, bounded AI element, review path, and required evidence."
+  },
+  {
+    id: "lec7b",
+    label: "Lecture 7B",
+    title: "Stateful Stream Processing",
+    summary: "Join fare quotes with delayed outcomes, then compare two pricing methods in Demo 07."
+  },
+  {
+    id: "lec8",
+    label: "Lecture 8",
+    title: "Project Systems and End-to-End Architecture",
+    summary: "Scope one complete project path, learn from 2023 examples, study an insurance document-to-answer system, and choose a compute owner from durable requirements."
   }
 ];
 
-function lectureNumber(section) {
-  const match = /^lec(\d+)$/.exec(section.id);
-  return match ? Number(match[1]) : null;
+function lectureIdentity(section) {
+  const match = /^lec(\d+)([a-z]?)$/.exec(section.id);
+  if (!match) return null;
+  const number = Number(match[1]);
+  const suffix = match[2].toUpperCase();
+  const suffixOrder = suffix ? suffix.charCodeAt(0) - 64 : 0;
+  return {
+    code: `${number}${suffix}`,
+    number,
+    suffixOrder
+  };
 }
 
 const lectureSectionsNewestFirst = handoutSections
-  .filter((section) => lectureNumber(section) !== null)
-  .sort((a, b) => lectureNumber(b) - lectureNumber(a));
+  .filter((section) => lectureIdentity(section) !== null)
+  .sort((a, b) => {
+    const aIdentity = lectureIdentity(a);
+    const bIdentity = lectureIdentity(b);
+    return bIdentity.number - aIdentity.number
+      || aIdentity.suffixOrder - bIdentity.suffixOrder;
+  });
 
-// The two newest published lectures form one current teaching batch.
-const latestLectureSections = lectureSectionsNewestFirst.slice(0, 2);
+// All parts of the newest numbered lecture form one current teaching batch.
+const latestLectureNumber = lectureSectionsNewestFirst.length
+  ? lectureIdentity(lectureSectionsNewestFirst[0]).number
+  : null;
+const latestLectureSections = lectureSectionsNewestFirst.filter(
+  (section) => lectureIdentity(section).number === latestLectureNumber
+);
 const earlierHandoutSections = [
-  ...lectureSectionsNewestFirst.slice(2),
-  ...handoutSections.filter((section) => lectureNumber(section) === null)
+  ...lectureSectionsNewestFirst.filter(
+    (section) => lectureIdentity(section).number !== latestLectureNumber
+  ),
+  ...handoutSections.filter((section) => lectureIdentity(section) === null)
 ];
 
 const handouts = [
@@ -553,29 +586,146 @@ const handouts = [
     summary: "Independent real-Confluent FastAPI-to-Avro input plus bounded validation, commit, resume, and replay."
   },
   {
-    slug: "lec7-stateful-stream-processing",
-    section: "lec7",
+    slug: "lec7a-final-project",
+    section: "lec7a",
     category: "Slides",
-    title: "Lecture 7: Stateful Stream Processing",
+    title: "Lecture 7A: Final Project",
     kind: "html",
-    file: "handouts/lec7-stateful-stream-processing.html",
-    createdAt: "Created at 4:26 PM PDT on July 23, 2026",
-    lastUpdatedAt: "Last updated at 5:10 PM PDT on July 23, 2026",
+    file: "handouts/lec7a-final-project.html",
+    createdAt: "Created at 4:06 PM PDT on July 27, 2026",
+    lastUpdatedAt: "Last updated at 5:16 PM PDT on July 27, 2026",
     wide: true,
     standalone: true,
-    summary: "Build from stateless processing to keyed state, time-aware joins, delayed outcomes, and bounded model evaluation."
+    summary: "Define a feasible streaming project, proposal contract, bounded AI element, review path, and visible evidence."
+  },
+  {
+    slug: "final-project",
+    section: "lec7a",
+    category: "Project",
+    title: "Final Project Requirements",
+    kind: "md",
+    file: "handouts/final-project.md",
+    createdAt: "Created at 4:01 PM PDT on July 27, 2026",
+    lastUpdatedAt: "Last updated at 5:07 PM PDT on July 27, 2026",
+    wide: true,
+    summary: "Student-facing contract for the proposal, streaming product, bounded AI element, review path, final package, and presentation."
+  },
+  {
+    slug: "final-project-ideas",
+    section: "lec7a",
+    category: "Ideas",
+    title: "Final Project Ideas",
+    kind: "md",
+    file: "handouts/final-project-ideas.md",
+    createdAt: "Created at 4:05 PM PDT on July 27, 2026",
+    lastUpdatedAt: "Last updated at 5:16 PM PDT on July 27, 2026",
+    wide: true,
+    summary: "Eight course-sized project directions with public or synthetic data, a Kafka path, bounded AI, evaluation, and replay."
+  },
+  {
+    slug: "final-project-proposal-template",
+    section: "lec7a",
+    category: "Template",
+    title: "Final Project Proposal Template",
+    kind: "md",
+    file: "handouts/final-project-proposal-template.md",
+    createdAt: "Created at 3:54 PM PDT on July 27, 2026",
+    lastUpdatedAt: "Last updated at 5:07 PM PDT on July 27, 2026",
+    wide: true,
+    download: {
+      filename: "MSDS-682-Final-Project-Proposal-Template.md",
+      label: "Download Markdown template (.md)"
+    },
+    summary: "One-PDF proposal structure covering the problem, data source, streaming architecture, tools, feasibility, contributions, required AI element, and disclosure."
+  },
+  {
+    slug: "final-project-proposal-rubric",
+    section: "lec7a",
+    category: "Rubric",
+    title: "Final Project Proposal Rubric",
+    kind: "md",
+    file: "handouts/final-project-proposal-rubric.md",
+    createdAt: "Created at 3:54 PM PDT on July 27, 2026",
+    lastUpdatedAt: "Last updated at 5:16 PM PDT on July 27, 2026",
+    wide: true,
+    summary: "Student-facing proposal rubric with five 2-point buckets and ten independently scored criteria."
+  },
+  {
+    slug: "lec7b-stateful-stream-processing",
+    section: "lec7b",
+    category: "Slides",
+    title: "Lecture 7B: Stateful Stream Processing",
+    kind: "html",
+    file: "handouts/lec7b-stateful-stream-processing.html",
+    createdAt: "Created at 4:26 PM PDT on July 23, 2026",
+    lastUpdatedAt: "Last updated at 5:31 PM PDT on July 27, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Join fare quotes with delayed outcomes, compare two pricing methods, and define the state, time, recovery, and delivery policies."
   },
   {
     slug: "demo07",
-    section: "lec7",
+    section: "lec7b",
     category: "Demo",
     title: "Demo 07: Real-Time Pricing, Delayed Outcomes, and Model Evaluation",
     kind: "md",
     file: "handouts/demo07.md",
     createdAt: "Created at 3:38 AM PDT on July 23, 2026",
-    lastUpdatedAt: "Last updated at 5:08 PM PDT on July 23, 2026",
+    lastUpdatedAt: "Last updated at 4:13 PM PDT on July 27, 2026",
     wide: true,
     summary: "Compare a rule baseline with a trained cost model, then join fare quotes to delayed outcomes and evaluate the 20% markup target."
+  },
+  {
+    slug: "lec8-system-design",
+    section: "lec8",
+    category: "Slides",
+    title: "Lecture 8: Project Systems and End-to-End Architecture",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture8-Three-Part-Index.html",
+    createdAt: "Created at 4:46 PM PDT on July 30, 2026",
+    lastUpdatedAt: "Last updated at 4:46 PM PDT on July 30, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Course map and classroom entry point: project design through 2023 evidence, an insurance end-to-end case, and a minimum compute-owner framework."
+  },
+  {
+    slug: "lec8-project-design-2023",
+    section: "lec8",
+    category: "Part 1",
+    title: "Lecture 8 Part 1: Project Design Through 2023 Evidence",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture8-2023-Project-Retrospective.html",
+    createdAt: "Created at 4:46 PM PDT on July 30, 2026",
+    lastUpdatedAt: "Last updated at 4:46 PM PDT on July 30, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Use one proposal architecture contract and seven sanitized historical examples to identify closed loops, stateful products, and scope gaps."
+  },
+  {
+    slug: "lec8-insurance-end-to-end",
+    section: "lec8",
+    category: "Part 2",
+    title: "Lecture 8 Part 2: Insurance Document Events to Authorized Answers",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture8-Insurance-RAG-MCP-Reviewed.html",
+    createdAt: "Created at 4:46 PM PDT on July 30, 2026",
+    lastUpdatedAt: "Last updated at 4:46 PM PDT on July 30, 2026",
+    wide: true,
+    standalone: true,
+    summary: "A complete industrial case with versioned object storage, Kafka change events, idempotent consumers, active knowledge, authorized retrieval, RAG, and MCP."
+  },
+  {
+    slug: "lec8-compute-owner-decisions",
+    section: "lec8",
+    category: "Part 3",
+    title: "Lecture 8 Part 3: Minimum Compute-Owner Decision Framework",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture8-Stream-Processing-Decision-Guide.html",
+    createdAt: "Created at 4:46 PM PDT on July 30, 2026",
+    lastUpdatedAt: "Last updated at 4:46 PM PDT on July 30, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Choose a plain consumer, stateful SQL engine, or embedded processing library from state, time, recovery, scale, and ownership requirements; specific products continue in Lecture 9."
   }
   // PDF example (uncomment and add the file to publish):
   // {
@@ -643,13 +793,38 @@ const lectureRoadmap = [
     ]
   },
   {
-    section: "lec7",
+    section: "lec7a",
     slides: {
-      slug: "lec7-stateful-stream-processing",
-      label: "Lecture slides"
+      slug: "lec7a-final-project",
+      label: "Lecture 7A slides"
+    },
+    materials: [
+      { slug: "final-project", label: "Project requirements" },
+      { slug: "final-project-ideas", label: "Project ideas" },
+      { slug: "final-project-proposal-template", label: "Proposal template" },
+      { slug: "final-project-proposal-rubric", label: "Proposal rubric" }
+    ]
+  },
+  {
+    section: "lec7b",
+    slides: {
+      slug: "lec7b-stateful-stream-processing",
+      label: "Lecture 7B slides"
     },
     materials: [
       { slug: "demo07", label: "Demo 07" }
+    ]
+  },
+  {
+    section: "lec8",
+    slides: {
+      slug: "lec8-system-design",
+      label: "Lecture 8 overview"
+    },
+    materials: [
+      { slug: "lec8-project-design-2023", label: "Part 1 · Project design + 2023 evidence" },
+      { slug: "lec8-insurance-end-to-end", label: "Part 2 · Insurance end to end" },
+      { slug: "lec8-compute-owner-decisions", label: "Part 3 · Compute-owner framework" }
     ]
   }
 ];
@@ -665,6 +840,15 @@ function handoutMetaHtml(h) {
     .filter(Boolean)
     .map((line) => `<span>${escapeHtml(line)}</span>`)
     .join("");
+}
+
+function handoutDownloadHtml(h) {
+  if (!h.download) return "";
+  const fallbackName = h.file.split("/").pop();
+  const filename = h.download.filename || fallbackName;
+  const label = h.download.label || "Download file";
+  return `<p class="handout-actions"><a class="download-link" href="${escapeHtml(h.file)}" ` +
+    `download="${escapeHtml(filename)}">${escapeHtml(label)}</a></p>`;
 }
 
 function handoutListMeta(h) {
@@ -773,14 +957,14 @@ function lectureRoadmapHtml() {
       throw new Error(`Lecture roadmap references an unknown section: ${lecture.section}`);
     }
 
-    const number = lectureNumber(section);
+    const identity = lectureIdentity(section);
     const links = [lecture.slides, ...lecture.materials]
       .map(lectureRoadmapLinkHtml)
       .join("");
 
     return `
       <li class="lecture-map-row">
-        <span class="lecture-map-number" aria-hidden="true">${String(number).padStart(2, "0")}</span>
+        <span class="lecture-map-number" aria-hidden="true">${identity.code.padStart(2, "0")}</span>
         <div class="lecture-map-copy">
           <strong>${escapeHtml(section.label)}: ${escapeHtml(section.title)}</strong>
           <span>${escapeHtml(section.summary)}</span>
@@ -812,6 +996,10 @@ function handoutsListBody() {
   `;
 }
 
+const handoutRouteAliases = Object.freeze({
+  "lec7-stateful-stream-processing": "lec7b-stateful-stream-processing"
+});
+
 const fallbackRoute = "/";
 const content = document.querySelector("#content");
 const skipLink = document.querySelector(".skip-link");
@@ -827,7 +1015,8 @@ function parseRoute() {
   const hash = window.location.hash.replace(/^#/, "") || fallbackRoute;
   const detail = hash.match(/^\/handouts\/(.+)$/);
   if (detail) {
-    return { kind: "handout", slug: detail[1], nav: "/handouts" };
+    const slug = handoutRouteAliases[detail[1]] || detail[1];
+    return { kind: "handout", slug, nav: "/handouts" };
   }
   if (hash === "/handouts") {
     return { kind: "static", route: "/handouts", nav: "/handouts" };
@@ -1079,7 +1268,8 @@ async function renderHandout(slug) {
       }
     }
     const articleClass = meta.wide ? "handout handout-wide" : "handout";
-    content.innerHTML = `${backLink}<article class="${articleClass}">${html}</article>`;
+    content.innerHTML = `${backLink}${handoutDownloadHtml(meta)}` +
+      `<article class="${articleClass}">${html}</article>`;
     const article = content.querySelector("article");
     if (article && mathBlocks.length) {
       restoreDisplayMath(article, mathBlocks);

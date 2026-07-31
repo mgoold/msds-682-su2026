@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="MSDS 682 Lecture 8 Part 3: Lecture 7B defined the processing; this part chooses the compute owner that runs it. Products continue in Lecture 9."
+  />
+  <title>MSDS 682 · Lecture 8 · Stream-Processing Decision Guide</title>
+  <link rel="stylesheet" href="lecture8-three-part.css" />
+</head>
+<body data-deck="Part 3 · Stream processing">
+<div class="progress" aria-hidden="true"></div>
+
+<section class="slide hero" id="stream-processing-title" data-timing="92–93 min">
+  <a class="back-link" href="MSDS682-Lecture8-Three-Part-Index.html">← Lecture 8 index</a>
+  <div class="frame">
+    <p class="kicker">MSDS 682 · <b>Lecture 8 · Part 3</b></p>
+    <h1>Now choose who runs it</h1>
+    <p class="sub">
+      Lecture 7B defined what stream processing has to do. This part picks the compute owner that does it.
+    </p>
+    <div class="hero-meta">
+      <span class="pill wip">Work in progress · products in Lecture 9</span>
+      <span class="pill">15 minutes</span>
+      <span class="pill">Five questions, three owners</span>
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+
+<section class="slide" id="the-open-question" data-timing="93–96 min">
+  <div class="frame">
+    <p class="kicker">What is still open</p>
+    <h1>The operation is settled. The owner is not.</h1>
+    <div class="rail">
+      <div class="rail-node">
+        <b>What must happen</b>
+        <span>Lecture 7B: operation, state, time, recovery, delivery</span>
+      </div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node compute">
+        <b>Who runs it</b>
+        <span>Today: consumer, SQL engine, or embedded library</span>
+      </div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node output">
+        <b>Which product</b>
+        <span>Lecture 9: named tools, once the requirement is explicit</span>
+      </div>
+    </div>
+    <div class="takeaway amber">
+      <strong>Do not start from a product name.</strong>
+      Product features, pricing, and availability change; the requirement is what you can still reason about next year.
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="five-stable-questions" data-timing="96–99 min">
+  <div class="frame narrow">
+    <p class="kicker">Ask before naming a tool</p>
+    <h1>Five questions decide the owner</h1>
+    <ol class="number-list">
+      <li><strong>State:</strong> must it remember anything between events?</li>
+      <li><strong>Time:</strong> do windows, event time, or late records change the answer?</li>
+      <li><strong>Scale:</strong> how much throughput, state, and operational load?</li>
+      <li><strong>Recovery:</strong> what happens after a crash or a replay?</li>
+      <li><strong>Ownership:</strong> who maintains it, and in which language?</li>
+    </ol>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="three-owners" data-timing="99–104 min">
+  <div class="frame">
+    <p class="kicker">Three owners</p>
+    <h1>Choose the smallest owner that meets the contract</h1>
+    <div class="trio">
+      <article class="card green">
+        <span class="tag">Hard part: a simple effect</span>
+        <h2>Plain consumer</h2>
+        <p>Validate, call an API, write a result. State and time needs are small and explicit.</p>
+        <p class="trap"><strong>Trap:</strong> "every Kafka message needs a stream processor."</p>
+      </article>
+      <article class="card blue">
+        <span class="tag">Hard part: a maintained table</span>
+        <h2>Stateful SQL engine</h2>
+        <p>The current answer per key is the product, and the team already operates SQL.</p>
+        <p class="trap"><strong>Trap:</strong> "SQL removes the need to define state and recovery."</p>
+      </article>
+      <article class="card purple">
+        <span class="tag">Hard part: time plus state</span>
+        <h2>Embedded library</h2>
+        <p>Waiting, joining, and late policy belong in typed application code with tests and one release owner.</p>
+        <p class="trap"><strong>Trap:</strong> "code is always more powerful than SQL."</p>
+      </article>
+    </div>
+    <div class="takeaway">
+      <strong>Demo 07 sat in the third column:</strong> a quote waits for a delayed outcome, joins on <code>trip_id</code>, and publishes an evaluation. There is no universal winner, only a fit.
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="decision-exit-ticket" data-timing="104–107 min">
+  <div class="frame narrow">
+    <p class="kicker">Part 3 close · Exit ticket</p>
+    <h1>One sentence before you name a product</h1>
+    <p class="quote">
+      "My project needs <em>this state and time behavior</em>, so I choose
+      <em>this owner</em>, and I will prove it with <em>this replay or failure test</em>."
+    </p>
+    <div class="links">
+      <strong>Work in progress, continues in Lecture 9:</strong> concrete products such as ksqlDB, Flink SQL, and Kafka Streams, compared only against a requirement you can already state.
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<script src="lecture8-three-part.js"></script>
+</body>
+</html>

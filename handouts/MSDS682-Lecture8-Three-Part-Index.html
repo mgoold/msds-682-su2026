@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="MSDS 682 Lecture 8 index: project-design guidance through 2023 examples, an insurance industry case, and a minimal stream-processing decision guide."
+  />
+  <title>MSDS 682 · Lecture 8 · Three-Part Index</title>
+  <link rel="stylesheet" href="lecture8-three-part.css" />
+</head>
+<body data-deck="Lecture 8 index">
+<div class="progress" aria-hidden="true"></div>
+
+<section class="slide hero" id="lecture-8-index" data-timing="0–1 min">
+  <div class="frame">
+    <p class="kicker">MSDS 682 · <b>Lecture 8</b></p>
+    <h1>Design a project.<br />Study a complete system.</h1>
+    <p class="sub">
+      Start from a feasible proposal and earlier student evidence, then study one
+      industrial end-to-end case and close with a deliberately small selection framework.
+    </p>
+    <div class="hero-meta">
+      <span class="pill">Part 1 · Project design + 2023 evidence</span>
+      <span class="pill">Part 2 · Insurance case</span>
+      <span class="pill">Part 3 · Tool selection</span>
+      <span class="pill">Proposal due Aug 4</span>
+      <span class="pill">No syntax tutorial</span>
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<section
+  class="slide"
+  id="course-arc-lectures-1-6"
+  data-timing="1–4 min"
+  data-source-slides="lec3-consumers.html#pptx-09-course-overview; lec4-data-contracts.html#course-arc-lec2-5; lec5-streaming-apis.html#s02; lec6-kafka-connect-stream-processing.html#course-materials-map"
+>
+  <div class="frame">
+    <p class="kicker">Course arc · Lectures 1 to 6</p>
+    <h1>Six lectures built one data path</h1>
+    <p class="sub">Prepare it. Write it. Read it. Govern its meaning. Expose it through an application. Then move, process, and recover it.</p>
+    <div class="trio">
+      <article class="card">
+        <span class="tag">Lecture 1 · Prepare</span>
+        <h2>Environment</h2>
+        <p>Set up and verify the Python environment used throughout the course.</p>
+      </article>
+      <article class="card blue">
+        <span class="tag">Lecture 2 · Produce</span>
+        <h2>Topics + producers</h2>
+        <p>Write key/value bytes into Kafka topics.</p>
+      </article>
+      <article class="card green">
+        <span class="tag">Lecture 3 · Consume</span>
+        <h2>Progress</h2>
+        <p>Poll, process, commit, resume, replay, and scale with consumer groups.</p>
+      </article>
+      <article class="card purple">
+        <span class="tag">Lecture 4 · Contract</span>
+        <h2>Meaning</h2>
+        <p>Use Pydantic, Avro, and Schema Registry to govern the wire record.</p>
+      </article>
+      <article class="card amber">
+        <span class="tag">Lecture 5 · Apply</span>
+        <h2>HTTP + Kafka</h2>
+        <p>Connect a FastAPI boundary to schema-aware producer and consumer paths.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Lecture 6 · Integrate + process</span>
+        <h2>Movement and recovery</h2>
+        <p>Use Connect, derive new facts, acknowledge, commit, resume, and replay.</p>
+      </article>
+    </div>
+    <div class="takeaway">
+      <strong>Same map as before, now complete through Lecture 6:</strong>
+      the ideas accumulate; each demo keeps its own data and topics.
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<section
+  class="slide"
+  id="lecture-7-to-8-bridge"
+  data-timing="4–6 min"
+  data-source-slides="lec7b-stateful-stream-processing.html#project-first; lec7b-stateful-stream-processing.html#stateful-correctness-map; lec7b-stateful-stream-processing.html#lecture-7b-synthesis"
+>
+  <div class="frame">
+    <p class="kicker">Lecture 7 → Lecture 8</p>
+    <h1>Lecture 7A/7B established the project contract and stateful method</h1>
+    <div class="rail">
+      <div class="rail-node">
+        <b>Fare quotes now</b>
+        <span>rule-v1 and ridge-v2 emit two versions for each <code>trip_id</code></span>
+      </div>
+      <div class="rail-arrow">+</div>
+      <div class="rail-node">
+        <b>Trip outcomes later</b>
+        <span>the actual cost arrives after the quote</span>
+      </div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node state">
+        <b>Pricing evaluations</b>
+        <span>join by <code>trip_id</code>, measure error, compare versions</span>
+      </div>
+    </div>
+    <div class="trio">
+      <article class="card purple">
+        <span class="tag">Lecture 7 · Project contract</span>
+        <h2>Define what will be built</h2>
+        <p>Problem, data source, architecture, bounded AI, verification path, and evidence.</p>
+      </article>
+      <article class="card blue">
+        <span class="tag">Lecture 7 · Stateful method</span>
+        <h2>Define correctness</h2>
+        <p>What matches? How long may it wait? How is state recovered? What happens to late, missing, or duplicate input?</p>
+      </article>
+      <article class="card green">
+        <span class="tag">Lecture 8 · Apply the method</span>
+        <h2>Use the judgment—not the same architecture</h2>
+        <p>Scope the proposal, learn from earlier student systems, then review an industry system and one durable selection framework.</p>
+      </article>
+    </div>
+    <div class="takeaway green">
+      <strong>The bridge:</strong> Lectures 1–6 taught the responsibilities; Lecture 7 composed them;
+      Lecture 8 asks how to recognize, scope, and defend good end-to-end designs in several different contexts.
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="three-independent-parts" data-timing="6–8 min">
+  <div class="frame">
+    <p class="kicker">Today · Lecture 8</p>
+    <h1>Project first, then the industrial case</h1>
+    <nav class="part-grid" aria-label="Lecture 8 parts">
+      <a class="part-link" href="MSDS682-Lecture8-2023-Project-Retrospective.html">
+        <span class="big-number">01</span>
+        <h2>Project design through 2023 evidence</h2>
+        <p>
+          Apply one proposal architecture contract, then use seven sanitized projects
+          to see closed loops, stateful products, and scope gaps.
+        </p>
+        <span class="time">27 minutes · 8–35</span>
+      </a>
+      <a class="part-link" href="MSDS682-Lecture8-Insurance-RAG-MCP-Reviewed.html">
+        <span class="big-number">02</span>
+        <h2>Insurance: end to end</h2>
+        <p>
+          The promised industry example: document changes, S3, Kafka events,
+          independent consumers, versioned knowledge, authorized RAG, and MCP.
+        </p>
+        <span class="time">52 minutes · 40–92</span>
+      </a>
+      <a class="part-link" href="MSDS682-Lecture8-Stream-Processing-Decision-Guide.html">
+        <span class="big-number">03</span>
+        <h2>Stream processing: who runs it</h2>
+        <p>
+          Lecture 7B settled what the processing must do. Five questions and three
+          compute owners decide who runs it.
+        </p>
+        <span class="time">15 minutes · 92–107 · products continue in Lecture 9</span>
+      </a>
+    </nav>
+    <div class="takeaway amber">
+      <strong>Break:</strong> 35–40 minutes, after project design and before the insurance case.
+      The final three minutes are reserved for the proposal next action and exit ticket.
+    </div>
+  </div>
+  <div class="crumb"></div><div class="timing"></div><div class="pager"></div>
+</section>
+
+<script src="lecture8-three-part.js"></script>
+</body>
+</html>

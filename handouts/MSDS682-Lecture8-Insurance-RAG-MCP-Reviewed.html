@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="MSDS 682 Lecture 8 slides: a reviewed insurance document architecture using S3, Kafka, versioned indexing, vector search, RAG, and an authorized MCP serving layer." name="description"/>
+<title>MSDS 682 · Lecture 8 Part 2 · From Document Events to Authorized Answers</title>
+<style>
+    :root {
+      --bg: #f4f4f2;
+      --ink: #16181d;
+      --muted: #626873;
+      --line: #e4e5e1;
+      --panel: #ffffff;
+      --accent: #3565f2;
+      --accent-soft: #eef1fe;
+      --accent-line: #ccd7fb;
+      --green: #0e7f66;
+      --green-soft: #e7f3f0;
+      --green-line: #c0e0d8;
+      --amber: #8a5a06;
+      --amber-soft: #fff3d9;
+      --amber-line: #eeda9f;
+      --purple: #6f4fc3;
+      --purple-soft: #f1edfb;
+      --purple-line: #dcd2f4;
+      --red: #a33d3d;
+      --red-soft: #f9eaea;
+      --red-line: #edc7c7;
+      --code-bg: #171b24;
+      --code-ink: #e9edf5;
+      --mono: "SF Mono", Menlo, Consolas, monospace;
+      --shadow: 0 8px 28px rgba(22, 24, 29, .05);
+      --fs-body: clamp(17px, 1.1vw, 22px);
+      --fs-small: clamp(16px, 1vw, 20px);
+      --fs-kicker: clamp(13px, .85vw, 16px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    body { overflow-x: hidden; }
+
+    .lecture-index-link {
+      position: fixed;
+      top: 16px;
+      left: 18px;
+      z-index: 20;
+      padding: 8px 12px;
+      border: 1px solid #d7dbe7;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .9);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-decoration: none;
+      text-transform: uppercase;
+      box-shadow: var(--shadow);
+    }
+
+    .lecture-index-link:hover,
+    .lecture-index-link:focus-visible {
+      color: var(--accent);
+      border-color: var(--accent-line);
+      outline: none;
+    }
+
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      place-items: center;
+      padding: 4vh 3vw 6vh;
+      position: relative;
+    }
+
+    .frame { width: min(1320px, 92vw); }
+    .frame.narrow { width: min(1080px, 88vw); }
+
+    .kicker {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .kicker b { color: var(--accent); font-weight: 700; }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(36px, 2.8vw, 54px);
+      font-weight: 750;
+      letter-spacing: -.028em;
+      line-height: 1.06;
+    }
+
+    .hero h1 {
+      max-width: 1160px;
+      font-size: clamp(52px, 4.4vw, 84px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    .sub {
+      margin: 0 0 3vh;
+      color: var(--muted);
+      font-size: clamp(18px, 1.3vw, 25px);
+      line-height: 1.45;
+    }
+
+    p, li, td, th { font-size: var(--fs-body); line-height: 1.5; }
+    code { font-family: var(--mono); font-size: .9em; }
+
+    .duo {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(16px, 1.7vw, 28px);
+      align-items: stretch;
+    }
+
+    .trio {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(14px, 1.5vw, 24px);
+      align-items: stretch;
+    }
+
+    .quad {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(12px, 1.2vw, 20px);
+      align-items: stretch;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: clamp(20px, 2vw, 32px);
+      box-shadow: var(--shadow);
+    }
+
+    .card .tag {
+      display: block;
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: clamp(22px, 1.6vw, 31px);
+      line-height: 1.15;
+      letter-spacing: -.015em;
+    }
+
+    .card p { margin: 0; color: var(--muted); }
+    .card p + p { margin-top: 8px; }
+    .card p strong, .card p code { color: var(--ink); }
+
+    .card.good { background: var(--green-soft); border-color: var(--green-line); }
+    .card.warn { background: var(--amber-soft); border-color: var(--amber-line); }
+    .card.risk { background: var(--red-soft); border-color: var(--red-line); }
+    .card.purple { background: var(--purple-soft); border-color: var(--purple-line); }
+
+    .rail {
+      display: flex;
+      align-items: stretch;
+      gap: clamp(8px, .8vw, 14px);
+      margin: 3vh 0 0;
+    }
+
+    .rail-node {
+      flex: 1;
+      min-height: clamp(112px, 14vh, 155px);
+      display: grid;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: clamp(15px, 1.4vw, 23px);
+      text-align: center;
+    }
+
+    .rail-node b {
+      font-size: clamp(18px, 1.35vw, 26px);
+      letter-spacing: -.015em;
+    }
+
+    .rail-node span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: var(--fs-small);
+      line-height: 1.38;
+    }
+
+    .rail-node.sm {
+      min-height: clamp(78px, 10vh, 108px);
+      padding: 12px 10px;
+    }
+
+    .rail-node.sm b { font-size: clamp(15px, 1.05vw, 20px); }
+    .rail-node.sm span { margin-top: 4px; font-size: clamp(12px, .82vw, 15px); }
+
+    .n-s3 { background: var(--accent-soft); border-color: var(--accent-line); }
+    .n-s3 b { color: #2c4fab; }
+    .n-kafka { background: var(--panel); border: 2px solid var(--ink); }
+    .n-proc { background: var(--green-soft); border-color: var(--green-line); }
+    .n-proc b { color: #14604e; }
+    .n-vector { background: var(--purple-soft); border-color: var(--purple-line); }
+    .n-vector b { color: #543f8f; }
+    .n-mcp { background: var(--amber-soft); border-color: var(--amber-line); }
+    .n-mcp b { color: #6f4a09; }
+    .n-client { background: #fff; border-color: #cfd2d8; }
+
+    .rail-arrow {
+      display: grid;
+      place-items: center;
+      color: #a9adb6;
+      font-size: clamp(22px, 1.8vw, 34px);
+      font-weight: 600;
+    }
+
+    .rail-title {
+      margin: 3vh 0 0;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .rail-title + .rail { margin-top: 10px; }
+
+    .factline {
+      margin: 2.2vh 0 0;
+      color: var(--muted);
+      font-size: var(--fs-body);
+    }
+
+    .factline strong, .factline code { color: var(--ink); }
+
+    table {
+      width: 100%;
+      margin-top: 2.5vh;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      box-shadow: var(--shadow);
+    }
+
+    th, td {
+      padding: clamp(11px, 1.15vh, 17px) 17px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th { color: var(--ink); background: #fafafa; font-weight: 750; }
+    td { color: var(--muted); }
+    td strong, td code { color: var(--ink); }
+    tr:last-child td { border-bottom: 0; }
+
+    .compact th, .compact td {
+      padding: clamp(8px, .85vh, 13px) 14px;
+      font-size: clamp(14px, .95vw, 18px);
+      line-height: 1.36;
+    }
+
+    .codecard {
+      background: var(--code-bg);
+      border-radius: 15px;
+      padding: clamp(20px, 1.8vw, 30px);
+      box-shadow: 0 12px 36px rgba(23, 27, 36, .14);
+    }
+
+    pre {
+      margin: 0;
+      color: var(--code-ink);
+      font-family: var(--mono);
+      font-size: clamp(14px, .95vw, 18px);
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .kw { color: #98b9ff; }
+    .str { color: #a8e6be; }
+    .num { color: #f0c97b; }
+    .comment { color: #9299a8; }
+
+    .takeaway {
+      margin-top: clamp(18px, 2.6vh, 30px);
+      border-radius: 12px;
+      padding: 15px 20px;
+      font-size: var(--fs-body);
+      line-height: 1.45;
+    }
+
+    .takeaway strong { color: var(--ink); }
+
+    .takeaway.point {
+      background: var(--green-soft);
+      border: 1px solid var(--green-line);
+      color: #185c4d;
+    }
+
+    .takeaway.caveat {
+      background: var(--amber-soft);
+      border: 1px solid var(--amber-line);
+      color: #6f4a09;
+    }
+
+    .takeaway.risk {
+      background: var(--red-soft);
+      border: 1px solid var(--red-line);
+      color: #7d3232;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin: 18px 0 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      padding: 7px 12px;
+      border: 1px solid var(--accent-line);
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #2c4fab;
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+    }
+
+    .module-toc {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 3vh;
+    }
+
+    .module-toc a {
+      min-height: 170px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 20px 18px;
+      color: inherit;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .module-toc a:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-line);
+      box-shadow: 0 12px 30px rgba(22, 24, 29, .09);
+    }
+
+    .module-toc a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .module-toc .number {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 800;
+    }
+
+    .module-toc h2 {
+      margin: 12px 0 8px;
+      font-size: clamp(22px, 1.6vw, 30px);
+    }
+
+    .module-toc p {
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--fs-small);
+      line-height: 1.4;
+    }
+
+    .module-divider { background: #eceef5; }
+    .module-divider[data-tone="green"] { background: #e9f1ef; }
+    .module-divider[data-tone="amber"] { background: #f5efe3; }
+    .module-divider[data-tone="purple"] { background: #f0ecf8; }
+
+    .module-divider-shell {
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      gap: clamp(28px, 4vw, 64px);
+      align-items: center;
+    }
+
+    .module-index {
+      font-family: var(--mono);
+      font-size: clamp(80px, 8.5vw, 150px);
+      line-height: .9;
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: -.08em;
+    }
+
+    .module-label {
+      margin-top: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+    }
+
+    .module-divider h1 {
+      max-width: 950px;
+      font-size: clamp(44px, 3.8vw, 72px);
+    }
+
+    .module-points {
+      margin: 2.5vh 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      max-width: 900px;
+    }
+
+    .module-points li {
+      border-left: 3px solid var(--accent);
+      padding: 4px 0 4px 16px;
+      color: var(--muted);
+      font-size: clamp(18px, 1.3vw, 25px);
+    }
+
+    .module-points li strong { color: var(--ink); }
+
+    .module-strip {
+      display: flex;
+      gap: 8px;
+      margin-top: 3.2vh;
+      max-width: 860px;
+    }
+
+    .module-strip span {
+      flex: 1;
+      border-top: 3px solid #c9cdd8;
+      padding-top: 8px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: clamp(11px, .75vw, 14px);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .module-strip span.here {
+      border-top-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .path-stack {
+      display: grid;
+      gap: 14px;
+      margin-top: 3vh;
+    }
+
+    .path-row {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+    }
+
+    .path-label {
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .path-row .rail { margin: 0; }
+
+    .number-list {
+      display: grid;
+      gap: 13px;
+      margin: 3vh 0 0;
+      padding: 0;
+      counter-reset: idea;
+      list-style: none;
+    }
+
+    .number-list li {
+      counter-increment: idea;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      border-bottom: 1px solid var(--line);
+      padding: 0 0 13px;
+      font-size: clamp(19px, 1.35vw, 26px);
+    }
+
+    .number-list li::before {
+      content: counter(idea, decimal-leading-zero);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 800;
+      padding-top: 5px;
+    }
+
+    .number-list small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: var(--fs-small);
+      line-height: 1.35;
+    }
+
+    .checklist {
+      margin: 2.5vh 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 24px;
+    }
+
+    .checklist li {
+      position: relative;
+      padding: 10px 10px 10px 40px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .checklist li::before {
+      content: "□";
+      position: absolute;
+      left: 6px;
+      top: 6px;
+      color: var(--accent);
+      font-size: 25px;
+      font-weight: 700;
+    }
+
+    .checklist strong { color: var(--ink); }
+
+    .final-list {
+      display: grid;
+      gap: 13px;
+      margin: 3vh 0 0;
+      padding: 0;
+      counter-reset: final;
+      list-style: none;
+    }
+
+    .final-list li {
+      counter-increment: final;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 0 0 13px;
+      font-size: clamp(20px, 1.4vw, 27px);
+    }
+
+    .final-list li::before {
+      content: counter(final, decimal-leading-zero);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .term {
+      position: relative;
+      border-bottom: 1px dotted currentColor;
+      cursor: help;
+    }
+
+    .term::after {
+      content: attr(data-def);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 10px);
+      z-index: 5;
+      width: min(340px, 70vw);
+      transform: translate(-50%, 4px);
+      border-radius: 9px;
+      background: var(--ink);
+      padding: 10px 12px;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.35;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+
+    .term:hover::after,
+    .term:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+
+    .links { margin-top: 2.5vh; color: var(--muted); font-size: var(--fs-small); }
+    .links a { color: var(--accent); text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+
+    .pager, .crumb {
+      position: absolute;
+      bottom: 16px;
+      color: #8b9098;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .05em;
+    }
+
+    .pager { right: 24px; }
+    .crumb { left: 24px; text-transform: uppercase; }
+
+    .architecture-figure {
+      margin: 2.5vh 0 0;
+      padding: clamp(14px, 1.4vw, 20px);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .architecture-figure img {
+      display: block;
+      width: 100%;
+      max-height: 53vh;
+      object-fit: contain;
+    }
+
+    .architecture-figure figcaption {
+      margin-top: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: var(--fs-kicker);
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .js .frame {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .28s ease, transform .28s ease;
+    }
+
+    .js .frame.in { opacity: 1; transform: translateY(0); }
+
+    .js .rail-seq > .rail-node,
+    .js .rail-seq > .rail-arrow {
+      opacity: .22;
+      transition: opacity .3s ease;
+    }
+
+    .js .in .rail-seq > .rail-node,
+    .js .in .rail-seq > .rail-arrow { opacity: 1; }
+
+    .js .in .rail-seq > :nth-child(1) { transition-delay: .05s; }
+    .js .in .rail-seq > :nth-child(2) { transition-delay: .15s; }
+    .js .in .rail-seq > :nth-child(3) { transition-delay: .25s; }
+    .js .in .rail-seq > :nth-child(4) { transition-delay: .35s; }
+    .js .in .rail-seq > :nth-child(5) { transition-delay: .45s; }
+    .js .in .rail-seq > :nth-child(6) { transition-delay: .55s; }
+    .js .in .rail-seq > :nth-child(7) { transition-delay: .65s; }
+    .js .in .rail-seq > :nth-child(8) { transition-delay: .75s; }
+    .js .in .rail-seq > :nth-child(9) { transition-delay: .85s; }
+    .js .in .rail-seq > :nth-child(10) { transition-delay: .95s; }
+    .js .in .rail-seq > :nth-child(11) { transition-delay: 1.05s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .js .frame,
+      .js .rail-seq > .rail-node,
+      .js .rail-seq > .rail-arrow {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+      .module-toc a { transition: none; }
+    }
+
+    @media print {
+      html { scroll-snap-type: none; }
+      body { background: #fff; }
+      section.slide {
+        min-height: auto;
+        padding: 28px 0;
+        page-break-after: always;
+      }
+      .js .frame,
+      .js .rail-seq > .rail-node,
+      .js .rail-seq > .rail-arrow {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .crumb, .pager { display: none; }
+    }
+
+    @media (max-width: 1080px) {
+      .quad, .module-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .path-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 980px) {
+      .trio { grid-template-columns: 1fr; }
+      .rail { flex-direction: column; }
+      .rail-arrow { transform: rotate(90deg); }
+      .module-divider-shell { grid-template-columns: 120px 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      section.slide { padding: 7vh 5vw; }
+      .duo, .quad, .module-toc, .checklist { grid-template-columns: 1fr; }
+      .module-divider-shell { grid-template-columns: 1fr; }
+      .module-index { font-size: 72px; }
+    }
+  </style>
+</head>
+<body>
+<a class="lecture-index-link" href="MSDS682-Lecture8-Three-Part-Index.html">← Lecture 8 index</a>
+<section class="slide hero" id="lecture-8-title">
+<div class="frame">
+<p class="kicker">MSDS 682 · <b>Lecture 8 · Part 2</b></p>
+<h1>From document events<br/>to authorized answers</h1>
+<p class="sub">Insurance documents with S3, Kafka, embeddings, vector search, RAG, and MCP.</p>
+<div class="rail">
+<div class="rail-node n-s3"><b>Documents</b><span>Policies and amendments in object storage</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-kafka"><b>Change events</b><span>Durable, keyed, replayable history</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Current knowledge</b><span>Versioned chunks and vectors</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-mcp"><b>MCP read door</b><span>Authorized search for AI clients</span></div>
+</div>
+<div class="hero-meta">
+<span class="pill">One insurance example</span>
+<span class="pill">52 minutes · 40–92</span>
+<span class="pill">Write path + read path</span>
+<span class="pill">Kafka earns its seat—or does not</span>
+<span class="pill">Bounded AI</span>
+</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="one-question">
+<div class="frame narrow">
+<p class="kicker">The question for today</p>
+<h1>A policy changed. How does the next answer use the new version?</h1>
+<div class="trio" style="margin-top: 3vh;">
+<article class="card">
+<span class="tag">Write</span>
+<h2>Capture the change</h2>
+<p>A new policy, renewal, endorsement, replacement, or deletion arrives.</p>
+</article>
+<article class="card">
+<span class="tag">Maintain</span>
+<h2>Update knowledge safely</h2>
+<p>Fetch, validate, chunk, embed, activate the new version, and retire stale state.</p>
+</article>
+<article class="card">
+<span class="tag">Read</span>
+<h2>Answer with authorization</h2>
+<p>An AI client calls an MCP tool that retrieves only the documents the user may access.</p>
+</article>
+</div>
+<div class="takeaway point"><strong>The model is the last step.</strong> The harder work is keeping the underlying knowledge fresh, ordered, reviewable, and authorized.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="two-paths">
+<div class="frame">
+<p class="kicker">Two paths, one system</p>
+<h1>Continuous updates and interactive questions solve different problems</h1>
+<figure class="architecture-figure">
+<img
+  src="MSDS682-Lecture8-End-to-End-Workflow.svg"
+  alt="Insurance system context with a Kafka-backed write path that maintains active serving state and a separate authorized interactive read path."
+/>
+<figcaption>The write and read paths meet at current serving state—not inside Kafka.</figcaption>
+</figure>
+<div class="takeaway caveat"><strong>Kafka is not the chat reply path.</strong> It maintains the event history and state that make the reply current.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="lecture-8-overview">
+<div class="frame">
+<p class="kicker">Lecture 8 overview</p>
+<h1>Four modules, one insurance system</h1>
+<nav aria-label="Lecture 8 modules" class="module-toc">
+<a href="#module-1-decide"><span class="number">01</span><h2>Decide</h2><p>When does Kafka earn its seat?</p></a>
+<a href="#module-2-write"><span class="number">02</span><h2>Write</h2><p>How does a document change become maintained state?</p></a>
+<a href="#module-3-read"><span class="number">03</span><h2>Read</h2><p>How do RAG and MCP expose authorized knowledge?</p></a>
+<a href="#module-4-prove"><span class="number">04</span><h2>Prove</h2><p>How do we test freshness, correctness, and scope?</p></a>
+</nav>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="project-scope">
+<div class="frame narrow">
+<p class="kicker">Project scope</p>
+<h1>Bounded AI is required; a large AI architecture is not</h1>
+<table>
+<thead><tr><th>Required</th><th>Optional</th><th>Still the grading center</th></tr></thead>
+<tbody>
+<tr>
+<td>One AI step with defined input, output, verification, and fallback</td>
+<td>RAG, MCP, agents, multiple models, or a production vector platform</td>
+<td>Kafka contracts, topics, processing, state, time, recovery, output, and evidence</td>
+</tr>
+</tbody>
+</table>
+<div class="takeaway point"><strong>Do not add RAG because it is fashionable.</strong> Add it only when continuously changing documents materially affect the design.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide module-divider" data-module="Decide" id="module-1-decide">
+<div class="frame module-divider-shell">
+<div><div class="module-index">01</div><div class="module-label">Decide</div></div>
+<div>
+<p class="kicker">Architecture judgment</p>
+<h1>Make Kafka earn its seat</h1>
+<ul class="module-points">
+<li><strong>One consumer and light traffic:</strong> a direct path may be enough.</li>
+<li><strong>Independent consumers:</strong> publish once and evolve separately.</li>
+<li><strong>Bursts and replay:</strong> retain work without coupling source and processor.</li>
+</ul>
+</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="direct-or-kafka">
+<div class="frame">
+<p class="kicker">Ask the sharp question</p>
+<h1>Why not call the embedding job directly?</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card good">
+<span class="tag">Direct path</span>
+<h2>S3 → embedder</h2>
+<p>Good when one small team owns one consumer, traffic is light, and custom backfill is acceptable.</p>
+</article>
+<article class="card">
+<span class="tag">Event backbone</span>
+<h2>S3 → Kafka → consumers</h2>
+<p>Useful when the change is durable shared history for multiple independently operated jobs.</p>
+</article>
+</div>
+<div class="takeaway caveat"><strong>For one document per second and one consumer, Kafka may be overkill.</strong> Say this clearly.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="three-reasons">
+<div class="frame">
+<p class="kicker">Kafka's value in this project</p>
+<h1>Three reasons can justify the event backbone</h1>
+<div class="trio" style="margin-top: 3vh;">
+<article class="card">
+<span class="tag">01 · Fan-out</span>
+<h2>Many independent uses</h2>
+<p>Embedding, audit, fraud, structured extraction, and notifications consume the same change event.</p>
+</article>
+<article class="card">
+<span class="tag">02 · Buffering</span>
+<h2>Absorb a burst</h2>
+<p>Five thousand documents may arrive now while the embedding service processes one hundred per second.</p>
+</article>
+<article class="card">
+<span class="tag">03 · Replay</span>
+<h2>Reprocess retained history</h2>
+<p>A new embedding model, bug fix, or compliance rule can rebuild derived state without changing the source.</p>
+</article>
+</div>
+<div class="takeaway point"><strong>Strong criterion:</strong> durable shared history, independently evolving consumers, and repeatable processing matter together.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="request-queue-kafka">
+<div class="frame">
+<p class="kicker">Choose the interaction model</p>
+<h1>Request–response, task distribution, and event history are different</h1>
+<table>
+<thead><tr><th>Need</th><th>Default shape</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td><strong>A user waits for an immediate answer</strong></td><td>HTTP / RPC / streamed response</td><td>Question → MCP tool → answer</td></tr>
+<tr><td><strong>One asynchronous job must be completed</strong></td><td>Task queue or Kafka Share Groups where supported</td><td>Process one document with one worker</td></tr>
+<tr><td><strong>One event supports many retained uses</strong></td><td>Kafka topic + separate consumer groups</td><td>Embedding + audit + fraud + analytics</td></tr>
+</tbody>
+</table>
+<div class="takeaway caveat"><strong>If someone is waiting, start with request–response.</strong> Add a queue for asynchronous work and Kafka only when retained event history, independent consumers, or replay materially improves the system.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="document-or-pointer">
+<div class="frame">
+<p class="kicker">Message design</p>
+<h1>Heavy objects live in object storage; Kafka carries the change event</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card warn">
+<span class="tag">Teaching shortcut</span>
+<h2>Whole document in Kafka</h2>
+<p>Simple for tiny text files and low volume, but large payloads amplify network, replication, retention, and consumer fetch costs.</p>
+</article>
+<article class="card good">
+<span class="tag">Production pattern</span>
+<h2>Stable object pointer</h2>
+<p>Store the file in S3. Publish bucket, object key, object version, checksum, and business metadata.</p>
+</article>
+</div>
+<div class="takeaway point"><strong>The pattern generalizes.</strong> PDF, image, audio, video, and model artifacts stay in object storage; the event says what changed and where it lives.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide module-divider" data-module="Write" data-tone="green" id="module-2-write">
+<div class="frame module-divider-shell">
+<div><div class="module-index">02</div><div class="module-label">Write</div></div>
+<div>
+<p class="kicker">Maintain knowledge</p>
+<h1>Turn document changes into current, versioned state</h1>
+<ul class="module-points">
+<li><strong>S3 stores bytes.</strong> Kafka stores the change history.</li>
+<li><strong>Consumers apply business semantics.</strong> Kafka does not update the vector database.</li>
+<li><strong>Versions beat arrival order.</strong> Duplicate and late notifications are expected.</li>
+</ul>
+</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="insurance-scenario">
+<div class="frame">
+<p class="kicker">The running example</p>
+<h1>An insurance company issues and changes policies continuously</h1>
+<div class="quad" style="margin-top: 3vh;">
+<article class="card"><span class="tag">Create</span><h2>New policy</h2><p>A customer receives a new contract.</p></article>
+<article class="card"><span class="tag">Replace</span><h2>Renewal</h2><p>A new version supersedes the earlier policy.</p></article>
+<article class="card"><span class="tag">Amend</span><h2>Endorsement</h2><p>A document supplements—not always replaces—the base contract.</p></article>
+<article class="card"><span class="tag">Delete</span><h2>Withdrawal</h2><p>A document or access grant is removed.</p></article>
+</div>
+<div class="takeaway caveat"><strong>Update behavior is a business contract.</strong> A policy may have one active base contract plus several active endorsements. Model the active document set explicitly; do not assume every new file replaces everything before it.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="write-path-overview">
+<div class="frame">
+<p class="kicker">Write path overview</p>
+<h1>A committed document change should eventually produce one idempotent domain event</h1>
+<div class="rail rail-seq">
+<div class="rail-node n-client"><b>Policy system</b><span>Create or amend a document</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-s3"><b>Stage S3 object</b><span>Write a versioned object first</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Metadata + outbox</b><span>Commit document state and event intent</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-kafka"><b>Kafka event</b><span>Publish through CDC or a reliable relay</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Consumers</b><span>Maintain serving and audit state</span></div>
+</div>
+<div class="takeaway point"><strong>S3 plus Kafka is a distributed dual write.</strong> Use an outbox/CDC path or a notification bridge with reconciliation so an uploaded object cannot remain silently orphaned and a committed policy change cannot remain unpublished.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="stable-object-identity">
+<div class="frame narrow">
+<p class="kicker">S3 identity</p>
+<h1>Publish exact object identity—not a temporary download URL</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card risk">
+<span class="tag">Avoid as canonical identity</span>
+<h2>Presigned URL</h2>
+<p>It expires, carries temporary access, and makes replay depend on yesterday's credential.</p>
+</article>
+<article class="card good">
+<span class="tag">Prefer</span>
+<h2>Bucket + key + version</h2>
+<p>The consumer authenticates with its own role and reads the exact S3 object version referenced by the event.</p>
+</article>
+</div>
+<div class="takeaway caveat"><strong>Versioning is not the same as regulatory immutability.</strong> S3 Versioning preserves addressable versions; use Object Lock, retention, or legal hold when a version must be protected from deletion.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="document-event-contract">
+<div class="frame">
+<p class="kicker">Event contract</p>
+<h1>The event says what changed, which version, and how to apply it</h1>
+<div class="codecard">
+<pre>{
+  <span class="str">"event_id"</span>: <span class="str">"evt-7e91"</span>,
+  <span class="str">"tenant_id"</span>: <span class="str">"insurer-us"</span>,
+  <span class="str">"policy_id"</span>: <span class="str">"P-123"</span>,
+  <span class="str">"document_id"</span>: <span class="str">"D-789"</span>,
+  <span class="str">"document_role"</span>: <span class="str">"BASE_POLICY"</span>,
+  <span class="str">"document_version"</span>: <span class="num">7</span>,
+  <span class="str">"operation"</span>: <span class="str">"REPLACE"</span>,
+  <span class="str">"supersedes_document_id"</span>: <span class="str">"D-654"</span>,
+  <span class="str">"bucket"</span>: <span class="str">"insurance-documents"</span>,
+  <span class="str">"object_key"</span>: <span class="str">"policies/P-123/v7.pdf"</span>,
+  <span class="str">"object_version_id"</span>: <span class="str">"3HL4..."</span>,
+  <span class="str">"checksum"</span>: <span class="str">"sha256:..."</span>,
+  <span class="str">"effective_at"</span>: <span class="str">"2026-08-01T00:00:00Z"</span>,
+  <span class="str">"occurred_at"</span>: <span class="str">"2026-07-30T21:04:00Z"</span>,
+  <span class="str">"source_sequence"</span>: <span class="str">"00000000000007"</span>
+}</pre>
+</div>
+<div class="takeaway point"><strong>Key the topic by <code>policy_id</code>.</strong> Use an explicit business version and document role. Prefer opaque internal identifiers and keep raw PII out of the event when it is not required.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="trigger-patterns">
+<div class="frame">
+<p class="kicker">How the Kafka event starts</p>
+<h1>Prefer a domain event; use S3 notifications as a lower-level trigger</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card good">
+<span class="tag">Pattern A · recommended</span>
+<h2>Versioned object + metadata outbox</h2>
+<p>Write the object first. Then commit document metadata and an outbox row in one database transaction; CDC or a relay publishes the Kafka domain event.</p>
+</article>
+<article class="card">
+<span class="tag">Pattern B · storage event</span>
+<h2>S3 notification → bridge → Kafka</h2>
+<p>Useful for simpler ingestion, but the bridge must enrich the storage event with policy semantics such as REPLACE versus AMEND and run reconciliation for missed work.</p>
+</article>
+</div>
+<div class="takeaway caveat"><strong>S3 notifications are at-least-once and are not ordered.</strong> Deduplicate them; use the S3 sequencer only to compare events for the same object key, while the policy system’s business version remains authoritative.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="ordering-contract">
+<div class="frame narrow">
+<p class="kicker">Ordering</p>
+<h1>Partition order helps; source versions decide correctness</h1>
+<ol class="number-list">
+<li><div><strong>Partition by <code>policy_id</code>.</strong><small>All changes for one policy are stored in one partition.</small></div></li>
+<li><div><strong>Enable idempotence and compatible producer settings.</strong><small>With idempotence enabled and supported in-flight settings, retries preserve order for records written to the same partition.</small></div></li>
+<li><div><strong>Check <code>document_version</code> in the consumer.</strong><small>A delayed source notification must never overwrite a newer active version.</small></div></li>
+</ol>
+<div class="takeaway risk"><strong>Consumers read partition storage order—not the unknowable “birth order” of events outside Kafka.</strong> The source business version is still the final authority for stale-event rejection.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="fan-out">
+<div class="frame">
+<p class="kicker">Fan-out</p>
+<h1>One policy event supports independent functions</h1>
+<div class="rail-title">Same Kafka topic · different consumer groups</div>
+<div class="rail">
+<div class="rail-node n-kafka"><b>policy-document-events</b><span>Key: <code>policy_id</code></span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Embedding</b><span>Transform document into searchable vectors</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Audit</b><span>Record immutable compliance evidence</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Fraud</b><span>Produce a risk judgment</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Notification</b><span>Act: tell the customer</span></div>
+</div>
+<div class="takeaway point"><strong>Transform, record, decide, and act</strong> are different jobs even when several of them write to databases.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="consumer-group-vocabulary">
+<div class="frame narrow">
+<p class="kicker">Consumer vocabulary</p>
+<h1>A consumer group scales one function</h1>
+<table>
+<thead><tr><th>Design need</th><th>Correct Kafka design</th></tr></thead>
+<tbody>
+<tr><td><strong>Five embedder instances share load</strong></td><td>One embedding consumer group with five instances</td></tr>
+<tr><td><strong>Embedding and audit each need every event</strong></td><td>Two different consumer groups</td></tr>
+<tr><td><strong>Two steps deploy and fail together</strong></td><td>They may be one coherent consumer application</td></tr>
+<tr><td><strong>Two steps scale or release independently</strong></td><td>Keep them in separate applications and groups</td></tr>
+</tbody>
+</table>
+<div class="takeaway point"><strong>Split by what changes independently, not by what looks similar.</strong></div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="embedding-consumer">
+<div class="frame">
+<p class="kicker">Embedding consumer</p>
+<h1>The consumer owns the document-to-vector transformation</h1>
+<div class="rail rail-seq">
+<div class="rail-node n-kafka"><b>Document event</b><span>Stable identity and operation</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-s3"><b>Fetch object</b><span>Verify version and checksum</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Parse + chunk</b><span>Apply document policy</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Embed</b><span>Text → vector</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Stage vectors</b><span>Tagged by policy and version</span></div>
+</div>
+<div class="takeaway caveat"><strong>Kafka is the messenger.</strong> Fetching, chunking, embedding, upserting, and cleanup are consumer responsibilities.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="four-operations-ai">
+<div class="frame">
+<p class="kicker">No new Kafka operations</p>
+<h1>The AI indexing path reuses the same four operations</h1>
+<div class="quad" style="margin-top: 3vh;">
+<article class="card"><span class="tag">Filter</span><h2>Reject</h2><p>Unsupported type, failed checksum, unauthorized source, or obsolete version.</p></article>
+<article class="card"><span class="tag">Map</span><h2>Transform</h2><p>Parse, clean, chunk, embed, and attach metadata.</p></article>
+<article class="card"><span class="tag">Aggregate</span><h2>Measure</h2><p>Indexing rate, error rate, freshness, cost, and chunks per document.</p></article>
+<article class="card"><span class="tag">Join</span><h2>Enrich</h2><p>Join a document with policy status, authorization scope, or feedback.</p></article>
+</div>
+<div class="takeaway point"><strong>One embedding call can look like a map.</strong> The complete system is stateful because versions, authorization, retries, and current activation matter.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="stale-chunk-problem">
+<div class="frame">
+<p class="kicker">P0 correctness</p>
+<h1>A new policy version must not leave the old answer active</h1>
+<figure class="architecture-figure">
+<img
+  src="charts/03-stale-chunks-three-strategies.svg"
+  alt="Three ways to apply policy version seven. Append forever leaves versions six and seven both searchable, so the assistant can quote a contract that no longer applies. Delete first then insert empties the index for the policy, so a failed embedding leaves the customer with no searchable policy. Staging, verifying, committing and only then retiring keeps version six answering for the whole staging window and switches at a single moment."
+/>
+<figcaption>Version six keeps answering until version seven is verified. Neither unsafe order has that property.</figcaption>
+</figure>
+<div class="takeaway risk"><strong>Embeddings are mutable serving state keyed by business identity.</strong> Append-only indexing is not enough.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="versioned-activation">
+<div class="frame">
+<p class="kicker">Safe update pattern</p>
+<h1>Stage new chunks, then commit the active document set</h1>
+<figure class="architecture-figure">
+<img
+  src="MSDS682-Lecture8-Version-Activation.svg"
+  alt="Version activation state machine showing validation, staging version two, verification, an atomic active-catalog switch, and cleanup after a grace period while version one remains readable."
+/>
+<figcaption>V1 stays readable until verified V2 becomes the authoritative active version.</figcaption>
+</figure>
+<div class="takeaway point"><strong>Do not assume a vector database can atomically switch many records.</strong> Keep authoritative active-document metadata in a transactional catalog or supported alias. REPLACE supersedes a document; AMEND may add an endorsement to the active set.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="replay-and-backfill">
+<div class="frame">
+<p class="kicker">Replay</p>
+<h1>A new embedding model can rebuild derived state</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card">
+<span class="tag">Kafka replay</span>
+<h2>Read retained events again</h2>
+<p>Use a new consumer group or reset offsets, then write vectors under a new embedding version.</p>
+</article>
+<article class="card">
+<span class="tag">Backfill</span>
+<h2>Scan the source catalog</h2>
+<p>If Kafka retention no longer covers the history, rebuild from S3 inventory or a current-document metadata table.</p>
+</article>
+</div>
+<div class="takeaway caveat"><strong>Replay requires retained event records and retrievable source versions.</strong> Configure Kafka retention deliberately, preserve the referenced S3 versions, and use Object Lock where regulatory retention requires protection from deletion.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide module-divider" data-module="Read" data-tone="purple" id="module-3-read">
+<div class="frame module-divider-shell">
+<div><div class="module-index">03</div><div class="module-label">Read</div></div>
+<div>
+<p class="kicker">Serving layer</p>
+<h1>Expose current knowledge through an authorized contract</h1>
+<ul class="module-points">
+<li><strong>RAG</strong> is a retrieval-and-generation application pattern.</li>
+<li><strong>MCP</strong> is a protocol for exposing tools and other capabilities.</li>
+<li><strong>The server—not the model—owns authorization scope.</strong></li>
+</ul>
+</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="read-path-overview">
+<div class="frame">
+<p class="kicker">Read path overview</p>
+<h1>The customer reaches the MCP server, not the database</h1>
+<div class="rail rail-seq">
+<div class="rail-node n-client"><b>Customer</b><span>“What does my policy cover?”</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-client"><b>AI client</b><span>Selects <code>search_policy</code></span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-mcp"><b>MCP server</b><span>Authenticate, authorize, embed query</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Vector search</b><span>Filter authorized active versions</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-client"><b>Grounded answer</b><span>Answer + citations to retrieved chunks</span></div>
+</div>
+<div class="takeaway point"><strong>The MCP server is the application boundary.</strong> It may retrieve, filter, transform, or compute bounded results; it must not expose raw database access. Letting customers use external AI clients also creates an explicit data-egress decision.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="rag-vs-mcp">
+<div class="frame narrow">
+<p class="kicker">Separate the abstractions</p>
+<h1>RAG and MCP are related, but they are not peers</h1>
+<table>
+<thead><tr><th>Concept</th><th>What it is</th><th>In this project</th></tr></thead>
+<tbody>
+<tr><td><strong>RAG</strong></td><td>A pattern: retrieve relevant context, then generate an answer</td><td>Search active policy chunks and ground the response</td></tr>
+<tr><td><strong>MCP</strong></td><td>An interface protocol for tools and capabilities</td><td>Expose <code>search_policy</code> to an AI client</td></tr>
+<tr><td><strong>Vector database</strong></td><td>A serving store / index</td><td>Find semantically similar authorized chunks</td></tr>
+<tr><td><strong>Kafka</strong></td><td>A durable event backbone</td><td>Maintain the change history that keeps the index fresh</td></tr>
+</tbody>
+</table>
+<div class="takeaway point"><strong>An MCP tool may expose a RAG retriever.</strong> The same MCP protocol can also expose structured data, APIs, or bounded computations.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="mcp-tool-contract">
+<div class="frame">
+<p class="kicker">MCP tool contract</p>
+<h1>Expose one narrow capability, not a database tunnel</h1>
+<div class="codecard">
+<pre>{
+  <span class="str">"name"</span>: <span class="str">"search_policy"</span>,
+  <span class="str">"description"</span>: <span class="str">"Search the caller's active insurance documents."</span>,
+  <span class="str">"inputSchema"</span>: {
+    <span class="str">"type"</span>: <span class="str">"object"</span>,
+    <span class="str">"properties"</span>: {
+      <span class="str">"question"</span>: { <span class="str">"type"</span>: <span class="str">"string"</span> },
+      <span class="str">"policy_id"</span>: { <span class="str">"type"</span>: <span class="str">"string"</span> },
+      <span class="str">"top_k"</span>: { <span class="str">"type"</span>: <span class="str">"integer"</span>, <span class="str">"maximum"</span>: <span class="num">8</span> }
+    },
+    <span class="str">"required"</span>: [<span class="str">"question"</span>, <span class="str">"policy_id"</span>]
+  }
+}</pre>
+</div>
+<div class="takeaway caveat"><strong>Input schema is not authorization.</strong> A valid <code>policy_id</code> is still rejected when the authenticated caller may not access it.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="authorization-boundary">
+<div class="frame">
+<p class="kicker">P0 security</p>
+<h1>The model may choose the question; it must not choose whose data it can read</h1>
+<figure class="architecture-figure">
+<img
+  src="MSDS682-Lecture8-Authorization-Boundary.svg"
+  alt="Authorization trust-boundary diagram showing an untrusted AI client, validated identity, server-side scope derivation, mandatory retrieval filters, and a safe result."
+/>
+<figcaption>Identity establishes scope; the model-proposed policy ID never expands it.</figcaption>
+</figure>
+<div class="takeaway risk"><strong>Never trust a customer or policy ID supplied by the model.</strong> Authorization scope must come from validated server-side identity and policy. Only approved clients and models should receive sensitive policy text.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="structured-vs-semantic">
+<div class="frame">
+<p class="kicker">Choose the serving store</p>
+<h1>Structured current state and semantic documents need different read paths</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card good">
+<span class="tag">Structured current state</span>
+<h2>Lookup or filtered table query</h2>
+<p>Policy status, premium, active version, latest claim status, or model metrics.</p>
+<p><strong>Use:</strong> an authoritative API or current-state table with deterministic filters.</p>
+</article>
+<article class="card purple">
+<span class="tag">Unstructured semantic knowledge</span>
+<h2>Vector retrieval</h2>
+<p>Coverage language, exclusions, endorsements, letters, and policy clauses.</p>
+<p><strong>Use:</strong> chunking, embeddings, vector search, and RAG.</p>
+</article>
+</div>
+<div class="takeaway caveat"><strong>Do not embed everything.</strong> Exact structured facts should usually stay exact and queryable.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="chat-boundary">
+<div class="frame">
+<p class="kicker">Return to real time</p>
+<h1>The reply path is synchronous; the exhaust becomes a stream</h1>
+<div class="path-stack">
+<div class="path-row">
+<div class="path-label">Customer path</div>
+<div class="rail">
+<div class="rail-node sm n-client"><b>Prompt</b><span>User waits</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node sm n-mcp"><b>Tool call</b><span>Retrieve now</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node sm n-client"><b>Response</b><span>Return immediately</span></div>
+</div>
+</div>
+<div class="path-row">
+<div class="path-label">Event exhaust</div>
+<div class="rail">
+<div class="rail-node sm n-kafka"><b>Interaction events</b><span>Prompt ID, tool, latency, cost</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node sm n-proc"><b>Independent consumers</b><span>Billing, abuse, QA, analytics</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node sm n-vector"><b>Metrics tables</b><span>p95, errors, feedback</span></div>
+</div>
+</div>
+</div>
+<div class="takeaway point"><strong>Same product, two paths.</strong> The answer is request–response; the retained operational history is a Kafka use case.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide module-divider" data-module="Prove" data-tone="amber" id="module-4-prove">
+<div class="frame module-divider-shell">
+<div><div class="module-index">04</div><div class="module-label">Prove</div></div>
+<div>
+<p class="kicker">Evidence and limits</p>
+<h1>Make freshness, correctness, security, and scope observable</h1>
+<ul class="module-points">
+<li><strong>Failures are part of the design.</strong> Duplicate, late, missing, partial, and unauthorized inputs are expected.</li>
+<li><strong>Measure both paths.</strong> Indexing freshness and retrieval quality are different.</li>
+<li><strong>Know when to remove Kafka.</strong> More infrastructure is not automatically better architecture.</li>
+</ul>
+</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="failure-matrix">
+<div class="frame">
+<p class="kicker">Correctness checklist</p>
+<h1>Every boundary needs a failure policy</h1>
+<table class="compact">
+<thead><tr><th>Failure</th><th>Required response</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td><strong>Object exists but no domain event</strong></td><td>Outbox/relay monitoring plus periodic reconciliation</td><td>Every READY document has a published event ID</td></tr>
+<tr><td><strong>Duplicate S3/Kafka event</strong></td><td>Deduplicate by <code>event_id</code>; apply changes idempotently</td><td>One active document state, no duplicate chunks</td></tr>
+<tr><td><strong>Older version arrives late</strong></td><td>Compare business version; reject stale overwrite</td><td>Active catalog remains on the newest valid version</td></tr>
+<tr><td><strong>Object fetch fails</strong></td><td>Retry with backoff and limits; route terminal failure to DLQ/review</td><td>Error includes exact object identity and cause</td></tr>
+<tr><td><strong>Embedding partially fails</strong></td><td>Keep staged chunks inactive; retry or discard the staged version</td><td>Previously active documents remain available</td></tr>
+<tr><td><strong>Unauthorized policy requested</strong></td><td>Reject before search; audit the attempt</td><td>Zero cross-tenant or cross-customer chunks returned</td></tr>
+<tr><td><strong>Document contains prompt-like instructions</strong></td><td>Treat retrieved text as untrusted data; never let it change authorization or tool policy</td><td>Adversarial-document tests do not trigger extra access or actions</td></tr>
+</tbody>
+</table>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="evaluation">
+<div class="frame">
+<p class="kicker">Measure the product</p>
+<h1>Freshness, retrieval, authorization, and cost need separate metrics</h1>
+<div class="quad" style="margin-top: 3vh;">
+<article class="card"><span class="tag">Write freshness</span><h2>Event → active</h2><p>p50 / p95 time from document change to searchable active version.</p></article>
+<article class="card"><span class="tag">Retrieval + grounding</span><h2>Find and cite the right clause</h2><p>Expected documents, recall@k, answer support, cited document ID/version, and a bounded human rubric.</p></article>
+<article class="card"><span class="tag">Security</span><h2>No data leakage</h2><p>Unauthorized retrieval count must be zero; audit every denied call.</p></article>
+<article class="card"><span class="tag">Operations</span><h2>Latency and cost</h2><p>Embedding cost, tool p95, failures, retries, tokens, and backlog age.</p></article>
+</div>
+<div class="takeaway point"><strong>“The chatbot answered” is not an evaluation.</strong> Prove the event path and the AI output separately. In insurance, the assistant should cite the governing document version and escalate uncertainty; it is not the final coverage adjudicator.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="when-not-kafka">
+<div class="frame narrow">
+<p class="kicker">Architecture restraint</p>
+<h1>Do not use Kafka when the direct path is already the right path</h1>
+<div class="trio" style="margin-top: 3vh;">
+<article class="card good">
+<span class="tag">One function</span>
+<h2>Single consumer</h2>
+<p>Only one embedding job cares about each upload.</p>
+</article>
+<article class="card good">
+<span class="tag">Low operational need</span>
+<h2>No retained event history</h2>
+<p>Custom S3 backfill is acceptable and ordering is not material.</p>
+</article>
+<article class="card good">
+<span class="tag">Simple ownership</span>
+<h2>One team, one release</h2>
+<p>The uploader and processor change, scale, and fail together.</p>
+</article>
+</div>
+<div class="takeaway point"><strong>Good architecture is not the largest diagram.</strong> Use Kafka when decoupling and retained stream semantics materially improve the system.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="project-check">
+<div class="frame">
+<p class="kicker">Use this example in a proposal</p>
+<h1>A reviewable three-week project needs one complete path</h1>
+<ul class="checklist">
+<li><strong>Source:</strong> sample policies or deterministic document updates.</li>
+<li><strong>Object storage:</strong> bucket/key/version identity, retention, and reconciliation.</li>
+<li><strong>Contract:</strong> operation, policy key, version, checksum, timestamps.</li>
+<li><strong>Kafka:</strong> justify fan-out, buffering, replay, or keyed state.</li>
+<li><strong>Processor:</strong> idempotent staging plus an authoritative active-document catalog.</li>
+<li><strong>Serving:</strong> one bounded MCP search tool.</li>
+<li><strong>Authorization:</strong> mandatory server-side policy scope and approved data egress.</li>
+<li><strong>Evidence:</strong> freshness, retrieval test, failure case, and fallback.</li>
+</ul>
+<div class="takeaway caveat"><strong>Minimum scope:</strong> a base policy plus an endorsement or replacement, one successful update, one duplicate/late event test, one authorized query, one denied query, and one retry or replay demonstration.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="end-to-end-synthesis">
+<div class="frame">
+<p class="kicker">End-to-end synthesis</p>
+<h1>Every component has one job</h1>
+<div class="rail rail-seq">
+<div class="rail-node n-s3"><b>S3</b><span>Store exact object versions; lock them when required</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-kafka"><b>Kafka</b><span>Retain keyed change records under a defined policy</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Consumers</b><span>Validate and apply business changes</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Serving state</b><span>Active document catalog, vectors, and metadata</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-mcp"><b>MCP server</b><span>Authorize and expose bounded retrieval</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-client"><b>AI client</b><span>Turn selected evidence into language</span></div>
+</div>
+<div class="takeaway point"><strong>Kafka tells the system what changed.</strong> Consumers apply that change to an authoritative document catalog and derived indexes. The serving layer exposes only authorized, current evidence.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="lecture-8-summary">
+<div class="frame narrow">
+<p class="kicker">Lecture 8 synthesis</p>
+<h1>Five ideas to remember</h1>
+<ol class="final-list">
+<li>Heavy objects belong in object storage; Kafka carries append-only change records under a defined retention policy.</li>
+<li>Kafka earns its seat through durable fan-out, buffering, replay, and keyed state—not through popularity.</li>
+<li>Consumers apply document semantics idempotently and commit the active document set safely.</li>
+<li>RAG is a retrieval pattern; MCP is an authorized capability interface.</li>
+<li>The chat reply is request–response; the retained background event path is where Kafka usually belongs.</li>
+</ol>
+<div class="takeaway point"><strong>Final framing:</strong> Kafka retains change records. Domain consumers maintain current state and evidence. Serving layers expose bounded, authorized state to applications and AI.</div>
+<div class="links">
+<a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-how-to-event-types-and-destinations.html" rel="noreferrer" target="_blank">AWS S3 Event Notifications</a> ·
+<a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html" rel="noreferrer" target="_blank">AWS Transactional Outbox</a> ·
+<a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html" rel="noreferrer" target="_blank">S3 Object Lock</a> ·
+<a href="https://kafka.apache.org/41/configuration/producer-configs/" rel="noreferrer" target="_blank">Kafka producer configuration</a> ·
+<a href="https://modelcontextprotocol.io/specification/2026-07-28/server/tools" rel="noreferrer" target="_blank">MCP tools</a> ·
+<a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization" rel="noreferrer" target="_blank">MCP authorization</a> ·
+<a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/" rel="noreferrer" target="_blank">OWASP prompt injection</a>
+</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<script>
+    document.documentElement.classList.add("js");
+
+    const slides = [...document.querySelectorAll("section.slide")];
+
+    let currentModule = "";
+    slides.forEach((slide, index) => {
+      if (slide.dataset.module) currentModule = slide.dataset.module;
+      const pager = slide.querySelector(".pager");
+      if (pager) pager.textContent = `${index + 1} / ${slides.length}`;
+      const crumb = slide.querySelector(".crumb");
+      if (crumb) crumb.textContent = currentModule;
+    });
+
+    const moduleDividers = slides.filter((slide) => slide.classList.contains("module-divider"));
+    const moduleNames = moduleDividers.map((slide) => slide.dataset.module);
+
+    moduleDividers.forEach((slide) => {
+      const strip = document.createElement("div");
+      strip.className = "module-strip";
+      strip.setAttribute("aria-label", "Module progress");
+
+      moduleNames.forEach((name) => {
+        const item = document.createElement("span");
+        item.textContent = name;
+        if (name === slide.dataset.module) item.classList.add("here");
+        strip.appendChild(item);
+      });
+
+      slide.querySelector(".module-divider-shell > div:last-child").appendChild(strip);
+    });
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const frame = entry.target.querySelector(".frame");
+        if (frame) frame.classList.add("in");
+        if (entry.intersectionRatio > .6 && entry.target.id) {
+          history.replaceState(null, "", `#${entry.target.id}`);
+        }
+      });
+    }, { threshold: [.18, .65] });
+
+    slides.forEach((slide) => revealObserver.observe(slide));
+
+    function currentSlideIndex() {
+      const viewportCenter = window.scrollY + window.innerHeight / 2;
+      return slides.reduce((bestIndex, slide, index) => {
+        const best = slides[bestIndex];
+        const slideCenter = slide.offsetTop + slide.offsetHeight / 2;
+        const bestCenter = best.offsetTop + best.offsetHeight / 2;
+        return Math.abs(slideCenter - viewportCenter) < Math.abs(bestCenter - viewportCenter)
+          ? index
+          : bestIndex;
+      }, 0);
+    }
+
+    function move(delta) {
+      const current = currentSlideIndex();
+      const next = Math.max(0, Math.min(slides.length - 1, current + delta));
+      slides[next].scrollIntoView({ behavior: "smooth" });
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        move(1);
+      } else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        move(-1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        slides[0].scrollIntoView({ behavior: "smooth" });
+      } else if (event.key === "End") {
+        event.preventDefault();
+        slides.at(-1).scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  </script>
+</body>
+</html>
