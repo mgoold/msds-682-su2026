@@ -1,0 +1,147 @@
+-- Demo 09A: ksqlDB owns join -> evaluate -> aggregate.
+-- Paste ONE statement at a time into the Confluent Cloud ksqlDB editor.
+-- This file was rendered for RUN_ID=${RUN_ID} by demo09_prepare.py.
+--
+-- KEY CONCEPT: Python still produces and verifies the data.  ksqlDB replaces
+-- only Demo 07E's compute owner.  Do not use Confluent CLI for this demo.
+
+SET 'auto.offset.reset' = 'earliest';
+
+-- STEP 1: Register the two existing Demo 07 Avro value topics as sources.
+-- KEY_FORMAT='NONE' intentionally ignores the raw UTF-8 Kafka key because that
+-- key has no Schema Registry schema.  We join on value.trip_id below.
+CREATE SOURCE STREAM D09A_QUOTES_SOURCE
+  WITH (
+    KAFKA_TOPIC='${DEMO07_FARE_QUOTES_TOPIC}',
+    KEY_FORMAT='NONE',
+    VALUE_FORMAT='AVRO'
+  );
+
+CREATE SOURCE STREAM D09A_OUTCOMES_SOURCE
+  WITH (
+    KAFKA_TOPIC='${DEMO07_TRIP_OUTCOMES_TOPIC}',
+    KEY_FORMAT='NONE',
+    VALUE_FORMAT='AVRO'
+  );
+
+-- STEP 2: Isolate this experiment BEFORE joining, then repartition by trip_id.
+-- A trip_id is unique only inside one run_id.  Filtering first prevents an old
+-- classroom run with the same trip_id from entering today's stateful join.
+-- PARTITION BY moves TRIP_ID from the Avro value into a raw KAFKA key.  That is
+-- why both derived streams declare KEY_FORMAT='KAFKA', and why STEP 3 uses
+-- AS_VALUE(q.TRIP_ID) to put trip_id back into the final Avro value contract.
+CREATE STREAM D09A_QUOTES_RUN
+  WITH (
+    KAFKA_TOPIC='${DEMO09_KSQLDB_QUOTES_RUN_TOPIC}',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='AVRO'
+  ) AS
+  SELECT *
+  FROM D09A_QUOTES_SOURCE
+  WHERE RUN_ID='${RUN_ID}'
+  PARTITION BY TRIP_ID
+  EMIT CHANGES;
+
+CREATE STREAM D09A_OUTCOMES_RUN
+  WITH (
+    KAFKA_TOPIC='${DEMO09_KSQLDB_OUTCOMES_RUN_TOPIC}',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='AVRO'
+  ) AS
+  SELECT *
+  FROM D09A_OUTCOMES_SOURCE
+  WHERE RUN_ID='${RUN_ID}'
+  PARTITION BY TRIP_ID
+  EMIT CHANGES;
+
+-- STEP 3: Join and calculate one evaluation row per quote.
+-- WITHIN 1 HOUR is part of the state contract, not decoration.  A stream-stream
+-- join must bound how long unmatched records stay in state.  Start both queries
+-- before producing the fresh Demo 07 run so record times are within one hour.
+--
+-- This CSAS binds the exact sink topic and runtime-discovered Demo 07 schema ID.
+-- EVALUATION_KEY is the STRING key column and is therefore NOT an Avro value
+-- field.  The following 14 value expressions deliberately match the field
+-- names, types, and order in PricingEvaluationV1.  AS_VALUE keeps trip_id and
+-- quote_id in Avro even though quote_id also becomes the raw output Kafka key.
+--
+-- KEY CONCEPT: keep the sign per trip, then drop it with ABS.  Averaging signed
+-- errors first would let an over-priced trip cancel an under-priced trip.
+CREATE STREAM D09A_PRICING_EVALUATIONS
+WITH (
+  KAFKA_TOPIC='${DEMO09_KSQLDB_EVALUATIONS_TOPIC}',
+  KEY_FORMAT='KAFKA',
+  VALUE_FORMAT='AVRO',
+  VALUE_SCHEMA_ID=${DEMO09_KSQLDB_VALUE_SCHEMA_ID}
+) AS
+SELECT
+  q.QUOTE_ID AS EVALUATION_KEY,
+  q.RUN_ID AS `run_id`,
+  AS_VALUE(q.TRIP_ID) AS `trip_id`,
+  AS_VALUE(q.QUOTE_ID) AS `quote_id`,
+  q.MODEL_VERSION AS `model_version`,
+  q.FARE_CENTS AS `fare_cents`,
+  o.ACTUAL_COST_CENTS AS `actual_cost_cents`,
+  q.FARE_CENTS - o.ACTUAL_COST_CENTS AS `profit_cents`,
+  CAST(ROUND(
+    CAST(q.FARE_CENTS - o.ACTUAL_COST_CENTS AS DOUBLE)
+      * 100.0 / CAST(o.ACTUAL_COST_CENTS AS DOUBLE), 4
+  ) AS DOUBLE) AS `realized_markup_pct`,
+  q.TARGET_MARKUP_PCT AS `target_markup_pct`,
+  CAST(ROUND(
+    CAST(q.FARE_CENTS - o.ACTUAL_COST_CENTS AS DOUBLE)
+      * 100.0 / CAST(o.ACTUAL_COST_CENTS AS DOUBLE)
+      - q.TARGET_MARKUP_PCT, 4
+  ) AS DOUBLE) AS `markup_error_pp`,
+  CAST(ROUND(ABS(
+      CAST(q.FARE_CENTS - o.ACTUAL_COST_CENTS AS DOUBLE)
+        * 100.0 / CAST(o.ACTUAL_COST_CENTS AS DOUBLE)
+        - q.TARGET_MARKUP_PCT
+  ), 4) AS DOUBLE) AS `absolute_markup_error_pp`,
+  CASE
+    WHEN q.PREDICTED_COST_CENTS IS NULL THEN NULL
+    ELSE q.PREDICTED_COST_CENTS - o.ACTUAL_COST_CENTS
+  END AS `cost_prediction_error_cents`,
+  ABS(
+      CAST(q.FARE_CENTS - o.ACTUAL_COST_CENTS AS DOUBLE)
+        * 100.0 / CAST(o.ACTUAL_COST_CENTS AS DOUBLE)
+        - q.TARGET_MARKUP_PCT
+  ) <= 2.0 AS `within_target_tolerance`,
+  FROM_UNIXTIME(UNIX_TIMESTAMP()) AS `evaluated_at`
+FROM D09A_QUOTES_RUN q
+INNER JOIN D09A_OUTCOMES_RUN o
+  WITHIN 1 HOUR
+  ON q.TRIP_ID = o.TRIP_ID
+PARTITION BY q.QUOTE_ID
+EMIT CHANGES;
+
+-- Schema gate: run this before STEP 4.  Confirm EVALUATION_KEY is STRING KEY;
+-- the remaining 14 columns must be value columns in PricingEvaluationV1 order.
+DESCRIBE D09A_PRICING_EVALUATIONS EXTENDED;
+
+-- STEP 4: Foreground observation query.  Cancel it after both counts reach 4.
+-- The primary metric is the average PER-TRIP absolute gap to 20%; lower wins.
+SELECT
+  `model_version`,
+  COUNT(*) AS RECORDS,
+  ROUND(AVG(`realized_markup_pct`), 4) AS AVG_REALIZED_MARKUP_PCT,
+  ROUND(AVG(`absolute_markup_error_pp`), 4) AS MEAN_ABSOLUTE_GAP_PP
+FROM D09A_PRICING_EVALUATIONS
+WHERE `run_id`='${RUN_ID}'
+GROUP BY `model_version`
+EMIT CHANGES;
+
+-- CLEANUP CHECKLIST (do not paste placeholders literally):
+-- 1. Cancel the foreground STEP 4 SELECT after collecting its result.
+-- 2. Run demo09_verify.py while all eight sink rows still exist.
+-- 3. SHOW QUERIES; record the three persistent query IDs.
+-- 4. TERMINATE <join-query-id>;
+-- 5. TERMINATE <quotes-filter-query-id>;
+-- 6. TERMINATE <outcomes-filter-query-id>;
+-- 7. SHOW QUERIES; confirm none of those three query IDs is RUNNING.
+-- 8. DROP STREAM D09A_PRICING_EVALUATIONS;
+-- 9. DROP STREAM D09A_QUOTES_RUN DELETE TOPIC;
+-- 10. DROP STREAM D09A_OUTCOMES_RUN DELETE TOPIC;
+-- 11. DROP STREAM D09A_QUOTES_SOURCE; DROP STREAM D09A_OUTCOMES_SOURCE;
+-- 12. Delete the temporary ksqlDB application in Cloud UI to stop CSU billing.
+-- Never add DELETE TOPIC when dropping either Demo 07 source stream.

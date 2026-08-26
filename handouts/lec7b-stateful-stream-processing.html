@@ -651,6 +651,11 @@
 
     .scale-row.best .dot { background: var(--green); }
 
+    .dot:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 4px;
+    }
+
     .scale-gap {
       text-align: right;
       font-size: clamp(27px, 2.3vw, 40px);
@@ -940,7 +945,7 @@
         <div class="card"><span class="tag">Stateful</span><h2>Aggregate</h2><p>Update a running result.</p></div>
         <div class="card"><span class="tag">Stateful · today</span><h2>Join</h2><p>Combine a quote with its outcome.</p></div>
       </div>
-      <div class="takeaway caveat"><strong>Demo 07 uses map and join.</strong> It maps requests to quotes, then joins each quote with one delayed outcome. It does not implement aggregate.</div>
+      <div class="takeaway caveat"><strong>Demo 07 centers on map and join.</strong> After the join, 07E performs a bounded aggregation by <code>model_version</code>; 07F applies the selection rule.</div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -1077,7 +1082,7 @@
         <div class="rail-node"><b><code>trip_id=682-A</code></b><span>Delayed outcome</span></div>
       </div>
       <div class="takeaway caveat"><strong>The same key is required, but it does not fully define the join.</strong> Also define contracts, time bounds, state, and recovery.</div>
-      <p class="factline">Demo 07 uses <strong>one partition per topic</strong>. Larger systems must align partition count and partitioning strategy across joined inputs.</p>
+      <p class="factline">Demo 07 uses <strong>one partition per topic</strong>. Larger systems must align partition count and partitioning strategy, then route the same key to the same join task and state owner.</p>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -1181,6 +1186,7 @@
           <tr><td>How many results?</td><td>One evaluation per quote version and trip</td></tr>
           <tr><td>When is input complete?</td><td>Eight expected quote-outcome pairs in the bounded run</td></tr>
           <tr><td>What is late or missing?</td><td>Report the missing input; do not create a match</td></tr>
+          <tr><td>What is duplicated?</td><td>Fail fast in this bounded demo; production needs stable event IDs and idempotent or deduplicating state</td></tr>
         </tbody>
       </table>
     </div>
@@ -1432,7 +1438,7 @@
         <div class="thennow-col open">
           <span class="datechip now">7/30/2026 · today</span>
           <p class="openq">Which pricing model keeps realized markup closer to the 20% target?</p>
-          <p class="opennote">Both models scored the same four trips, so the evidence is already in the topic. One step is left: group the eight evaluations by <strong><code>model_version</code></strong> and score each model against the target.</p>
+          <p class="opennote">07E has already summarized the eight evaluations by <strong><code>model_version</code></strong>. One step is left: 07F applies the selection rule and records the recommendation.</p>
         </div>
       </div>
       <div class="takeaway"><strong>Three slides finish Lecture 7B:</strong> the evidence we already have, the metric that ranks the two versions, and the recommendation it supports.</div>
@@ -1457,10 +1463,10 @@
             <div class="loss" style="width: 45.45%;"></div>
             <div class="zero" style="left: 45.45%;"></div>
             <div class="target" style="left: 81.82%;"></div>
-            <span class="dot" style="left: 11.95%;" title="trip_7650 · fare $10.00 · cost $12.26 · markup −18.4%"></span>
-            <span class="dot" style="left: 29.84%;" title="trip_7652 · fare $10.85 · cost $11.87 · markup −8.6%"></span>
-            <span class="dot" style="left: 47.51%;" title="trip_7651 · fare $12.50 · cost $12.36 · markup +1.1%"></span>
-            <span class="dot" style="left: 65.18%;" title="trip_7653 · fare $16.45 · cost $14.84 · markup +10.9%"></span>
+            <span class="dot" tabindex="0" style="left: 11.95%;" title="trip_7650 · fare $10.00 · cost $12.26 · markup −18.4%" aria-label="trip 7650, rule-v1, fare 10 dollars, cost 12 dollars and 26 cents, markup minus 18.4 percent"></span>
+            <span class="dot" tabindex="0" style="left: 29.84%;" title="trip_7652 · fare $10.85 · cost $11.87 · markup −8.6%" aria-label="trip 7652, rule-v1, fare 10 dollars and 85 cents, cost 11 dollars and 87 cents, markup minus 8.6 percent"></span>
+            <span class="dot" tabindex="0" style="left: 47.51%;" title="trip_7651 · fare $12.50 · cost $12.36 · markup +1.1%" aria-label="trip 7651, rule-v1, fare 12 dollars and 50 cents, cost 12 dollars and 36 cents, markup plus 1.1 percent"></span>
+            <span class="dot" tabindex="0" style="left: 65.18%;" title="trip_7653 · fare $16.45 · cost $14.84 · markup +10.9%" aria-label="trip 7653, rule-v1, fare 16 dollars and 45 cents, cost 14 dollars and 84 cents, markup plus 10.9 percent"></span>
           </div>
           <strong class="scale-gap">23.76<small>pp</small></strong>
         </div>
@@ -1470,10 +1476,10 @@
             <div class="loss" style="width: 45.45%;"></div>
             <div class="zero" style="left: 45.45%;"></div>
             <div class="target" style="left: 81.82%;"></div>
-            <span class="dot" style="left: 74.22%;" title="trip_7650 · fare $14.20 · cost $12.26 · markup +15.8%"></span>
-            <span class="dot" style="left: 78.07%;" title="trip_7652 · fare $14.00 · cost $11.87 · markup +17.9%"></span>
-            <span class="dot" style="left: 86.13%;" title="trip_7653 · fare $18.16 · cost $14.84 · markup +22.4%"></span>
-            <span class="dot" style="left: 93.11%;" title="trip_7651 · fare $15.60 · cost $12.36 · markup +26.2%"></span>
+            <span class="dot" tabindex="0" style="left: 74.22%;" title="trip_7650 · fare $14.20 · cost $12.26 · markup +15.8%" aria-label="trip 7650, ridge-v2, fare 14 dollars and 20 cents, cost 12 dollars and 26 cents, markup plus 15.8 percent"></span>
+            <span class="dot" tabindex="0" style="left: 78.07%;" title="trip_7652 · fare $14.00 · cost $11.87 · markup +17.9%" aria-label="trip 7652, ridge-v2, fare 14 dollars, cost 11 dollars and 87 cents, markup plus 17.9 percent"></span>
+            <span class="dot" tabindex="0" style="left: 86.13%;" title="trip_7653 · fare $18.16 · cost $14.84 · markup +22.4%" aria-label="trip 7653, ridge-v2, fare 18 dollars and 16 cents, cost 14 dollars and 84 cents, markup plus 22.4 percent"></span>
+            <span class="dot" tabindex="0" style="left: 93.11%;" title="trip_7651 · fare $15.60 · cost $12.36 · markup +26.2%" aria-label="trip 7651, ridge-v2, fare 15 dollars and 60 cents, cost 12 dollars and 36 cents, markup plus 26.2 percent"></span>
           </div>
           <strong class="scale-gap">3.70<small>pp</small></strong>
         </div>
@@ -1509,7 +1515,7 @@
           </div>
         </div>
       </div>
-      <div class="takeaway caveat"><strong>Bounded comparison:</strong> four trips, one run, the same outcomes for both models. Enough to rank these two here, not a statistically powered production A/B test.</div>
+      <div class="takeaway caveat"><strong>Bounded comparison:</strong> deterministic fixture <code>run_id=model-compare</code>, seed offset 65, four trips, and the same outcomes for both models. Enough to rank these two here, not a statistically powered production A/B test.</div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>
@@ -1524,8 +1530,24 @@
         <li><span><strong>Join:</strong> hold each quote in state until its delayed outcome arrives on the same <code>trip_id</code>.</span></li>
         <li><span><strong>Evaluate:</strong> rank both models by their average gap to the 20% markup target.</span></li>
       </ol>
-      <div class="takeaway point"><strong>Recommendation: prefer <code>ridge-v2</code>.</strong> It holds a 20.6% average markup, while <code>rule-v1</code> priced two of four trips below cost. Deployment, rollback, and causal lift stay outside Demo 07.</div>
+      <div class="takeaway point"><strong>Recommendation: prefer <code>ridge-v2</code>.</strong> For <code>run_id=model-compare</code>, its average gap is 3.70 pp versus 23.76 pp for <code>rule-v1</code>; rule-v1 also priced two of four trips below cost. Deployment, rollback, and causal lift stay outside Demo 07.</div>
       <div class="links"><a href="https://wgu9.github.io/msds-682-su2026/#/handouts/demo07" target="_blank" rel="noreferrer">Demo 07 handout</a> · <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec7a-final-project" target="_blank" rel="noreferrer">Lecture 7A: Final Project</a></div>
+    </div>
+    <div class="crumb"></div><div class="pager"></div>
+  </section>
+
+  <section class="slide" id="lecture7b-changelog-2026-08-03">
+    <div class="frame narrow">
+      <p class="kicker">8/3/2026 · HTML changelog</p>
+      <h1>What changed in today’s Lecture 7 update</h1>
+      <ol class="final-list">
+        <li><span><strong>Operation flow:</strong> clarified that 07E performs the bounded per-model aggregation and 07F applies the selection rule.</span></li>
+        <li><span><strong>Result provenance:</strong> tied the 23.76 pp and 3.70 pp snapshot to <code>run_id=model-compare</code>, seed offset 65.</span></li>
+        <li><span><strong>Decision metric:</strong> kept the final recommendation anchored to average absolute gap from the 20% target.</span></li>
+        <li><span><strong>Correctness:</strong> stated the duplicate-input and multi-partition ownership policies explicitly.</span></li>
+        <li><span><strong>Access:</strong> made chart points keyboard-readable and clarified least-privilege reviewer access in Lecture 7A.</span></li>
+      </ol>
+      <div class="takeaway point"><strong>Scope:</strong> HTML teaching content only. No Demo 07 code, fixtures, data, output reports, or runtime behavior changed.</div>
     </div>
     <div class="crumb"></div><div class="pager"></div>
   </section>

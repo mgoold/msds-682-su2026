@@ -6,6 +6,9 @@
 .venv/
 .playwright-mcp/
 *.png
+!handouts/assets/lecture11a-attendance-2026-08-10.png
+!handouts/assets/lecture12-finish-line.png
+!handouts/assets/lecture12-future-offers.png
 .local-guards/
 tmp/
 outputs/

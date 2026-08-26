@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">One problem, three compute owners</title>
+  <desc id="desc">Demo 07A through 07D provide one data and schema contract to an existing Python implementation and planned ksqlDB and Flink SQL implementations. One Python verifier compares all three outputs.</desc>
+
+  <defs>
+    <filter id="shadow" x="-15%" y="-20%" width="130%" height="150%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#1c2433" flood-opacity="0.09"/>
+    </filter>
+    <marker id="arrow-neutral" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a9adb6"/>
+    </marker>
+    <style>
+      .bg { fill: #fbfbfa; }
+      .title { fill: #16181d; font: 700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -0.5px; }
+      .subtitle { fill: #626873; font: 500 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .eyebrow { font: 700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 1.5px; }
+      .card-title { fill: #16181d; font: 700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .card-sub { fill: #626873; font: 500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .step { fill: #16181d; font: 650 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .small { fill: #626873; font: 500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mono { fill: #4d5360; font: 600 11.5px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .badge { font: 750 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 1px; }
+      .verifier-title { fill: #16181d; font: 750 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .check { fill: #24313d; font: 650 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .arrow { fill: none; stroke: #a9adb6; stroke-width: 2.2; marker-end: url(#arrow-neutral); }
+      .rail { fill: none; stroke: #c8cbd1; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="760"/>
+
+  <text class="eyebrow" x="70" y="40" fill="#3565f2">LECTURE 9 · COMPUTE-OWNER COMPARISON</text>
+  <text class="title" x="70" y="78">One problem, three compute owners</text>
+  <text class="subtitle" x="70" y="106">Keep the Demo 07 contract fixed. Change only who owns state, time, evaluation, and aggregation.</text>
+
+  <!-- Single data and schema source -->
+  <g filter="url(#shadow)">
+    <rect x="70" y="132" width="1460" height="120" rx="18" fill="#ffffff" stroke="#e1e2e5" stroke-width="1.5"/>
+    <rect x="70" y="132" width="10" height="120" rx="5" fill="#d64545"/>
+  </g>
+  <text class="eyebrow" x="104" y="162" fill="#d64545">DEMO 07A-D · SINGLE DATA AND SCHEMA SOURCE</text>
+  <text class="card-title" x="104" y="194">8 fare quotes + 4 delayed outcomes</text>
+  <text class="card-sub" x="104" y="220">Same run_id · existing Avro value contracts · no duplicated producers or schemas</text>
+
+  <g transform="translate(735 151)">
+    <rect width="225" height="76" rx="13" fill="#f9eaea" stroke="#edc7c7"/>
+    <text class="eyebrow" x="18" y="25" fill="#d64545">KAFKA TOPIC</text>
+    <text class="step" x="18" y="49">FareQuoteV1</text>
+    <text class="small" x="18" y="67">8 rows · 2 model versions</text>
+  </g>
+  <g transform="translate(978 151)">
+    <rect width="225" height="76" rx="13" fill="#f9eaea" stroke="#edc7c7"/>
+    <text class="eyebrow" x="18" y="25" fill="#d64545">KAFKA TOPIC</text>
+    <text class="step" x="18" y="49">TripOutcomeV1</text>
+    <text class="small" x="18" y="67">4 delayed labels</text>
+  </g>
+  <g transform="translate(1221 151)">
+    <rect width="275" height="76" rx="13" fill="#f5f6f7" stroke="#d9dcd8"/>
+    <text class="eyebrow" x="18" y="25" fill="#626873">JOIN CONTRACT</text>
+    <text class="step" x="18" y="49">Filter run_id first</text>
+    <text class="small" x="18" y="67">Then match value.trip_id</text>
+  </g>
+
+  <!-- Fan-out rail -->
+  <path class="rail" d="M800 252 V278 M305 278 H1295"/>
+  <path class="arrow" d="M305 278 V306"/>
+  <path class="arrow" d="M800 278 V306"/>
+  <path class="arrow" d="M1295 278 V306"/>
+
+  <!-- Python lane -->
+  <g filter="url(#shadow)">
+    <rect x="70" y="308" width="470" height="248" rx="18" fill="#ffffff" stroke="#ccd7fb" stroke-width="1.6"/>
+    <path d="M88 308 H522 A18 18 0 0 1 540 326 V338 H70 V326 A18 18 0 0 1 88 308Z" fill="#eef1fe"/>
+  </g>
+  <circle cx="102" cy="334" r="8" fill="#3565f2"/>
+  <text class="card-title" x="122" y="342" fill="#3565f2">Python · Demo 07E/F</text>
+  <g transform="translate(431 320)">
+    <rect width="84" height="27" rx="13.5" fill="#3565f2"/>
+    <text class="badge" x="42" y="18" text-anchor="middle" fill="#ffffff">EXISTING</text>
+  </g>
+  <text class="card-sub" x="94" y="373">Application-owned bounded state</text>
+
+  <g transform="translate(94 391)">
+    <rect width="92" height="68" rx="11" fill="#f6f8ff" stroke="#d8e0fc"/>
+    <text class="step" x="46" y="27" text-anchor="middle">run_id</text>
+    <text class="small" x="46" y="46" text-anchor="middle">filter</text>
+  </g>
+  <path class="arrow" d="M190 425 H211"/>
+  <g transform="translate(216 391)">
+    <rect width="92" height="68" rx="11" fill="#f6f8ff" stroke="#d8e0fc"/>
+    <text class="step" x="46" y="27" text-anchor="middle">trip_id</text>
+    <text class="small" x="46" y="46" text-anchor="middle">join</text>
+  </g>
+  <path class="arrow" d="M312 425 H333"/>
+  <g transform="translate(338 391)">
+    <rect width="82" height="68" rx="11" fill="#f6f8ff" stroke="#d8e0fc"/>
+    <text class="step" x="41" y="27" text-anchor="middle">per-trip</text>
+    <text class="small" x="41" y="46" text-anchor="middle">evaluate</text>
+  </g>
+  <path class="arrow" d="M424 425 H445"/>
+  <g transform="translate(450 391)">
+    <rect width="66" height="68" rx="11" fill="#f6f8ff" stroke="#d8e0fc"/>
+    <text class="small" x="33" y="27" text-anchor="middle">per-model</text>
+    <text class="small" x="33" y="46" text-anchor="middle">aggregate</text>
+  </g>
+  <rect x="94" y="480" width="422" height="50" rx="11" fill="#eef1fe" stroke="#ccd7fb"/>
+  <text class="step" x="110" y="501">Writes existing Demo 07 evaluation topic</text>
+  <text class="mono" x="110" y="519">...demo07.ml-pricing-evaluations-avro.v1</text>
+
+  <!-- ksqlDB lane -->
+  <g filter="url(#shadow)">
+    <rect x="565" y="308" width="470" height="248" rx="18" fill="#ffffff" stroke="#dcd2f4" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <path d="M583 308 H1017 A18 18 0 0 1 1035 326 V338 H565 V326 A18 18 0 0 1 583 308Z" fill="#f1edfb"/>
+  </g>
+  <circle cx="597" cy="334" r="8" fill="#6f4fc3"/>
+  <text class="card-title" x="617" y="342" fill="#6f4fc3">ksqlDB · Demo 09A</text>
+  <g transform="translate(926 320)">
+    <rect width="84" height="27" rx="13.5" fill="#f1edfb" stroke="#6f4fc3"/>
+    <text class="badge" x="42" y="18" text-anchor="middle" fill="#6f4fc3">PLANNED</text>
+  </g>
+  <text class="card-sub" x="589" y="373">Managed SQL state · window required</text>
+
+  <g transform="translate(589 391)">
+    <rect width="92" height="68" rx="11" fill="#faf8fe" stroke="#e4dcf7"/>
+    <text class="step" x="46" y="27" text-anchor="middle">run_id</text>
+    <text class="small" x="46" y="46" text-anchor="middle">filter</text>
+  </g>
+  <path class="arrow" d="M685 425 H706"/>
+  <g transform="translate(711 391)">
+    <rect width="92" height="68" rx="11" fill="#faf8fe" stroke="#e4dcf7"/>
+    <text class="step" x="46" y="27" text-anchor="middle">trip_id</text>
+    <text class="small" x="46" y="46" text-anchor="middle">join</text>
+  </g>
+  <path class="arrow" d="M807 425 H828"/>
+  <g transform="translate(833 391)">
+    <rect width="82" height="68" rx="11" fill="#faf8fe" stroke="#e4dcf7"/>
+    <text class="step" x="41" y="27" text-anchor="middle">per-trip</text>
+    <text class="small" x="41" y="46" text-anchor="middle">evaluate</text>
+  </g>
+  <path class="arrow" d="M919 425 H940"/>
+  <g transform="translate(945 391)">
+    <rect width="66" height="68" rx="11" fill="#faf8fe" stroke="#e4dcf7"/>
+    <text class="small" x="33" y="27" text-anchor="middle">per-model</text>
+    <text class="small" x="33" y="46" text-anchor="middle">aggregate</text>
+  </g>
+  <rect x="589" y="480" width="422" height="50" rx="11" fill="#f1edfb" stroke="#dcd2f4"/>
+  <text class="step" x="605" y="501">Writes a separate Demo 09A output</text>
+  <text class="mono" x="605" y="519">...demo09.ksqldb-pricing-evaluations-avro.v1</text>
+
+  <!-- Flink lane -->
+  <g filter="url(#shadow)">
+    <rect x="1060" y="308" width="470" height="248" rx="18" fill="#ffffff" stroke="#efc7d3" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <path d="M1078 308 H1512 A18 18 0 0 1 1530 326 V338 H1060 V326 A18 18 0 0 1 1078 308Z" fill="#fbeef2"/>
+  </g>
+  <circle cx="1092" cy="334" r="8" fill="#d1345b"/>
+  <text class="card-title" x="1112" y="342" fill="#d1345b">Flink SQL · Demo 09B</text>
+  <g transform="translate(1421 320)">
+    <rect width="84" height="27" rx="13.5" fill="#fbeef2" stroke="#d1345b"/>
+    <text class="badge" x="42" y="18" text-anchor="middle" fill="#d1345b">PLANNED</text>
+  </g>
+  <text class="card-sub" x="1084" y="373">Managed SQL state · interval join</text>
+
+  <g transform="translate(1084 391)">
+    <rect width="92" height="68" rx="11" fill="#fff8fa" stroke="#f3d9e1"/>
+    <text class="step" x="46" y="27" text-anchor="middle">run_id</text>
+    <text class="small" x="46" y="46" text-anchor="middle">filter</text>
+  </g>
+  <path class="arrow" d="M1180 425 H1201"/>
+  <g transform="translate(1206 391)">
+    <rect width="92" height="68" rx="11" fill="#fff8fa" stroke="#f3d9e1"/>
+    <text class="step" x="46" y="27" text-anchor="middle">trip_id</text>
+    <text class="small" x="46" y="46" text-anchor="middle">join</text>
+  </g>
+  <path class="arrow" d="M1302 425 H1323"/>
+  <g transform="translate(1328 391)">
+    <rect width="82" height="68" rx="11" fill="#fff8fa" stroke="#f3d9e1"/>
+    <text class="step" x="41" y="27" text-anchor="middle">per-trip</text>
+    <text class="small" x="41" y="46" text-anchor="middle">evaluate</text>
+  </g>
+  <path class="arrow" d="M1414 425 H1435"/>
+  <g transform="translate(1440 391)">
+    <rect width="66" height="68" rx="11" fill="#fff8fa" stroke="#f3d9e1"/>
+    <text class="small" x="33" y="27" text-anchor="middle">per-model</text>
+    <text class="small" x="33" y="46" text-anchor="middle">aggregate</text>
+  </g>
+  <rect x="1084" y="480" width="422" height="50" rx="11" fill="#fbeef2" stroke="#efc7d3"/>
+  <text class="step" x="1100" y="501">Writes a separate Demo 09B output</text>
+  <text class="mono" x="1100" y="519">...demo09.flinksql-pricing-evaluations-avro.v1</text>
+
+  <!-- Three outputs converge on one verifier -->
+  <path class="rail" d="M305 556 V583 M800 556 V583 M1295 556 V583 M305 583 H1295"/>
+  <path class="arrow" d="M800 583 V606"/>
+
+  <g filter="url(#shadow)">
+    <rect x="175" y="610" width="1250" height="112" rx="18" fill="#ffffff" stroke="#b9c7f8" stroke-width="1.7"/>
+    <rect x="175" y="610" width="10" height="112" rx="5" fill="#3565f2"/>
+  </g>
+  <text class="eyebrow" x="210" y="640" fill="#3565f2">ONE ACCEPTANCE CONTRACT</text>
+  <text class="verifier-title" x="210" y="671">Python verifier</text>
+  <text class="small" x="210" y="696">Reads all three outputs for the same run_id</text>
+
+  <g transform="translate(493 638)">
+    <rect width="185" height="52" rx="13" fill="#eef1fe" stroke="#ccd7fb"/>
+    <circle cx="22" cy="26" r="8" fill="#3565f2"/>
+    <path d="M18 26 l3 3 l6 -7" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="check" x="40" y="31">8 evaluation rows</text>
+  </g>
+  <g transform="translate(694 638)">
+    <rect width="155" height="52" rx="13" fill="#eef1fe" stroke="#ccd7fb"/>
+    <circle cx="22" cy="26" r="8" fill="#3565f2"/>
+    <path d="M18 26 l3 3 l6 -7" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="check" x="40" y="31">4 per model</text>
+  </g>
+  <g transform="translate(865 638)">
+    <rect width="190" height="52" rx="13" fill="#eef1fe" stroke="#ccd7fb"/>
+    <circle cx="22" cy="26" r="8" fill="#3565f2"/>
+    <path d="M18 26 l3 3 l6 -7" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="check" x="40" y="31">Matching MAE</text>
+  </g>
+  <g transform="translate(1071 638)">
+    <rect width="307" height="52" rx="13" fill="#e7f3f0" stroke="#c0e0d8"/>
+    <circle cx="22" cy="26" r="8" fill="#0e7f66"/>
+    <path d="M18 26 l3 3 l6 -7" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="check" x="40" y="31" fill="#0e6c58">ridge-v2 recommended</text>
+  </g>
+
+  <text class="small" x="800" y="747" text-anchor="middle">Same input contract · different state owner · one verifier</text>
+</svg>

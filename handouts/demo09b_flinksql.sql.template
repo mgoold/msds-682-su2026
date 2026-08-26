@@ -1,0 +1,134 @@
+-- Demo 09B: Flink SQL owns join -> evaluate -> aggregate.
+-- Paste ONE statement at a time into the Confluent Cloud Flink SQL workspace.
+-- This file was rendered for RUN_ID=${RUN_ID} by demo09_prepare.py.
+--
+-- KEY CONCEPT: Flink SQL is a continuous query processor, not the system of
+-- record.  Kafka topics store the events; Schema Registry owns their contracts.
+-- The data plane remains the Python client; this demo does not use Confluent CLI.
+
+-- STEP 1: Inspect the three inferred tables before starting computation.
+-- Topic names contain dots and hyphens, so backticks are required.
+DESCRIBE EXTENDED `${DEMO07_FARE_QUOTES_TOPIC}`;
+DESCRIBE EXTENDED `${DEMO07_TRIP_OUTCOMES_TOPIC}`;
+DESCRIBE EXTENDED `${DEMO09_FLINKSQL_EVALUATIONS_TABLE}`;
+
+-- Confirm in the DESCRIBE output that run_id and trip_id are Avro VALUE fields.
+-- The existing Kafka key is raw bytes without a Registry key schema; the join
+-- therefore uses q.trip_id and o.trip_id from the values, not the raw key.
+-- For the sink, also confirm `key` is BYTES, evaluated_at is TIMESTAMP_LTZ(3),
+-- and the 14 Avro value fields match PricingEvaluationV1.  `$rowtime` is a
+-- read-only system column: it must not appear in the INSERT target list.
+
+-- STEP 2 (required schema/plan gate): prepend "EXPLAIN" to the INSERT below
+-- and run it once.  Confluent Cloud syntax is EXPLAIN INSERT INTO ..., not
+-- EXPLAIN PLAN FOR.  Continue only when the physical plan contains
+-- StreamIntervalJoin and the sink projection has the 15 listed columns.
+
+-- STEP 3: Start this INSERT as a background statement BEFORE producing a fresh
+-- Demo 07 run.  Filter both inputs by run_id before they enter the join.
+-- The explicit target list is required: this inferred sink has a physical raw
+-- key plus 14 Avro value columns.  CAST(... AS BYTES) writes quote_id as that
+-- raw key; the next 14 expressions preserve the canonical Avro field order.
+INSERT INTO `${DEMO09_FLINKSQL_EVALUATIONS_TABLE}` (
+  `key`,
+  run_id,
+  trip_id,
+  quote_id,
+  model_version,
+  fare_cents,
+  actual_cost_cents,
+  profit_cents,
+  realized_markup_pct,
+  target_markup_pct,
+  markup_error_pp,
+  absolute_markup_error_pp,
+  cost_prediction_error_cents,
+  within_target_tolerance,
+  evaluated_at
+)
+SELECT
+  CAST(q.quote_id AS BYTES) AS `key`,
+  q.run_id AS run_id,
+  q.trip_id AS trip_id,
+  q.quote_id AS quote_id,
+  q.model_version AS model_version,
+  q.fare_cents AS fare_cents,
+  o.actual_cost_cents AS actual_cost_cents,
+  q.fare_cents - o.actual_cost_cents AS profit_cents,
+  CAST(ROUND(
+    CAST(q.fare_cents - o.actual_cost_cents AS DOUBLE)
+      * 100.0 / CAST(o.actual_cost_cents AS DOUBLE), 4
+  ) AS DOUBLE) AS realized_markup_pct,
+  q.target_markup_pct AS target_markup_pct,
+  CAST(ROUND(
+    CAST(q.fare_cents - o.actual_cost_cents AS DOUBLE)
+      * 100.0 / CAST(o.actual_cost_cents AS DOUBLE)
+      - q.target_markup_pct, 4
+  ) AS DOUBLE) AS markup_error_pp,
+  CAST(ROUND(ABS(
+      CAST(q.fare_cents - o.actual_cost_cents AS DOUBLE)
+        * 100.0 / CAST(o.actual_cost_cents AS DOUBLE)
+        - q.target_markup_pct
+  ), 4) AS DOUBLE) AS absolute_markup_error_pp,
+  CASE
+    WHEN q.predicted_cost_cents IS NULL THEN CAST(NULL AS BIGINT)
+    ELSE q.predicted_cost_cents - o.actual_cost_cents
+  END AS cost_prediction_error_cents,
+  ABS(
+      CAST(q.fare_cents - o.actual_cost_cents AS DOUBLE)
+        * 100.0 / CAST(o.actual_cost_cents AS DOUBLE)
+        - q.target_markup_pct
+  ) <= 2.0 AS within_target_tolerance,
+  CURRENT_ROW_TIMESTAMP() AS evaluated_at
+FROM (
+  SELECT
+    run_id,
+    trip_id,
+    quote_id,
+    model_version,
+    fare_cents,
+    predicted_cost_cents,
+    target_markup_pct,
+    `$rowtime` AS quote_rowtime
+  FROM `${DEMO07_FARE_QUOTES_TOPIC}`
+  WHERE run_id='${RUN_ID}'
+) AS q
+INNER JOIN (
+  SELECT
+    run_id,
+    trip_id,
+    actual_cost_cents,
+    `$rowtime` AS outcome_rowtime
+  FROM `${DEMO07_TRIP_OUTCOMES_TOPIC}`
+  WHERE run_id='${RUN_ID}'
+) AS o
+ON q.trip_id = o.trip_id
+AND q.quote_rowtime BETWEEN o.outcome_rowtime - INTERVAL '1' HOUR
+                        AND o.outcome_rowtime + INTERVAL '1' HOUR;
+
+-- WHY THE TIME PREDICATE MATTERS:
+-- An equality-only streaming join has no natural end and can retain state
+-- indefinitely.  The interval plus watermarks tells the runtime when an old
+-- unmatched record can no longer find a valid partner.  `$rowtime` is selected
+-- explicitly because system columns are omitted from SELECT *; forwarding it
+-- unchanged through each filtered subquery preserves the event-time attribute.
+
+-- STEP 4: Run this as a foreground observation query.  Close it after both
+-- model counts reach 4; it does not need another output topic.
+SELECT
+  model_version,
+  COUNT(*) AS records,
+  ROUND(AVG(realized_markup_pct), 4) AS avg_realized_markup_pct,
+  ROUND(AVG(absolute_markup_error_pp), 4) AS mean_absolute_gap_pp
+FROM `${DEMO09_FLINKSQL_EVALUATIONS_TABLE}`
+WHERE run_id='${RUN_ID}'
+GROUP BY model_version;
+
+-- CLEANUP CHECKLIST:
+-- 1. Run demo09_verify.py while the eight output rows are still available.
+-- 2. Cancel the foreground STEP 4 SELECT after collecting its result.
+-- 3. Stop the background INSERT statement in Cloud UI and confirm STOPPED.
+-- 4. Confirm no other statement is running in the teaching compute pool.
+-- 5. Do NOT DROP either Demo 07 table; in Confluent Cloud that can delete the
+--    backing Kafka topic.  Keep the sink until evidence has been collected.
+-- 6. With no running statement, confirm the compute pool can scale to zero.

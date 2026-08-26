@@ -497,11 +497,11 @@ tbody tr:hover {
 
 .lecture-map-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) minmax(250px, auto);
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 4px 14px;
+  align-items: start;
   min-width: 0;
-  padding: 13px 18px;
+  padding: 15px 18px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -510,6 +510,7 @@ tbody tr:hover {
 }
 
 .lecture-map-number {
+  padding-top: 3px;
   color: var(--usf-green);
   font-size: 0.82rem;
   font-weight: 800;
@@ -533,19 +534,18 @@ tbody tr:hover {
 
 .lecture-map-copy span {
   margin-top: 2px;
-  overflow: hidden;
   color: var(--muted);
   font-size: 0.79rem;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .lecture-map-links {
+  grid-column: 2;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
+  margin-top: 5px;
 }
 
 .lecture-map-links a {
@@ -567,6 +567,17 @@ tbody tr:hover {
 .lecture-map-links a:hover {
   border-color: var(--usf-green);
   background: var(--accent-soft);
+}
+
+.lecture-map-links a:first-child {
+  border-color: var(--usf-green-dark);
+  background: var(--usf-green-dark);
+  color: #ffffff;
+}
+
+.lecture-map-links a:first-child:hover {
+  border-color: var(--usf-green);
+  background: var(--usf-green);
 }
 
 .handout-library-intro {
@@ -931,6 +942,33 @@ tbody tr:hover {
   min-width: 0;
 }
 
+.handout .presentation-schedule-wrap {
+  margin-top: 16px;
+}
+
+.handout .presentation-schedule {
+  min-width: 1180px;
+  table-layout: fixed;
+}
+
+.handout .presentation-schedule th,
+.handout .presentation-schedule td {
+  white-space: nowrap;
+}
+
+.handout .presentation-schedule th:nth-child(1) { width: 12%; }
+.handout .presentation-schedule th:nth-child(2) { width: 34%; }
+.handout .presentation-schedule th:nth-child(3) { width: 54%; }
+
+.route-final-presentation .page {
+  max-width: 1240px;
+}
+
+.route-final-presentation .content.wide,
+.route-final-presentation .handout-wide {
+  max-width: none;
+}
+
 .handout code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 0.88em;
@@ -1111,6 +1149,35 @@ tbody tr:hover {
 
 .handout-callout-important {
   border-left-color: #e2a51f;
+}
+
+.handout-update-banner {
+  margin: 1.5rem 0 1.8rem;
+  padding: 1rem 1.15rem;
+  border: 2px solid #e2a51f;
+  border-left-width: 8px;
+  border-radius: 8px;
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.handout-update-banner > strong:first-child {
+  display: inline-block;
+  margin-bottom: 0.7rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 4px;
+  background: #6b4600;
+  color: #ffffff;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.handout-update-banner p {
+  margin-bottom: 0.45rem;
+}
+
+.handout-update-banner p:last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 860px) {
@@ -1473,15 +1540,6 @@ tbody tr:hover {
     grid-template-columns: 32px minmax(0, 1fr);
     gap: 8px 10px;
     padding: 13px 14px;
-  }
-
-  .lecture-map-copy span {
-    white-space: normal;
-  }
-
-  .lecture-map-links {
-    grid-column: 2;
-    justify-content: flex-start;
   }
 
   .handout-section-head {

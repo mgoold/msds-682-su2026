@@ -5,24 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta
     name="description"
-    content="MSDS 682 Lecture 8 Part 3: Lecture 7B defined the processing; this part chooses the compute owner that runs it. Products continue in Lecture 9."
+    content="MSDS 682 Lecture 8 carry-forward: a minimal framework for choosing the compute owner. This prepared section was not reached on July 30 and continues in Lecture 9."
   />
   <title>MSDS 682 · Lecture 8 · Stream-Processing Decision Guide</title>
   <link rel="stylesheet" href="lecture8-three-part.css" />
 </head>
-<body data-deck="Part 3 · Stream processing">
+<body data-deck="Carry-forward · Stream processing">
 <div class="progress" aria-hidden="true"></div>
 
 <section class="slide hero" id="stream-processing-title" data-timing="92–93 min">
   <a class="back-link" href="MSDS682-Lecture8-Three-Part-Index.html">← Lecture 8 index</a>
   <div class="frame">
-    <p class="kicker">MSDS 682 · <b>Lecture 8 · Part 3</b></p>
+    <p class="kicker">MSDS 682 · <b>Lecture 8 · Part 3</b><span class="updated-badge">[updated]</span></p>
     <h1>Now choose who runs it</h1>
     <p class="sub">
-      Lecture 7B defined what stream processing has to do. This part picks the compute owner that does it.
+      Lecture 7B defined what stream processing has to do. This prepared section picks the compute owner, but it was not reached in the July 30 class.
     </p>
     <div class="hero-meta">
-      <span class="pill wip">Work in progress · products in Lecture 9</span>
+      <span class="pill wip">Not taught July 30 · carry forward to Lecture 9</span>
       <span class="pill">15 minutes</span>
       <span class="pill">Five questions, three owners</span>
     </div>
@@ -33,7 +33,7 @@
 
 <section class="slide" id="the-open-question" data-timing="93–96 min">
   <div class="frame">
-    <p class="kicker">What is still open</p>
+    <p class="kicker">What is still open<span class="updated-badge">[updated]</span></p>
     <h1>The operation is settled. The owner is not.</h1>
     <div class="rail">
       <div class="rail-node">
@@ -61,7 +61,7 @@
 
 <section class="slide" id="five-stable-questions" data-timing="96–99 min">
   <div class="frame narrow">
-    <p class="kicker">Ask before naming a tool</p>
+    <p class="kicker">Ask before naming a tool<span class="updated-badge">[updated]</span></p>
     <h1>Five questions decide the owner</h1>
     <ol class="number-list">
       <li><strong>State:</strong> must it remember anything between events?</li>
@@ -76,7 +76,7 @@
 
 <section class="slide" id="three-owners" data-timing="99–104 min">
   <div class="frame">
-    <p class="kicker">Three owners</p>
+    <p class="kicker">Three owners<span class="updated-badge">[updated]</span></p>
     <h1>Choose the smallest owner that meets the contract</h1>
     <div class="trio">
       <article class="card green">
@@ -107,14 +107,14 @@
 
 <section class="slide" id="decision-exit-ticket" data-timing="104–107 min">
   <div class="frame narrow">
-    <p class="kicker">Part 3 close · Exit ticket</p>
+    <p class="kicker">Part 3 close · Exit ticket<span class="updated-badge">[updated]</span></p>
     <h1>One sentence before you name a product</h1>
     <p class="quote">
       "My project needs <em>this state and time behavior</em>, so I choose
       <em>this owner</em>, and I will prove it with <em>this replay or failure test</em>."
     </p>
     <div class="links">
-      <strong>Work in progress, continues in Lecture 9:</strong> concrete products such as ksqlDB, Flink SQL, and Kafka Streams, compared only against a requirement you can already state.
+      <strong>Carry-forward from July 30:</strong> concrete products such as ksqlDB, Flink SQL, and Kafka Streams are compared only after the requirement and compute owner are explicit.
     </div>
   </div>
   <div class="crumb"></div><div class="timing"></div><div class="pager"></div>

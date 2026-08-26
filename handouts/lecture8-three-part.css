@@ -73,6 +73,22 @@ a { color: inherit; }
 
 .kicker b { color: var(--blue); font-weight: 700; }
 
+.updated-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 3px 8px;
+  border: 1px solid #e0bd65;
+  border-radius: 999px;
+  color: #6d4705;
+  background: var(--amber-soft);
+  font-family: var(--mono);
+  font-size: .92em;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  vertical-align: .08em;
+}
+
 h1 {
   max-width: 1180px;
   margin: 0 0 10px;
@@ -198,23 +214,6 @@ code {
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-
-.sub.wide { max-width: none; }
-
-.status {
-  display: inline-block;
-  padding: 3px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.status.ok { border-color: #c0e0d8; color: #14604e; background: var(--green-soft); }
-.status.partial { border-color: #eeda9f; color: #6d4705; background: var(--amber-soft); }
-.status.gap { border-color: #edc7c7; color: #8a2f2f; background: var(--red-soft); }
 
 .pill.wip {
   border-color: #eeda9f;

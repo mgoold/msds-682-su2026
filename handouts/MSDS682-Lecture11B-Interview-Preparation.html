@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSDS 682 · Lecture 11B · Interview Preparation</title>
+<style>
+:root{
+  --ink:#16181d; --muted:#626873; --paper:#f4f4f2; --panel:#ffffff; --line:#e4e5e1;
+  --blue:#3565f2; --blue-soft:#eef1fe;
+  --teal:#0e7f66; --teal-soft:#e7f3f0;
+  --amber:#8a5a06; --amber-soft:#fff3d9;
+  --red:#a33d3d; --red-soft:#f9eaea;
+  --purple:#6f4fc3; --purple-soft:#f1edfb;
+  --shadow:0 8px 28px rgba(22,24,29,.05);
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+  --body:clamp(18px,1.35vw,24px);
+  --small:clamp(16px,1.15vw,20px);
+  --tiny:clamp(14px,.95vw,17px);
+  --label:clamp(14px,.95vw,17px);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{margin:0;overflow-x:hidden;color:var(--ink);background:var(--paper);
+  font-family:var(--sans);font-size:var(--body);line-height:1.42;
+  -webkit-font-smoothing:antialiased}
+.slide{position:relative;display:block;min-height:100vh;padding:11vh 5vw 8vh;
+  scroll-snap-align:start;scroll-snap-stop:always}
+.slide.title-slide{display:grid;place-items:center;padding:8vh 5vw}
+.wrap{width:100%;max-width:1280px;margin:0 auto}
+
+/* deck chrome */
+.num{position:fixed;right:2vw;bottom:2vh;z-index:40;font-family:var(--mono);
+  font-size:12px;color:var(--muted);background:rgba(244,244,242,.9);padding:5px 11px;
+  border:1px solid var(--line);border-radius:20px;backdrop-filter:blur(6px)}
+.hint{position:fixed;right:2vw;top:2vh;z-index:40;font-family:var(--mono);
+  font-size:13px;color:var(--muted);opacity:.72;animation:hintFade 3.2s ease forwards}
+@keyframes hintFade{0%,68%{opacity:.72}100%{opacity:0;visibility:hidden}}
+.slide[data-ref]::after{content:attr(data-ref);position:absolute;left:5vw;bottom:2.2vh;
+  font-family:var(--mono);font-size:var(--tiny);color:var(--muted);opacity:.78}
+
+/* type */
+h1{font-size:clamp(52px,5vw,82px);line-height:1.02;letter-spacing:-.03em;
+  margin:0 0 22px;font-weight:800;text-wrap:balance;overflow-wrap:anywhere}
+h2{font-size:clamp(34px,3vw,48px);line-height:1.08;letter-spacing:-.02em;
+  margin:0 0 24px;font-weight:760;text-wrap:balance;overflow-wrap:anywhere}
+h3{font-size:clamp(20px,1.55vw,26px);margin:0 0 7px;font-weight:720;line-height:1.2}
+p{margin:0 0 12px;max-width:74ch}
+.opening-title{font-size:clamp(45px,4.1vw,67px)}
+.closing-title{max-width:19ch}
+.title-scope{font-size:clamp(20px,1.65vw,28px);line-height:1.3;font-weight:680;
+  color:var(--blue);margin:0 0 9px;max-width:none}
+.deck-meta{font-family:var(--mono);font-size:clamp(17px,1.2vw,22px);color:var(--muted);
+  letter-spacing:.02em;margin:8px 0 24px;max-width:none}
+.kicker{font-family:var(--mono);font-size:var(--label);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:9px}
+.note{font-size:var(--small);color:var(--muted);max-width:76ch}
+hr.rule{height:1px;background:var(--line);margin:20px 0;border:0}
+
+/* shared layout */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  padding:clamp(17px,1.45vw,24px);box-shadow:var(--shadow)}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.mt12{margin-top:12px}.mt16{margin-top:16px}
+.callout{border-left:3px solid var(--blue);padding:1px 0 1px 16px;margin:16px 0;max-width:78ch}
+.c-red{border-color:var(--red)} .c-amber{border-color:var(--amber)}
+.c-teal{border-color:var(--teal)} .c-purple{border-color:var(--purple)}
+
+/* pipelines */
+.pipe{display:grid;gap:28px;margin:24px 0}
+.pipe.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pipe.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.pipe .st{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:16px 17px;box-shadow:var(--shadow);position:relative;min-width:0}
+.pipe .st::after{content:'›';position:absolute;right:-21px;top:50%;transform:translateY(-50%);
+  font-size:26px;color:var(--muted);line-height:1}
+.pipe .st:last-child::after{content:none}
+.pipe .st .lbl{font-family:var(--mono);font-size:var(--label);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.pipe .st strong{display:block;font-size:clamp(17px,1.25vw,22px);line-height:1.15}
+.pipe .st .q{font-size:var(--tiny);color:var(--muted);margin-top:6px;display:block}
+
+/* complete candidate journey */
+.journey{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;margin:21px 0}
+.journey-stage{min-height:132px;padding:14px;border:1px solid var(--line);border-top:6px solid var(--blue);
+  border-radius:12px;background:var(--panel);box-shadow:var(--shadow)}
+.journey-stage:nth-child(2),.journey-stage:nth-child(7){border-top-color:var(--purple)}
+.journey-stage:nth-child(3),.journey-stage:nth-child(8){border-top-color:var(--teal)}
+.journey-stage:nth-child(4),.journey-stage:nth-child(9){border-top-color:var(--amber)}
+.journey-stage:nth-child(5),.journey-stage:nth-child(10){border-top-color:var(--red)}
+.journey-stage .step{font-family:var(--mono);font-size:var(--tiny);color:var(--muted)}
+.journey-stage strong{display:block;font-size:clamp(17px,1.22vw,21px);line-height:1.12;margin:4px 0 8px}
+.journey-stage .topics{display:block;font-size:var(--tiny);line-height:1.25;color:var(--ink);margin-bottom:7px}
+.journey-stage .output{display:block;font-family:var(--mono);font-size:clamp(12px,.84vw,15px);
+  line-height:1.25;color:var(--muted)}
+
+/* student artifact / stage output */
+.artifact{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 15px;
+  border:1px solid #cfe6df;border-radius:10px;background:var(--teal-soft)}
+.artifact b{font-family:var(--mono);font-size:var(--label);color:var(--teal);white-space:nowrap}
+.artifact span{font-size:var(--small);font-weight:680}
+
+/* preparation and evidence package */
+.target-card{border-top:7px solid var(--blue)}
+.target-card:nth-child(2){border-top-color:var(--purple)}
+.target-card:nth-child(3){border-top-color:var(--teal)}
+.target-card:nth-child(4){border-top-color:var(--amber)}
+.target-card .value{font-size:clamp(22px,1.7vw,29px);font-weight:760;margin-top:10px}
+.evidence-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:20px 0}
+.evidence-item{min-height:126px;padding:16px 12px;border:1px solid var(--line);border-radius:11px;
+  background:var(--panel);box-shadow:var(--shadow);text-align:center}
+.evidence-item b{display:block;font-size:clamp(17px,1.18vw,21px);margin:8px 0 5px}
+.evidence-item span{font-size:var(--tiny);line-height:1.25;color:var(--muted)}
+.evidence-item .dot{width:10px;height:10px;margin:0 auto;border-radius:50%;background:var(--blue)}
+
+/* channel cards */
+.channel{border-top:7px solid var(--blue)}
+.channel:nth-child(2){border-top-color:var(--purple)}
+.channel:nth-child(3){border-top-color:var(--teal)}
+.channel:nth-child(4){border-top-color:var(--amber)}
+.channel:nth-child(5){border-top-color:var(--red)}
+.channel .use{font-weight:730;margin:10px 0 5px}
+
+/* application tracker and recruiter screen */
+.tracker-flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:22px;margin:18px 0}
+.tracker-cell{position:relative;padding:15px 12px;border:1px solid var(--line);border-radius:10px;
+  background:var(--panel);box-shadow:var(--shadow);min-height:100px}
+.tracker-cell:not(:last-child)::after{content:'→';position:absolute;right:-18px;top:42%;color:var(--muted)}
+.tracker-cell b{display:block;font-family:var(--mono);font-size:var(--label);color:var(--blue);margin-bottom:6px}
+.tracker-cell span{font-size:var(--tiny);line-height:1.2;color:var(--muted)}
+.screen{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}
+.screen-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fact{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.fact b{display:block;font-size:var(--small);margin-bottom:4px}
+.fact span{font-size:var(--tiny);color:var(--muted)}
+.intro45{display:flex;flex-direction:column;justify-content:center;border:1px solid #d6dffc;
+  border-top:7px solid var(--blue);border-radius:13px;background:var(--blue-soft);padding:22px}
+.intro45 .time{font-family:var(--mono);font-size:clamp(34px,3.2vw,50px);font-weight:800;color:var(--blue)}
+.intro45 p{font-size:var(--small)}
+
+/* evaluator lanes */
+.evaluators{display:grid;gap:10px;margin:20px 0}
+.evaluator{display:grid;grid-template-columns:220px 1fr 250px;gap:18px;align-items:center;
+  padding:15px 19px;border:1px solid var(--line);border-radius:11px;background:var(--panel);
+  box-shadow:var(--shadow)}
+.evaluator strong{font-size:clamp(20px,1.5vw,25px)}
+.evaluator .asks{font-weight:680}
+.evaluator .depth{font-family:var(--mono);font-size:var(--tiny);color:var(--muted)}
+
+/* answer pattern */
+.answer-rail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:34px;margin:28px 0}
+.answer-step{position:relative;min-height:150px;padding:21px;border:1px solid var(--line);
+  border-top:7px solid var(--blue);border-radius:13px;background:var(--panel);box-shadow:var(--shadow)}
+.answer-step:nth-child(2){border-top-color:var(--purple)}
+.answer-step:nth-child(3){border-top-color:var(--teal)}
+.answer-step:nth-child(4){border-top-color:var(--amber)}
+.answer-step:not(:last-child)::after{content:'→';position:absolute;right:-28px;top:48%;
+  font-family:var(--mono);color:var(--muted)}
+.answer-step strong{display:block;font-size:clamp(23px,1.8vw,30px);margin-bottom:8px}
+
+/* project story */
+.story{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;margin:20px 0}
+.story .beat{position:relative;min-height:125px;padding:15px 12px;border:1px solid var(--line);
+  border-radius:11px;background:var(--panel);box-shadow:var(--shadow);text-align:center}
+.story .beat:not(:last-child)::after{content:'→';position:absolute;right:-19px;top:50%;
+  transform:translateY(-50%);color:var(--muted)}
+.story .beat b{display:block;font-family:var(--mono);font-size:var(--label);color:var(--blue);
+  margin-bottom:8px;text-transform:uppercase}
+.story .beat span{font-size:var(--tiny);line-height:1.3}
+
+/* mock exercise */
+.mock{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:20px 0}
+.audience{border:1px solid var(--line);border-top:7px solid var(--purple);border-radius:13px;
+  background:var(--panel);padding:23px;box-shadow:var(--shadow)}
+.audience:last-child{border-top-color:var(--teal)}
+.audience .time{font-family:var(--mono);font-size:clamp(30px,3vw,48px);font-weight:800;
+  color:var(--blue);margin:8px 0}
+.unknown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:15px}
+.unknown div{padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:var(--panel);
+  font-size:var(--tiny);font-weight:650;text-align:center}
+
+/* offer decision */
+.offer-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.offer-check{padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  box-shadow:var(--shadow)}
+.offer-check b{display:block;font-size:var(--small);margin-bottom:5px}
+.offer-check span{font-size:var(--tiny);color:var(--muted)}
+.close-flow{display:grid;grid-template-columns:1fr 62px 1fr;gap:16px;align-items:stretch}
+.close-panel{padding:20px;border:1px solid var(--line);border-top:7px solid var(--purple);
+  border-radius:13px;background:var(--panel);box-shadow:var(--shadow)}
+.close-panel:last-child{border-top-color:var(--teal)}
+.close-mid{display:grid;place-items:center;font-family:var(--mono);font-size:28px;color:var(--muted)}
+.mini-list{display:grid;gap:8px;margin-top:12px}
+.mini-list div{display:grid;grid-template-columns:28px 1fr;gap:8px;padding:8px 10px;
+  border:1px solid var(--line);border-radius:8px;background:var(--paper);font-size:var(--tiny)}
+.mini-list b{font-family:var(--mono);color:var(--blue)}
+
+/* closing */
+.action{display:grid;grid-template-columns:52px 1fr;gap:16px;align-items:center;
+  padding:18px 20px;border-bottom:1px solid var(--line)}
+.action:last-child{border-bottom:none}
+.action b{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;
+  background:var(--blue);color:white;font-family:var(--mono)}
+.action span{font-size:clamp(20px,1.55vw,27px);font-weight:680}
+
+/* semantic tints */
+.t-blue.t-blue{background:var(--blue-soft);border-color:#d6dffc}
+.t-teal.t-teal{background:var(--teal-soft);border-color:#cfe6df}
+.t-amber.t-amber{background:var(--amber-soft);border-color:#f0e0b8}
+.t-red.t-red{background:var(--red-soft);border-color:#eed6d6}
+.t-purple.t-purple{background:var(--purple-soft);border-color:#e0d8f5}
+
+/* restrained motion */
+.slide .wrap>*{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.slide.in .wrap>*{opacity:1;transform:none}
+.slide.in .wrap>*:nth-child(1){transition-delay:.02s}
+.slide.in .wrap>*:nth-child(2){transition-delay:.09s}
+.slide.in .wrap>*:nth-child(3){transition-delay:.16s}
+.slide.in .wrap>*:nth-child(4){transition-delay:.23s}
+.panel,.st,.answer-step,.beat,.audience,.journey-stage,.evidence-item,.offer-check{transition:transform .18s ease,box-shadow .18s ease}
+.panel:hover,.st:hover,.answer-step:hover,.beat:hover,.audience:hover,.journey-stage:hover,.evidence-item:hover,.offer-check:hover{
+  transform:translateY(-2px);box-shadow:0 12px 32px rgba(22,24,29,.08)}
+
+@media (max-width:640px){
+  .slide{padding:9vh 6vw 8vh}
+  .grid4,.grid5,.mock,.journey,.evidence-grid,.tracker-flow,
+  .screen,.screen-facts,.unknown,.offer-checks{grid-template-columns:1fr}
+  .pipe.cols-3,.pipe.cols-5{grid-template-columns:1fr}
+  .pipe .st{margin-bottom:20px}.pipe .st::after{content:'⌄';right:50%;top:auto;bottom:-20px;
+    transform:translateX(50%)}
+  .tracker-cell{min-height:0;margin-bottom:14px}
+  .tracker-cell:not(:last-child)::after{content:'↓';right:50%;top:auto;bottom:-20px}
+  .close-flow{grid-template-columns:1fr}
+  .close-mid{transform:rotate(90deg);padding:2px}
+  .evaluator{grid-template-columns:1fr;gap:5px}
+  .answer-rail,.story{grid-template-columns:1fr;gap:26px}
+  .answer-step{min-height:0}.answer-step:not(:last-child)::after{content:'↓';right:50%;top:auto;bottom:-25px}
+  .story .beat{min-height:0}.story .beat:not(:last-child)::after{content:'↓';right:50%;top:auto;bottom:-23px;transform:none}
+}
+@media print{
+  @page{size:16in 9in;margin:0}
+  html{scroll-snap-type:none}
+  .slide{width:100vw;height:100vh;min-height:100vh;page-break-after:always;
+    padding:11vh 5vw 8vh;border:0;overflow:hidden}
+  .slide.title-slide{display:grid;padding:8vh 5vw}
+  .slide .wrap>*{opacity:1!important;transform:none!important}
+  .num,.hint{display:none} body{background:#fff}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}.slide .wrap>*{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="num" id="num">01 / 15</div>
+<div class="hint">← → · Space to navigate</div>
+
+<!-- 1 -->
+<section class="slide title-slide"><div class="wrap">
+  <h1 class="opening-title">From preparation to signed offer</h1>
+  <p class="title-scope">One process. One evidence package. A clear next action.</p>
+  <p class="deck-meta">Lecture 11B · Jeremy Gu · University of San Francisco · Summer 2026</p>
+  <hr class="rule">
+</div></section>
+
+<!-- 2 -->
+<section class="slide" data-ref="MSDS 682 final project · candidate evidence"><div class="wrap">
+  <h2>One evidence package travels through the process</h2>
+  <div class="pipe cols-3">
+    <div class="st"><div class="lbl">Build</div><strong>Do the work</strong><span class="q">Problem, contribution, result</span></div>
+    <div class="st"><div class="lbl">Adapt</div><strong>Make it relevant</strong><span class="q">Role, audience, question</span></div>
+    <div class="st"><div class="lbl">Verify</div><strong>Support the claim</strong><span class="q">Code, diagram, test, metric</span></div>
+  </div>
+  <div class="callout c-teal"><p><b>Your final project is evidence.</b> The process changes who evaluates it and what they need to see.</p></div>
+</div></section>
+
+<!-- 3 -->
+<section class="slide" data-ref="2023 Lectures 10 and 13 · organized for 2026"><div class="wrap">
+  <h2>The complete candidate journey</h2>
+  <div class="journey">
+    <div class="journey-stage"><span class="step">01</span><strong>Prepare</strong><span class="topics">Role · level · constraints</span><span class="output">→ Target-role list</span></div>
+    <div class="journey-stage"><span class="step">02</span><strong>Evidence package</strong><span class="topics">Resume · LinkedIn · GitHub</span><span class="output">→ Consistent materials</span></div>
+    <div class="journey-stage"><span class="step">03</span><strong>Apply</strong><span class="topics">Channel · relevance · tailoring</span><span class="output">→ Tailored application</span></div>
+    <div class="journey-stage"><span class="step">04</span><strong>Track</strong><span class="topics">Stage · follow-up · next action</span><span class="output">→ Application tracker</span></div>
+    <div class="journey-stage"><span class="step">05</span><strong>Recruiter screen</strong><span class="topics">Motivation · fit · logistics</span><span class="output">→ 45-second introduction</span></div>
+    <div class="journey-stage"><span class="step">06</span><strong>Interview</strong><span class="topics">Four views · project evidence</span><span class="output">→ 60-second project story</span></div>
+    <div class="journey-stage"><span class="step">07</span><strong>After interview</strong><span class="topics">Follow up · debrief · continue</span><span class="output">→ Follow-up + debrief</span></div>
+    <div class="journey-stage"><span class="step">08</span><strong>Evaluate offer</strong><span class="topics">Terms · scope · risk</span><span class="output">→ Written-offer checklist</span></div>
+    <div class="journey-stage"><span class="step">09</span><strong>Negotiate</strong><span class="topics">Priority · request · Plan B</span><span class="output">→ Prioritized request</span></div>
+    <div class="journey-stage"><span class="step">10</span><strong>Sign</strong><span class="topics">Written changes · deadline</span><span class="output">→ Offer + confirmation</span></div>
+  </div>
+  <div class="callout"><p>A stage is complete only when you have its artifact and know the next action.</p></div>
+</div></section>
+
+<!-- 4 -->
+<section class="slide" data-ref="Stage 01 · Prepare"><div class="wrap">
+  <h2>Prepare a target, not a generic search</h2>
+  <div class="grid4">
+    <div class="panel target-card"><div class="kicker">Role family</div><div class="value">What work?</div><p class="note">Data science, data engineering, ML, or streaming systems.</p></div>
+    <div class="panel target-card"><div class="kicker">Level</div><div class="value">What scope?</div><p class="note">Choose a realistic level and expected ownership.</p></div>
+    <div class="panel target-card"><div class="kicker">Work type</div><div class="value">What setting?</div><p class="note">Product, platform, research, consulting, or operations.</p></div>
+    <div class="panel target-card"><div class="kicker">Constraints</div><div class="value">What limits?</div><p class="note">Location, work model, authorization, timing, and non-negotiables.</p></div>
+  </div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A target-role list and explicit constraints.</span></div>
+</div></section>
+
+<!-- 5 -->
+<section class="slide" data-ref="Stage 02 · Evidence package"><div class="wrap">
+  <h2>Build one consistent evidence package</h2>
+  <div class="evidence-grid">
+    <div class="evidence-item"><div class="dot"></div><b>Resume</b><span>Relevant claims and results</span></div>
+    <div class="evidence-item"><div class="dot"></div><b>LinkedIn</b><span>Same role story and dates</span></div>
+    <div class="evidence-item"><div class="dot"></div><b>GitHub</b><span>Readable code and README</span></div>
+    <div class="evidence-item"><div class="dot"></div><b>Project</b><span>Problem and contribution</span></div>
+    <div class="evidence-item"><div class="dot"></div><b>Architecture</b><span>One accurate system diagram</span></div>
+    <div class="evidence-item"><div class="dot"></div><b>Result</b><span>Test, metric, or output</span></div>
+  </div>
+  <div class="callout c-teal"><p><b>Consistency check:</b> the role, contribution, architecture, and result must tell the same true story everywhere.</p></div>
+  <div class="artifact"><b>LEAVE WITH</b><span>One coherent set of application and project materials.</span></div>
+</div></section>
+
+<!-- 6 -->
+<section class="slide" data-ref="Stage 03 · Apply"><div class="wrap">
+  <h2>Use the right channel, then tailor the evidence</h2>
+  <div class="grid5">
+    <div class="panel channel"><div class="kicker">Company site</div><div class="use">Official route</div><p class="note">Match the role and keywords honestly.</p></div>
+    <div class="panel channel"><div class="kicker">Referral</div><div class="use">Adds context</div><p class="note">Best when the person knows your work and fit.</p></div>
+    <div class="panel channel"><div class="kicker">Warm intro</div><div class="use">Shared trust</div><p class="note">A contact explains why the conversation is relevant.</p></div>
+    <div class="panel channel"><div class="kicker">Recruiter</div><div class="use">Role access</div><p class="note">Reply with a concise fit statement and evidence.</p></div>
+    <div class="panel channel"><div class="kicker">Hiring manager</div><div class="use">Problem context</div><p class="note">Use only a short, specific, relevant message.</p></div>
+  </div>
+  <div class="callout c-amber"><p>The channel changes. The standard does not: relevance, truthful evidence, and a clear ask.</p></div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A tailored application for one target role.</span></div>
+</div></section>
+
+<!-- 7 -->
+<section class="slide" data-ref="Stage 04 · Track"><div class="wrap">
+  <h2>Track the process, not your memory</h2>
+  <div class="tracker-flow">
+    <div class="tracker-cell"><b>Date</b><span>Applied Aug 10</span></div>
+    <div class="tracker-cell"><b>Role + source</b><span>Data Engineer · referral</span></div>
+    <div class="tracker-cell"><b>Contact</b><span>Recruiter or referrer</span></div>
+    <div class="tracker-cell"><b>Stage</b><span>Applied, screen, interview, offer</span></div>
+    <div class="tracker-cell"><b>Follow-up</b><span>Promise and date</span></div>
+    <div class="tracker-cell"><b>Next action</b><span>One owner and deadline</span></div>
+  </div>
+  <div class="callout"><p>If there is no next action or follow-up date, the application is not being managed.</p></div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A simple application tracker with one row per role.</span></div>
+</div></section>
+
+<!-- 8 -->
+<section class="slide" data-ref="Stage 05 · Recruiter screen"><div class="wrap">
+  <h2>The recruiter screen checks the basic contract</h2>
+  <div class="screen">
+    <div class="screen-facts">
+      <div class="fact"><b>Motivation</b><span>Why this role and team?</span></div>
+      <div class="fact"><b>Match</b><span>Which evidence is most relevant?</span></div>
+      <div class="fact"><b>Availability</b><span>When can you start?</span></div>
+      <div class="fact"><b>Location</b><span>Which work model is possible?</span></div>
+      <div class="fact"><b>Authorization</b><span>Answer the factual question clearly.</span></div>
+      <div class="fact"><b>Expectations</b><span>Role, process, and compensation facts.</span></div>
+    </div>
+    <div class="intro45">
+      <div class="kicker">Your opening</div>
+      <div class="time">45 sec</div>
+      <p><b>Target role → relevant evidence → motivation → basic logistics</b></p>
+    </div>
+  </div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A concise introduction and prepared factual answers.</span></div>
+</div></section>
+
+<!-- 9 -->
+<section class="slide" data-ref="Stage 06 · Formal interview"><div class="wrap">
+  <h2>One project, four interview views</h2>
+  <div class="evaluators">
+    <div class="evaluator"><strong>Hiring manager</strong><span class="asks">Can you solve our problem and own work?</span><span class="depth">choices, impact, learning</span></div>
+    <div class="evaluator"><strong>Technical</strong><span class="asks">Are the claims correct and supported?</span><span class="depth">contracts, tradeoffs, evidence</span></div>
+    <div class="evaluator"><strong>Behavioral</strong><span class="asks">How do you decide, adapt, and learn?</span><span class="depth">context, action, reflection</span></div>
+    <div class="evaluator"><strong>Cross-functional</strong><span class="asks">Can you explain and collaborate?</span><span class="depth">audience, clarity, judgment</span></div>
+  </div>
+  <div class="callout c-purple"><p>The evidence stays fixed. Change the depth and emphasis for the interviewer.</p></div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A 60-second project story and evidence-backed examples.</span></div>
+</div></section>
+
+<!-- 10 -->
+<section class="slide" data-ref="Stage 06 · Answer structure and project story"><div class="wrap">
+  <h2>Use two structures, not a long script</h2>
+  <div class="answer-rail">
+    <div class="answer-step"><strong>Answer</strong><p class="note">Lead with the conclusion.</p></div>
+    <div class="answer-step"><strong>Evidence</strong><p class="note">Use one specific example.</p></div>
+    <div class="answer-step"><strong>Role relevance</strong><p class="note">Connect it to their work.</p></div>
+    <div class="answer-step"><strong>Stop</strong><p class="note">Pause for the next question.</p></div>
+  </div>
+  <div class="story">
+    <div class="beat"><b>Problem</b><span>User and decision</span></div>
+    <div class="beat"><b>Data contract</b><span>Source, event, key</span></div>
+    <div class="beat"><b>Architecture choice</b><span>Constraint and tradeoff</span></div>
+    <div class="beat"><b>Evidence</b><span>Test, metric, result</span></div>
+    <div class="beat"><b>Lesson</b><span>Limit and next step</span></div>
+  </div>
+  <div class="callout c-amber"><p><b>Normal answer:</b> 30 to 60 seconds. <b>Project or behavioral example:</b> up to 90 seconds.</p></div>
+</div></section>
+
+<!-- 11 -->
+<section class="slide" data-ref="2023 Lecture 10 · mock interview"><div class="wrap">
+  <h2>Practice the audience and the honest gap</h2>
+  <div class="mock">
+    <div class="audience">
+      <div class="kicker">Round 1 · Recruiter</div>
+      <div class="time">45 sec</div>
+      <p>Problem, your contribution, result, and role fit.</p>
+    </div>
+    <div class="audience">
+      <div class="kicker">Round 2 · Technical</div>
+      <div class="time">60 sec</div>
+      <p>Data contract, architecture choice, evidence, and limitation.</p>
+    </div>
+  </div>
+  <div class="unknown">
+    <div>1 · Clarify the question</div><div>2 · State what you know</div>
+    <div>3 · Name the gap</div><div>4 · Explain how to verify</div>
+  </div>
+  <div class="artifact"><b>LEAVE WITH</b><span>One practiced answer and a credible response when you do not know.</span></div>
+</div></section>
+
+<!-- 12 -->
+<section class="slide" data-ref="Stage 07 · After the interview"><div class="wrap">
+  <h2>The interview is not over when the call ends</h2>
+  <div class="pipe cols-5">
+    <div class="st"><div class="lbl">1</div><strong>Follow up</strong><span class="q">Short and specific</span></div>
+    <div class="st"><div class="lbl">2</div><strong>Record</strong><span class="q">What worked?</span></div>
+    <div class="st"><div class="lbl">3</div><strong>Ask</strong><span class="q">Feedback, if appropriate</span></div>
+    <div class="st"><div class="lbl">4</div><strong>Prepare</strong><span class="q">Possible next round</span></div>
+    <div class="st"><div class="lbl">5</div><strong>Continue</strong><span class="q">Keep applying</span></div>
+  </div>
+  <div class="callout c-amber"><p>A follow-up note is not a second interview. Keep it concise and professional.</p></div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A short follow-up and a private interview debrief.</span></div>
+</div></section>
+
+<!-- 13 -->
+<section class="slide" data-ref="Stage 08 · Offer evaluation"><div class="wrap">
+  <h2>Evaluate the written offer before negotiating</h2>
+  <div class="offer-checks">
+    <div class="offer-check"><b>Role</b><span>Responsibilities and success criteria</span></div>
+    <div class="offer-check"><b>Manager + team</b><span>Support, working style, and stability</span></div>
+    <div class="offer-check"><b>Scope + growth</b><span>Ownership, learning, and progression</span></div>
+    <div class="offer-check"><b>Compensation</b><span>Base, bonus, equity, and benefits</span></div>
+    <div class="offer-check"><b>Conditions</b><span>Location, start date, deadline, and contingencies</span></div>
+    <div class="offer-check"><b>Risk + alternatives</b><span>Tradeoffs, uncertainty, and Plan B</span></div>
+  </div>
+  <div class="callout c-red"><p>Compare written facts. Do not trade a written term for a vague future promise.</p></div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A written-offer checklist with open questions and priorities.</span></div>
+</div></section>
+
+<!-- 14 -->
+<section class="slide" data-ref="Stages 09-10 · Negotiate and sign"><div class="wrap">
+  <h2>Negotiate, confirm the terms, then sign</h2>
+  <div class="close-flow">
+    <div class="close-panel">
+      <div class="kicker">Negotiate</div>
+      <h3>Make one prioritized request</h3>
+      <div class="mini-list">
+        <div><b>1</b><span>Set priorities and limits.</span></div>
+        <div><b>2</b><span>Make a specific, evidence-based request.</span></div>
+        <div><b>3</b><span>Compare the tradeoff and response.</span></div>
+        <div><b>4</b><span>Keep a realistic Plan B.</span></div>
+      </div>
+    </div>
+    <div class="close-mid">→</div>
+    <div class="close-panel">
+      <div class="kicker">Sign</div>
+      <h3>Accept the final written terms</h3>
+      <div class="mini-list">
+        <div><b>1</b><span>Review written terms and deadline.</span></div>
+        <div><b>2</b><span>Resolve conditions and open questions.</span></div>
+        <div><b>3</b><span>Confirm every agreed change in writing.</span></div>
+        <div><b>4</b><span>Sign, receive confirmation, and close other processes.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="artifact"><b>LEAVE WITH</b><span>A prioritized request, then a signed offer and confirmation.</span></div>
+  <p class="note mt12">This is a practical workflow, not legal, immigration, or financial advice.</p>
+</div></section>
+
+<!-- 15 -->
+<section class="slide title-slide" data-ref="Lecture 11B · 48-hour action plan"><div class="wrap">
+  <h1 class="closing-title">Start the process with four artifacts</h1>
+  <div class="panel mt16">
+    <div class="action"><b>1</b><span>Choose one target role family and write your constraints.</span></div>
+    <div class="action"><b>2</b><span>Align one resume bullet, LinkedIn entry, GitHub project, diagram, and result.</span></div>
+    <div class="action"><b>3</b><span>Record a 45-second introduction and a 60-second project story.</span></div>
+    <div class="action"><b>4</b><span>Tailor one application and add it to your tracker.</span></div>
+  </div>
+</div></section>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var label = document.getElementById('num');
+  var total = slides.length;
+  var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('in');
+        var index = slides.indexOf(entry.target) + 1;
+        label.textContent = pad(index) + ' / ' + pad(total);
+        if(entry.intersectionRatio > .55){
+          history.replaceState(null, '', '#' + (entry.target.id || 'slide-' + index));
+        }
+      }
+    });
+  }, {threshold:[.18,.6]});
+
+  slides.forEach(function(slide, i){
+    if(!slide.id) slide.id = 'slide-' + (i + 1);
+    io.observe(slide);
+  });
+
+  function activeIndex(){
+    var best = 0, bestDistance = Infinity;
+    slides.forEach(function(slide, i){
+      var distance = Math.abs(slide.getBoundingClientRect().top);
+      if(distance < bestDistance){ best = i; bestDistance = distance; }
+    });
+    return best;
+  }
+
+  function go(delta){
+    var next = Math.max(0, Math.min(total - 1, activeIndex() + delta));
+    slides[next].scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  document.addEventListener('keydown', function(event){
+    if(['ArrowRight','ArrowDown','PageDown',' '].indexOf(event.key) >= 0){
+      event.preventDefault(); go(1);
+    } else if(['ArrowLeft','ArrowUp','PageUp'].indexOf(event.key) >= 0){
+      event.preventDefault(); go(-1);
+    } else if(event.key === 'Home'){
+      event.preventDefault(); slides[0].scrollIntoView({behavior:'smooth'});
+    } else if(event.key === 'End'){
+      event.preventDefault(); slides[total - 1].scrollIntoView({behavior:'smooth'});
+    }
+  });
+
+  var requested = location.hash && document.querySelector(location.hash);
+  if(requested){ requested.scrollIntoView({block:'start'}); }
+})();
+</script>
+</body>
+</html>

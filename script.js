@@ -101,29 +101,29 @@ const pages = {
               <td>9</td>
               <td><strong>Mon · Aug 03</strong><span class="table-secondary">5:30–7:20 PM PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Data pipelines / optional Airflow</td>
-              <td>Orchestration concepts and an optional Airflow demo; project proposal due Tue Aug 4, 11:59 PM PDT</td>
+              <td>Streaming SQL: Python, ksqlDB, and Flink SQL</td>
+              <td>Review Lectures 6–8, then map Demo 07 to two SQL compute owners; project proposal due Tue Aug 4, 11:59 PM PDT</td>
             </tr>
             <tr>
               <td>10</td>
               <td><strong>Thu · Aug 06</strong><span class="table-secondary">5:30–7:20 PM PDT</span></td>
               <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
-              <td>Kafka + AI systems</td>
-              <td>RAG, memory, evals, guardrails, project examples</td>
+              <td>Lecture 10: Review Session and Final Presentation</td>
+              <td>Course recap, Demo 07/09 synthesis, final-project checklist, and presentation requirements</td>
             </tr>
             <tr>
               <td>11</td>
               <td><strong>Mon · Aug 10</strong><span class="table-secondary">5:30–7:20 PM PDT</span></td>
               <td><span class="tag zoom">Zoom</span></td>
-              <td>Final review and project workshop</td>
-              <td>Course review, project troubleshooting, begin presentations if needed</td>
+              <td>Lecture 11A/11B: API Design and Interview Preparation</td>
+              <td>Lecture 11A observable async API; Lecture 11B interview preparation and final-project questions</td>
             </tr>
             <tr>
               <td>12</td>
               <td><strong>Thu · Aug 13</strong><span class="table-secondary">5:30–7:20 PM PDT</span></td>
               <td><span class="tag in-person">In person</span><span class="table-secondary">101 Howard · 529</span></td>
-              <td>Final class and project presentations</td>
-              <td>Presentation timing will be confirmed on Canvas; report/code due Aug 14, 11:59 PM PDT</td>
+              <td>Lecture 12: Final Project Presentations</td>
+              <td><a href="#/handouts/lec12-final-project-presentations">Lecture 12 slides</a>; <a href="#/handouts/final-presentation">Final Presentation Schedule and Rubrics</a>; report/code due Aug 14, 11:59 PM PDT</td>
             </tr>
           </tbody>
         </table>
@@ -153,7 +153,7 @@ const pages = {
           <div class="milestone-list">
             <div><strong>Proposal</strong><span>Due Tue Aug 4, 2026 · 11:59 PM PDT · 10% course weight</span></div>
             <div><strong>Report/code</strong><span>Due Aug 14, 2026 · 11:59 PM PDT</span></div>
-            <div><strong>Presentation</strong><span>Timing will be announced on Canvas</span></div>
+            <div><strong>Presentation</strong><span><a href="#/handouts/final-presentation">Open the schedule and rubrics</a></span></div>
           </div>
           <p><a class="download-link" href="#/handouts/final-project-proposal-template">Open proposal template</a> · <a href="#/handouts/final-project-proposal-rubric">Open 10-point proposal rubric</a> · <a href="#/handouts/final-project">Open full project requirements</a></p>
         </article>
@@ -310,6 +310,36 @@ const handoutSections = [
     label: "Lecture 8",
     title: "Project Systems and End-to-End Architecture",
     summary: "Scope one complete project path, learn from 2023 examples, study an insurance document-to-answer system, and choose a compute owner from durable requirements."
+  },
+  {
+    id: "lec9",
+    label: "Lecture 9",
+    title: "One Problem, Three Compute Owners",
+    summary: "Keep Demo 07 fixed while comparing how Python, ksqlDB, and Flink SQL own the same join, evaluation, aggregation, and lifecycle."
+  },
+  {
+    id: "lec10",
+    label: "Lecture 10",
+    title: "Review Session and Final Presentation",
+    summary: "Review the course and prepare the final presentation through event, order, resume, contract, state and time, and output."
+  },
+  {
+    id: "lec11a",
+    label: "Lecture 11A",
+    title: "API Design for Streaming Systems",
+    summary: "Complete Demo 05 with an observable asynchronous API and connect the client contract to the Demo 09 compute owners."
+  },
+  {
+    id: "lec11b",
+    label: "Lecture 11B",
+    title: "Interview Preparation",
+    summary: "Turn the final project into relevant, concise, and verifiable evidence for applications, interviews, follow-up, offers, and resumes."
+  },
+  {
+    id: "lec12",
+    label: "Lecture 12",
+    title: "Final Project Presentations",
+    summary: "Use the published presentation format, 20-point rubric, frozen order, and final class schedule."
   }
 ];
 
@@ -593,7 +623,7 @@ const handouts = [
     kind: "html",
     file: "handouts/lec7a-final-project.html",
     createdAt: "Created at 4:06 PM PDT on July 27, 2026",
-    lastUpdatedAt: "Last updated at 5:16 PM PDT on July 27, 2026",
+    lastUpdatedAt: "Last updated at 1:20 PM PDT on August 8, 2026",
     wide: true,
     standalone: true,
     summary: "Define a feasible streaming project, proposal contract, bounded AI element, review path, and visible evidence."
@@ -606,7 +636,7 @@ const handouts = [
     kind: "md",
     file: "handouts/final-project.md",
     createdAt: "Created at 4:01 PM PDT on July 27, 2026",
-    lastUpdatedAt: "Last updated at 5:07 PM PDT on July 27, 2026",
+    lastUpdatedAt: "Last updated at 3:00 PM PDT on August 8, 2026",
     wide: true,
     summary: "Student-facing contract for the proposal, streaming product, bounded AI element, review path, final package, and presentation."
   },
@@ -649,6 +679,18 @@ const handouts = [
     lastUpdatedAt: "Last updated at 5:16 PM PDT on July 27, 2026",
     wide: true,
     summary: "Student-facing proposal rubric with five 2-point buckets and ten independently scored criteria."
+  },
+  {
+    slug: "final-project-rubric",
+    section: "lec7a",
+    category: "Rubric",
+    title: "Final Written Report and Code Rubric",
+    kind: "md",
+    file: "handouts/final-project-rubric.md",
+    createdAt: "Created at 1:16 PM PDT on August 8, 2026",
+    lastUpdatedAt: "Last updated at 2:32 PM PDT on August 8, 2026",
+    wide: true,
+    summary: "Four 5-point final-package categories: 20 base points plus three optional package-only bonus points."
   },
   {
     slug: "lec7b-stateful-stream-processing",
@@ -726,6 +768,107 @@ const handouts = [
     wide: true,
     standalone: true,
     summary: "Choose a plain consumer, stateful SQL engine, or embedded processing library from state, time, recovery, scale, and ownership requirements; specific products continue in Lecture 9."
+  },
+  {
+    slug: "lec9-compute-owners",
+    section: "lec9",
+    category: "Slides",
+    title: "Lecture 9: One Problem, Three Compute Owners",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture9-One-Problem-Three-Compute-Owners.html",
+    createdAt: "Created at 4:53 PM PDT on August 3, 2026",
+    lastUpdatedAt: "Last updated at 4:53 PM PDT on August 3, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Review Lectures 6–8, then compare Python, ksqlDB, and Flink SQL as three owners of the same Demo 07 stateful evaluation contract."
+  },
+  {
+    slug: "demo09",
+    section: "lec9",
+    category: "Demo",
+    title: "Demo 09: One Problem, Three Compute Owners",
+    kind: "md",
+    file: "handouts/demo09.md",
+    createdAt: "Created at 4:53 PM PDT on August 3, 2026",
+    lastUpdatedAt: "Last updated at 6:05 PM PDT on August 3, 2026",
+    wide: true,
+    summary: "Continue Demo 07 with ksqlDB and Flink SQL output topics, then compare both paths with the unchanged Python owner and one independent verifier."
+  },
+  {
+    slug: "lec10-course-recap",
+    section: "lec10",
+    category: "Slides",
+    title: "Lecture 10: Review Session and Final Presentation",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture10-Course-Recap.html",
+    createdAt: "Created at 5:00 PM PDT on August 6, 2026",
+    lastUpdatedAt: "Last updated at 5:24 PM PDT on August 6, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Review the course through six concrete streaming decisions, Demo 07 and Demo 09 evidence, and the final-presentation checklist."
+  },
+  {
+    slug: "lec11a-api-design",
+    section: "lec11a",
+    category: "Slides",
+    title: "Lecture 11A: API design for streaming systems",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture11A-API-Design.html",
+    createdAt: "Created at 1:49 PM PDT on August 9, 2026",
+    lastUpdatedAt: "Last updated at 5:04 PM PDT on August 10, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Use REST and FastAPI to accept work, Kafka to retain events, and a status resource to report downstream progress."
+  },
+  {
+    slug: "demo11",
+    section: "lec11a",
+    category: "Demo",
+    title: "Demo 11: Observable API for an asynchronous Kafka workflow",
+    kind: "md",
+    file: "handouts/demo11.md",
+    createdAt: "Created at 1:49 PM PDT on August 9, 2026",
+    lastUpdatedAt: "Last updated at 4:05 PM PDT on August 9, 2026",
+    wide: true,
+    summary: "Show why 202 is not completion, then use one request_id and status URL to observe processing and make retries safe."
+  },
+  {
+    slug: "lec11b-interview-preparation",
+    section: "lec11b",
+    category: "Slides",
+    title: "Lecture 11B: Interview preparation",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture11B-Interview-Preparation.html",
+    createdAt: "Created at 4:29 PM PDT on August 10, 2026",
+    lastUpdatedAt: "Last updated at 5:13 PM PDT on August 10, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Follow the complete candidate journey from target role and evidence package through applications, interviews, written-offer review, negotiation, and signature."
+  },
+  {
+    slug: "final-presentation",
+    section: "lec12",
+    category: "Handout",
+    title: "Final Presentation Schedule and Rubrics",
+    kind: "html",
+    file: "handouts/final-presentation.html",
+    createdAt: "Created at 2:03 PM PDT on August 8, 2026",
+    lastUpdatedAt: "Last updated at 2:52 PM PDT on August 8, 2026",
+    wide: true,
+    summary: "One concise handout for final-project links, presentation timing, four-category rubric, schedule, and Q&A."
+  },
+  {
+    slug: "lec12-final-project-presentations",
+    section: "lec12",
+    category: "Slides",
+    title: "Lecture 12: Final Project Presentations",
+    kind: "html",
+    file: "handouts/MSDS682-Lecture12-Final-Project-Presentations.html",
+    createdAt: "Created at 3:19 PM PDT on August 13, 2026",
+    lastUpdatedAt: "Last updated at 5:21 PM PDT on August 13, 2026",
+    wide: true,
+    standalone: true,
+    summary: "Celebrate the final class, connect Lectures 1–11 into one end-to-end journey, review the published rubric, follow the calendar, and close with an optimistic send-off."
   }
   // PDF example (uncomment and add the file to publish):
   // {
@@ -802,7 +945,8 @@ const lectureRoadmap = [
       { slug: "final-project", label: "Project requirements" },
       { slug: "final-project-ideas", label: "Project ideas" },
       { slug: "final-project-proposal-template", label: "Proposal template" },
-      { slug: "final-project-proposal-rubric", label: "Proposal rubric" }
+      { slug: "final-project-proposal-rubric", label: "Proposal rubric" },
+      { slug: "final-project-rubric", label: "Final report + code rubric" }
     ]
   },
   {
@@ -825,6 +969,52 @@ const lectureRoadmap = [
       { slug: "lec8-project-design-2023", label: "Part 1 · Project design + 2023 evidence" },
       { slug: "lec8-insurance-end-to-end", label: "Part 2 · Insurance end to end" },
       { slug: "lec8-compute-owner-decisions", label: "Part 3 · Compute-owner framework" }
+    ]
+  },
+  {
+    section: "lec9",
+    slides: {
+      slug: "lec9-compute-owners",
+      label: "Lecture slides"
+    },
+    materials: [
+      { slug: "demo09", label: "Demo 09" }
+    ]
+  },
+  {
+    section: "lec10",
+    slides: {
+      slug: "lec10-course-recap",
+      label: "Lecture slides"
+    },
+    materials: []
+  },
+  {
+    section: "lec11a",
+    slides: {
+      slug: "lec11a-api-design",
+      label: "Lecture 11A slides"
+    },
+    materials: [
+      { slug: "demo11", label: "Demo 11" }
+    ]
+  },
+  {
+    section: "lec11b",
+    slides: {
+      slug: "lec11b-interview-preparation",
+      label: "Lecture 11B slides"
+    },
+    materials: []
+  },
+  {
+    section: "lec12",
+    slides: {
+      slug: "lec12-final-project-presentations",
+      label: "Lecture 12 slides"
+    },
+    materials: [
+      { slug: "final-presentation", label: "Final presentation schedule and rubrics" }
     ]
   }
 ];
@@ -959,12 +1149,13 @@ function lectureRoadmapHtml() {
 
     const identity = lectureIdentity(section);
     const links = [lecture.slides, ...lecture.materials]
+      .filter(Boolean)
       .map(lectureRoadmapLinkHtml)
       .join("");
 
     return `
       <li class="lecture-map-row">
-        <span class="lecture-map-number" aria-hidden="true">${identity.code.padStart(2, "0")}</span>
+        <span class="lecture-map-number" aria-hidden="true">L${identity.code}</span>
         <div class="lecture-map-copy">
           <strong>${escapeHtml(section.label)}: ${escapeHtml(section.title)}</strong>
           <span>${escapeHtml(section.summary)}</span>
@@ -997,7 +1188,12 @@ function handoutsListBody() {
 }
 
 const handoutRouteAliases = Object.freeze({
-  "lec7-stateful-stream-processing": "lec7b-stateful-stream-processing"
+  "lec7-stateful-stream-processing": "lec7b-stateful-stream-processing",
+  "lec11-api-design": "lec11a-api-design",
+  "final-presentation-requirements": "final-presentation",
+  "final-presentation-rubric": "final-presentation",
+  "final-presentation-schedule": "final-presentation",
+  "final-presentation-peer-reviews": "final-presentation"
 });
 
 const fallbackRoute = "/";
@@ -1296,6 +1492,10 @@ async function render() {
   const isHome = parsed.kind === "static" && parsed.route === "/";
   document.body.classList.toggle("route-home", isHome);
   document.body.classList.toggle("route-internal", !isHome);
+  document.body.classList.toggle(
+    "route-final-presentation",
+    parsed.kind === "handout" && parsed.slug === "final-presentation"
+  );
   setActiveNav(parsed.nav);
 
   if (parsed.kind === "handout") {

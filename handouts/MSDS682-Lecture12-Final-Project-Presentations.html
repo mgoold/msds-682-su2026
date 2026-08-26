@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSDS 682 · Lecture 12 · Final Project Presentations</title>
+<style>
+:root{
+  --ink:#16181d;--muted:#626873;--paper:#f4f4f2;--panel:#fff;--line:#e4e5e1;
+  --blue:#3565f2;--blue-soft:#eef1fe;--teal:#0e7f66;--teal-soft:#e7f3f0;
+  --purple:#6f4fc3;--purple-soft:#f1edfb;--amber:#8a5a06;--amber-soft:#fff3d9;
+  --shadow:0 8px 28px rgba(22,24,29,.05);
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{margin:0;overflow-x:hidden;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:clamp(18px,1.35vw,24px);line-height:1.4;
+  -webkit-font-smoothing:antialiased}
+.slide{position:relative;display:grid;align-items:center;min-height:100vh;padding:9vh 5vw 7vh;
+  scroll-snap-align:start;scroll-snap-stop:always}
+.wrap{width:100%;max-width:1280px;margin:auto}
+.num{position:fixed;right:2vw;bottom:2vh;z-index:40;padding:5px 11px;border:1px solid var(--line);
+  border-radius:20px;background:rgba(244,244,242,.92);color:var(--muted);font:12px var(--mono);
+  backdrop-filter:blur(6px)}
+.hint{position:fixed;right:2vw;top:2vh;z-index:40;color:var(--muted);font:13px var(--mono);opacity:.72}
+.slide[data-ref]::after{content:attr(data-ref);position:absolute;left:5vw;bottom:2.2vh;
+  color:var(--muted);font:clamp(12px,.82vw,15px) var(--mono);opacity:.82}
+h1,h2,h3,p{margin-top:0}
+h1{max-width:14ch;margin-bottom:20px;font-size:clamp(56px,5.8vw,92px);line-height:.98;
+  letter-spacing:-.04em;text-wrap:balance}
+h2{margin:0 0 22px;font-size:clamp(38px,3.5vw,56px);line-height:1.04;
+  letter-spacing:-.03em;text-wrap:balance}
+h3{margin-bottom:7px;font-size:clamp(21px,1.55vw,27px);line-height:1.15}
+p{margin-bottom:12px}
+.kicker{margin-bottom:14px;color:var(--blue);font:700 clamp(14px,1vw,18px) var(--mono);
+  letter-spacing:.1em;text-transform:uppercase}
+.subtitle{max-width:48ch;margin-bottom:16px;color:var(--blue);font-size:clamp(22px,1.8vw,30px);
+  font-weight:700;line-height:1.25}
+.meta{color:var(--muted);font:clamp(17px,1.2vw,22px) var(--mono)}
+.hero-layout{display:grid;grid-template-columns:minmax(0,.82fr) minmax(520px,1.18fr);gap:30px;
+  align-items:center}
+.hero-copy{position:relative;z-index:2}
+.hero-copy h1{max-width:9ch}
+.finish-slide{background:#fdf6e9}
+.offer-slide{background:#fbf1e7}
+.hero-illustration{width:100%;max-height:72vh;object-fit:contain}
+.celebration{margin-bottom:18px;color:var(--blue);font-size:clamp(25px,2vw,34px);font-weight:800}
+.closing-copy h2{max-width:12ch;font-size:clamp(48px,4.8vw,76px)}
+.closing-note{max-width:30ch;color:var(--muted);font-size:clamp(20px,1.55vw,27px)}
+.journey-slide .wrap{max-width:1360px}
+.journey-sub{max-width:70ch;margin-top:-10px;color:var(--muted);font-size:clamp(17px,1.2vw,21px)}
+.course-map{display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1.12fr) 32px
+  minmax(0,1.38fr) 32px minmax(0,1.12fr) 32px minmax(0,1fr);gap:7px;align-items:stretch;
+  margin-top:26px}
+.course-stage{position:relative;min-height:270px;padding:20px 17px 17px;border:1px solid var(--line);
+  border-top:7px solid var(--blue);border-radius:16px;background:var(--panel);box-shadow:var(--shadow)}
+.course-stage:nth-of-type(3){border-top-color:#d64545}
+.course-stage:nth-of-type(5){border-top-color:var(--purple)}
+.course-stage:nth-of-type(7){border-top-color:var(--teal)}
+.course-stage:nth-of-type(9){border-top-color:var(--amber)}
+.lecture-chip{display:inline-block;margin-bottom:22px;color:var(--blue);font:800 clamp(12px,.78vw,14px) var(--mono);
+  letter-spacing:.08em;text-transform:uppercase}
+.course-stage:nth-of-type(3) .lecture-chip{color:#d64545}
+.course-stage:nth-of-type(5) .lecture-chip{color:var(--purple)}
+.course-stage:nth-of-type(7) .lecture-chip{color:var(--teal)}
+.course-stage:nth-of-type(9) .lecture-chip{color:var(--amber)}
+.course-stage h3{min-height:58px;margin-bottom:17px;font-size:clamp(20px,1.4vw,25px)}
+.course-stage p{margin:0;color:var(--muted);font-size:clamp(16px,1vw,18px);line-height:1.4}
+.course-stage b{color:var(--ink)}
+.course-arrow{display:grid;place-items:center;color:#98a2b3;font-size:clamp(28px,2.4vw,40px);font-weight:700}
+.journey-takeaway{margin-top:18px;padding:14px 18px;border-left:5px solid var(--blue);
+  background:var(--blue-soft);color:#1d2f6f;font-size:clamp(19px,1.45vw,25px);font-weight:800}
+[data-build]{opacity:0!important;transform:translateY(18px)!important;filter:blur(2px)!important;
+  transition:opacity .38s ease,transform .38s ease,filter .38s ease}
+[data-build].shown{opacity:1!important;transform:none!important;filter:none!important}
+.room-note{max-width:1120px;margin-top:28px;border-top:1px solid var(--line)}
+.room-row{display:grid;grid-template-columns:52px 310px 1fr;gap:22px;align-items:center;
+  min-height:96px;padding:15px 8px;border-bottom:1px solid var(--line)}
+.room-row:last-child{border-bottom:0}
+.room-number{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;
+  background:var(--blue-soft);color:var(--blue);font:800 17px var(--mono)}
+.room-row:nth-child(2) .room-number{background:var(--teal-soft);color:var(--teal)}
+.room-row:nth-child(3) .room-number{background:var(--purple-soft);color:var(--purple)}
+.room-row:nth-child(4) .room-number{background:var(--amber-soft);color:var(--amber)}
+.room-row strong{font-size:clamp(21px,1.45vw,26px)}
+.room-row span:last-child{color:var(--muted);font-size:clamp(16px,1.1vw,20px)}
+.briefing-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(390px,.88fr);gap:34px;
+  align-items:start;margin-top:22px}
+.briefing-grid .room-note{margin:0}
+.briefing-grid .room-row{grid-template-columns:44px 1fr;gap:5px 14px;min-height:78px;padding:10px 4px}
+.briefing-grid .room-row strong{font-size:clamp(18px,1.25vw,22px)}
+.briefing-grid .room-row span:last-child{grid-column:2;font-size:clamp(14px,.95vw,17px)}
+.todo-card{padding:22px 24px;border:1px solid #d8def8;border-top:6px solid var(--blue);
+  border-radius:18px;background:var(--panel);box-shadow:var(--shadow)}
+.todo-card h3{margin-bottom:8px;font-size:clamp(24px,1.8vw,31px)}
+.todo-item{display:grid;grid-template-columns:30px 1fr;gap:13px;padding:17px 0;border-top:1px solid var(--line)}
+.check-box{width:25px;height:25px;margin-top:2px;border:2px solid var(--blue);border-radius:5px;background:#fff}
+.todo-when{display:block;margin-bottom:5px;color:var(--blue);font:800 clamp(12px,.8vw,14px) var(--mono);
+  letter-spacing:.05em;text-transform:uppercase}
+.todo-copy p{margin:0 0 8px;font-size:clamp(16px,1.12vw,20px);line-height:1.35}
+.todo-detail{display:block;margin-top:-2px;color:var(--muted);font-size:clamp(13px,.86vw,15px)}
+.todo-link{color:var(--blue);font-size:clamp(14px,.92vw,16px);font-weight:800;text-decoration:none}
+.todo-link:hover,.todo-link:focus{text-decoration:underline;text-underline-offset:3px}
+.rubric{display:grid;margin-top:20px;border-top:1px solid var(--line)}
+.rubric-row{display:grid;grid-template-columns:52px 310px 1fr;gap:22px;align-items:center;
+  min-height:96px;padding:15px 8px;border-bottom:1px solid var(--line)}
+.rubric-row:last-child{border-bottom:0}
+.points{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--blue);
+  color:#fff;font:800 18px var(--mono)}
+.rubric-row:nth-child(2) .points{background:var(--purple)}
+.rubric-row:nth-child(3) .points{background:var(--teal)}
+.rubric-row:nth-child(4) .points{background:var(--amber)}
+.rubric-row strong{font-size:clamp(20px,1.4vw,25px);line-height:1.15}
+.rubric-row span:last-child{color:var(--muted);font-size:clamp(15px,1.02vw,18px)}
+.schedule{display:grid;gap:4px;margin-top:12px}
+.schedule-head,.slot{display:grid;grid-template-columns:140px 330px 1fr;gap:18px;align-items:center}
+.schedule-head{padding:0 15px 8px;color:var(--muted);font:700 clamp(13px,.88vw,16px) var(--mono);
+  letter-spacing:.08em;text-transform:uppercase}
+.slot{min-height:57px;padding:9px 15px;border-bottom:1px solid var(--line)}
+.slot:last-child{border-bottom:0}
+.slot time{font:700 clamp(15px,1.05vw,19px) var(--mono);white-space:nowrap}
+.slot strong{font-size:clamp(16px,1.1vw,20px);line-height:1.15}
+.slot span{font-size:clamp(15px,1vw,18px);line-height:1.15}
+.slot.all{border-left:4px solid var(--blue);background:var(--blue-soft)}
+.slot.close{border-left-color:var(--teal);background:var(--teal-soft)}
+.schedule-note{display:flex;gap:20px;margin-top:14px;color:var(--muted);font-size:clamp(14px,.95vw,17px)}
+.slide .wrap>*{opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease}
+.slide.in .wrap>*{opacity:1;transform:none}
+.slide.in .wrap>*:nth-child(1){transition-delay:.02s}
+.slide.in .wrap>*:nth-child(2){transition-delay:.09s}
+.slide.in .wrap>*:nth-child(3){transition-delay:.16s}
+.slide.in .wrap>*:nth-child(4){transition-delay:.23s}
+@media(max-width:720px){
+  .slide{padding:7vh 5vw 6vh;align-items:start}.wrap{margin:auto}
+  h1{font-size:clamp(48px,13vw,70px)}h2{font-size:clamp(34px,8vw,48px)}
+  .hero-layout{grid-template-columns:1fr;gap:12px}.hero-copy h1{max-width:11ch}
+  .hero-illustration{max-height:38vh}.closing-copy h2{font-size:clamp(38px,9vw,54px)}
+  .journey-slide h2{font-size:clamp(30px,7.2vw,42px)}.journey-sub{font-size:14px}
+  .course-map{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:14px}
+  .course-arrow{display:none}.course-stage{min-height:0;padding:10px;border-top-width:4px}
+  .lecture-chip{margin-bottom:7px;font-size:10px}.course-stage h3{min-height:0;margin-bottom:7px;font-size:16px}
+  .course-stage p{font-size:12px;line-height:1.3}.journey-takeaway{margin-top:9px;padding:9px 11px;font-size:15px}
+  .room-row{grid-template-columns:42px 1fr;gap:10px;min-height:0;padding:10px 4px}
+  .room-row span:last-child{grid-column:2}
+  .briefing-grid{grid-template-columns:1fr;gap:9px;margin-top:8px}
+  .briefing-grid .room-note{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;border-top:0}
+  .briefing-grid .room-row{grid-template-columns:28px 1fr;gap:2px 7px;padding:7px;border:1px solid var(--line);
+    border-radius:9px}.briefing-grid .room-number{width:25px;height:25px;font-size:11px}
+  .briefing-grid .room-row strong{font-size:14px}.briefing-grid .room-row span:last-child{font-size:11px}
+  .todo-card{padding:10px 12px;border-top-width:4px}.todo-card h3{margin-bottom:4px;font-size:18px}
+  .todo-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .todo-item{grid-template-columns:22px 1fr;gap:7px;padding:8px 0}.check-box{width:19px;height:19px}
+  .todo-when{font-size:9px}.todo-copy p{margin-bottom:4px;font-size:12px}.todo-detail{font-size:10px}
+  .todo-link{font-size:11px}
+  .rubric-row{grid-template-columns:42px 1fr;gap:10px;min-height:0;padding:9px 4px}
+  .rubric-row span:last-child{grid-column:2}
+  .schedule-head,.slot{grid-template-columns:105px 1fr;gap:10px}
+  .schedule-head span:last-child{display:none}.slot{min-height:0;padding:7px 4px}
+  .slot span{grid-column:2;color:var(--muted)}.schedule-note{display:grid;gap:4px}
+  .hint{display:none}.slide[data-ref]::after{display:none}
+}
+@media print{
+  @page{size:16in 9in;margin:0}
+  html{scroll-snap-type:none}.slide{width:100vw;height:100vh;min-height:100vh;overflow:hidden;
+    page-break-after:always}.num,.hint{display:none}.slide .wrap>*{opacity:1;transform:none}
+  [data-build]{opacity:1!important;transform:none!important;filter:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="num" id="num">01 / 07</div>
+<div class="hint">← → · Space to navigate</div>
+
+<section class="slide finish-slide" data-ref="Lecture 12 · Final class"><div class="wrap hero-layout">
+  <div class="hero-copy">
+    <div class="kicker">MSDS 682 · Lecture 12</div>
+    <h1>Final Project Presentations</h1>
+    <p class="celebration">Congrats. We made it.</p>
+    <p class="meta">August 13, 2026 · 5:30–7:20 PM PDT<br>101 Howard · Room 529</p>
+  </div>
+  <img class="hero-illustration" src="assets/lecture12-finish-line.png"
+    alt="A diverse group of graduate students crossing a finish line together">
+</div></section>
+
+<section class="slide journey-slide" data-ref="Lectures 1–11 · Course journey"><div class="wrap">
+  <div class="kicker">What we achieved</div>
+  <h2>We built the full path from event to evidence</h2>
+  <p class="journey-sub">Each course block added one responsibility to the same streaming system.</p>
+  <div class="course-map">
+    <div class="course-stage" data-build="1"><span class="lecture-chip">L1 · L2</span>
+      <h3>Frame + publish</h3><p>Define why freshness matters. Publish <b>keyed events</b> to durable Kafka topics.</p></div>
+    <div class="course-arrow" data-build="2">→</div>
+    <div class="course-stage" data-build="2"><span class="lecture-chip">L3 · L4</span>
+      <h3>Consume + contract</h3><p>Replay with offsets. Protect the event contract with <b>Avro + Schema Registry</b>.</p></div>
+    <div class="course-arrow" data-build="3">→</div>
+    <div class="course-stage" data-build="3"><span class="lecture-chip">L5 · L6 · L7</span>
+      <h3>Connect + process</h3><p>Expose APIs, connect sources, then <b>join and recover state</b> using event time.</p></div>
+    <div class="course-arrow" data-build="4">→</div>
+    <div class="course-stage" data-build="4"><span class="lecture-chip">L8 · L9</span>
+      <h3>Design + choose</h3><p>Learn from 2023 projects. Design authorized <b>RAG/MCP</b> boundaries. Compare Python, ksqlDB, and Flink SQL.</p></div>
+    <div class="course-arrow" data-build="5">→</div>
+    <div class="course-stage" data-build="5"><span class="lecture-chip">L10 · L11</span>
+      <h3>Verify + explain</h3><p>Verify claims with evidence. Serve status safely. Explain results and limits.</p></div>
+  </div>
+  <div class="journey-takeaway" data-build="5">You can now design, build, verify, and explain an end-to-end streaming system.</div>
+</div></section>
+
+<section class="slide briefing-slide" data-ref="Opening remarks and final actions"><div class="wrap">
+  <div class="kicker">Before we begin</div>
+  <h2>Relax. This is a conversation.</h2>
+  <div class="briefing-grid">
+    <div class="room-note">
+      <div class="room-row"><span class="room-number">01</span><strong>Bring one laptop per project</strong>
+        <span>Two-person teams come up together.</span></div>
+      <div class="room-row"><span class="room-number">02</span><strong>I will take brief notes</strong>
+        <span>Your presentation score is out of 20 points.</span></div>
+      <div class="room-row"><span class="room-number">03</span><strong>Attendance is 4 points today</strong>
+        <span>If you are here, you receive the attendance points.</span></div>
+      <div class="room-row"><span class="room-number">04</span><strong>Stay, listen, and show respect</strong>
+        <span>Learn from how your classmates designed and explained their systems.</span></div>
+    </div>
+    <aside class="todo-card" aria-label="Two final actions">
+      <h3>Two final actions</h3>
+      <div class="todo-list">
+        <div class="todo-item"><span class="check-box" aria-hidden="true"></span><div class="todo-copy">
+          <span class="todo-when">Before presentations</span>
+          <p>Add your presentation link to the class spreadsheet.</p>
+          <span class="todo-detail">Google Slides or a Google Drive link.</span>
+          <a class="todo-link" href="https://docs.google.com/spreadsheets/d/1ju5dKRgHAZZCMAuRSAeHLcL7ss9R_X7CujPLJdz-YnQ/edit?gid=0#gid=0" target="_blank" rel="noopener">Open spreadsheet ↗</a>
+        </div></div>
+        <div class="todo-item"><span class="check-box" aria-hidden="true"></span><div class="todo-copy">
+          <span class="todo-when">Tomorrow · Aug 14 · 11:59 PM PDT</span>
+          <p>Submit your final report and code package to Canvas.</p>
+          <a class="todo-link" href="https://wgu9.github.io/msds-682-su2026/#/handouts/final-project" target="_blank" rel="noopener">Review final requirements ↗</a>
+        </div></div>
+      </div>
+    </aside>
+  </div>
+</div></section>
+
+<section class="slide" data-ref="Final Presentation Schedule and Rubrics"><div class="wrap">
+  <div class="kicker">Presentation rubric · 20 points</div>
+  <h2>Four categories · 5 points each</h2>
+  <div class="rubric">
+    <div class="rubric-row"><span class="points">5</span><strong>Clear problem statement</strong>
+      <span>Explains the problem, target user, useful result, and why the project matters.</span></div>
+    <div class="rubric-row"><span class="points">5</span><strong>Data and event contract</strong>
+      <span>Explains the data source, Kafka event, key fields, and one representative record.</span></div>
+    <div class="rubric-row"><span class="points">5</span><strong>Architecture chart and design choice</strong>
+      <span>Shows the implemented end-to-end path, gives one concrete example, and explains why this architecture was chosen.</span></div>
+    <div class="rubric-row"><span class="points">5</span><strong>Lessons learned and future work</strong>
+      <span>States one evidence-based lesson or limitation and one realistic next step; stays within the assigned time.</span></div>
+  </div>
+</div></section>
+
+<section class="slide" data-ref="Presentation order · 5:30–6:24"><div class="wrap">
+  <div class="kicker">Presentation schedule · Part 1</div>
+  <h2>5:30–6:24</h2>
+  <div class="schedule">
+    <div class="schedule-head"><span>Time</span><span>Student(s)</span><span>Project</span></div>
+    <div class="slot all"><time>5:30–5:40</time><strong>All students</strong><span>Opening remarks and instructions</span></div>
+    <div class="slot"><time>5:40–5:48</time><strong>Noam Fein and Niki Naderzad</strong><span>Space Weather Radio-Risk Monitor</span></div>
+    <div class="slot"><time>5:48–5:54</time><strong>Alexander Mohun</strong><span>Hotel Bookings</span></div>
+    <div class="slot"><time>5:54–6:02</time><strong>Jack Dawson and Sarah Taylor</strong><span>Streaming Movie Recommendations</span></div>
+    <div class="slot"><time>6:02–6:10</time><strong>Chantelle Willette and Patrick Crouch</strong><span>Muni Vehicle Activity and Feed-Health Monitor</span></div>
+    <div class="slot"><time>6:10–6:16</time><strong>William Spagnuolo</strong><span>Real-Time Retail Sales Intelligence Pipeline</span></div>
+    <div class="slot"><time>6:16–6:24</time><strong>Borna Karimi and Aatish Lobo</strong><span>Real-Time Transit Reliability Lakehouse</span></div>
+  </div>
+</div></section>
+
+<section class="slide" data-ref="Presentation order · 6:24–7:20"><div class="wrap">
+  <div class="kicker">Presentation schedule · Part 2</div>
+  <h2>6:24–7:20</h2>
+  <div class="schedule">
+    <div class="schedule-head"><span>Time</span><span>Student(s)</span><span>Project</span></div>
+    <div class="slot"><time>6:24–6:32</time><strong>Tom Kovalcik and Chris Monzon</strong><span>Streaming Traffic Volume Monitor from Caltrans Live CCTV</span></div>
+    <div class="slot"><time>6:32–6:40</time><strong>Aidan Percy and Sebastian Steen</strong><span>Gate-Time Delay Risk: Streaming Flight-Delay Scoring and Alerts</span></div>
+    <div class="slot"><time>6:40–6:46</time><strong>Kaio Farkouh</strong><span>Bay Area Transit Delay Alerts Using Kafka</span></div>
+    <div class="slot"><time>6:46–6:52</time><strong>Lynn Tong</strong><span>Pre-Departure Flight Delay-Risk Scoring on Kafka</span></div>
+    <div class="slot"><time>6:52–7:00</time><strong>Lokesh Muvva and Joshua He</strong><span>Event-Time Correctness for Realtime Crypto Market Data</span></div>
+    <div class="slot"><time>7:00–7:08</time><strong>P.J. Losiewicz and Tianyi Luo</strong><span>Artificial Streaming Anomaly Monitor</span></div>
+    <div class="slot all close"><time>7:10–7:20</time><strong>All students</strong><span>Final remarks and course close</span></div>
+  </div>
+</div></section>
+
+<section class="slide offer-slide" data-ref="Lecture 12 · Closing"><div class="wrap hero-layout">
+  <div class="hero-copy closing-copy">
+    <div class="kicker">Your next chapter</div>
+    <h2>May each of you land the offer you truly want.</h2>
+    <p class="closing-note">Take what you built, what you learned, and the confidence to explain it clearly.</p>
+  </div>
+  <img class="hero-illustration" src="assets/lecture12-future-offers.png"
+    alt="Graduate students holding offer letters and walking toward an open door">
+</div></section>
+
+<script>
+(function(){
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var num=document.getElementById('num');
+  var reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var active=0;
+
+  function maxStep(slide){
+    var values=Array.prototype.map.call(slide.querySelectorAll('[data-build]'),function(el){
+      return Number(el.getAttribute('data-build'))||0;
+    });
+    return values.length?Math.max.apply(null,values):0;
+  }
+  function stepOf(slide){return Number(slide.getAttribute('data-step'))||0}
+  function setStep(slide,value){
+    var max=maxStep(slide);var next=Math.max(0,Math.min(max,value));
+    slide.setAttribute('data-step',String(next));
+    slide.querySelectorAll('[data-build]').forEach(function(el){
+      var shown=Number(el.getAttribute('data-build'))<=next;
+      el.classList.toggle('shown',shown);el.setAttribute('aria-hidden',String(!shown));
+    });
+    updatePager();
+  }
+  function updatePager(){
+    var slide=slides[active];var max=maxStep(slide);var suffix=max?' · '+stepOf(slide)+'/'+max:'';
+    num.textContent=String(active+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0')+suffix;
+  }
+  function show(index,fromBack){
+    active=Math.max(0,Math.min(slides.length-1,index));
+    var slide=slides[active];slide.classList.add('in');
+    if(fromBack&&!reduced)setStep(slide,maxStep(slide));
+    slide.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});updatePager();
+  }
+  slides.forEach(function(slide){setStep(slide,reduced?maxStep(slide):0)});
+  slides[0].classList.add('in');updatePager();
+  var observer=new IntersectionObserver(function(entries){entries.forEach(function(entry){
+    if(entry.isIntersecting&&entry.intersectionRatio>.55){active=slides.indexOf(entry.target);entry.target.classList.add('in');
+      updatePager();}
+  })},{threshold:[.55]});
+  slides.forEach(function(slide){observer.observe(slide)});
+  document.addEventListener('keydown',function(event){
+    if(event.target.closest('button,input,textarea,select'))return;
+    if(['ArrowRight','ArrowDown','PageDown',' '].indexOf(event.key)>=0){
+      event.preventDefault();var slide=slides[active];
+      if(!reduced&&stepOf(slide)<maxStep(slide))setStep(slide,stepOf(slide)+1);else show(active+1,false);
+    }else if(['ArrowLeft','ArrowUp','PageUp'].indexOf(event.key)>=0){
+      event.preventDefault();var current=slides[active];
+      if(!reduced&&stepOf(current)>0)setStep(current,stepOf(current)-1);else show(active-1,true);
+    }else if(event.key==='Home'){event.preventDefault();show(0,false)}
+    else if(event.key==='End'){event.preventDefault();show(slides.length-1,true)}
+  });
+})();
+</script>
+</body>
+</html>

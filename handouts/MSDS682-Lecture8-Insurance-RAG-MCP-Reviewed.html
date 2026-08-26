@@ -103,6 +103,22 @@
 
     .kicker b { color: var(--accent); font-weight: 700; }
 
+    .updated-badge {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 3px 8px;
+      border: 1px solid #e0bd65;
+      border-radius: 999px;
+      color: #6d4705;
+      background: var(--amber-soft);
+      font-family: var(--mono);
+      font-size: .92em;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: none;
+      vertical-align: .08em;
+    }
+
     h1 {
       margin: 0 0 10px;
       font-size: clamp(36px, 2.8vw, 54px);
@@ -760,7 +776,7 @@
 <a class="lecture-index-link" href="MSDS682-Lecture8-Three-Part-Index.html">← Lecture 8 index</a>
 <section class="slide hero" id="lecture-8-title">
 <div class="frame">
-<p class="kicker">MSDS 682 · <b>Lecture 8 · Part 2</b></p>
+<p class="kicker">MSDS 682 · <b>Lecture 8 · Part 2</b><span class="updated-badge">[updated]</span></p>
 <h1>From document events<br/>to authorized answers</h1>
 <p class="sub">Insurance documents with S3, Kafka, embeddings, vector search, RAG, and MCP.</p>
 <div class="rail">
@@ -774,10 +790,11 @@
 </div>
 <div class="hero-meta">
 <span class="pill">One insurance example</span>
-<span class="pill">52 minutes · 40–92</span>
+<span class="pill">Taught through the class close</span>
 <span class="pill">Write path + read path</span>
 <span class="pill">Kafka earns its seat—or does not</span>
 <span class="pill">Bounded AI</span>
+<span class="pill">July 30 transcript + whiteboard</span>
 </div>
 </div>
 <div class="crumb"></div><div class="pager"></div>
@@ -807,6 +824,26 @@
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
+<section class="slide" id="business-objective">
+<div class="frame">
+<p class="kicker">Start with the business question<span class="updated-badge">[updated]</span></p>
+<h1>One knowledge system serves internal teams and policyholders differently</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card">
+<span class="tag">Internal</span>
+<h2>Claims, investigation, and underwriting</h2>
+<p>Employees need current policy language and evidence with role-specific access, traceability, and escalation.</p>
+</article>
+<article class="card good">
+<span class="tag">External</span>
+<h2>Policyholder self-service</h2>
+<p>Customers need fast answers about their own policy without gaining access to another customer or an unapproved document version.</p>
+</article>
+</div>
+<div class="takeaway point"><strong>Business objectives:</strong> reduce avoidable support cost, improve customer experience, and build a reusable technical capability. None of these objectives removes the requirement for accuracy, privacy, and human escalation.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
 <section class="slide" id="two-paths">
 <div class="frame">
 <p class="kicker">Two paths, one system</p>
@@ -824,14 +861,16 @@
 </section>
 <section class="slide" id="lecture-8-overview">
 <div class="frame">
-<p class="kicker">Lecture 8 overview</p>
-<h1>Four modules, one insurance system</h1>
-<nav aria-label="Lecture 8 modules" class="module-toc">
-<a href="#module-1-decide"><span class="number">01</span><h2>Decide</h2><p>When does Kafka earn its seat?</p></a>
-<a href="#module-2-write"><span class="number">02</span><h2>Write</h2><p>How does a document change become maintained state?</p></a>
-<a href="#module-3-read"><span class="number">03</span><h2>Read</h2><p>How do RAG and MCP expose authorized knowledge?</p></a>
-<a href="#module-4-prove"><span class="number">04</span><h2>Prove</h2><p>How do we test freshness, correctness, and scope?</p></a>
-</nav>
+<p class="kicker">Lecture 8 overview<span class="updated-badge">[updated]</span></p>
+<h1>Six classroom decisions, organized in four modules</h1>
+<div class="trio">
+<article class="card"><span class="tag">01 · Business</span><h2>Define the users</h2><p>Internal teams and policyholders have different access and escalation needs.</p></article>
+<article class="card"><span class="tag">02 · Transport</span><h2>Justify Kafka</h2><p>Volume, independent consumers, ordering, retries, and replay must earn the added system.</p></article>
+<article class="card"><span class="tag">03 · Ingestion</span><h2>Normalize documents</h2><p>Parse text, use OCR where needed, clean the result, and preserve metadata.</p></article>
+<article class="card"><span class="tag">04 · Application</span><h2>Separate client and server</h2><p>The UI asks; the server owns access, retrieval, and backend integration.</p></article>
+<article class="card"><span class="tag">05 · Retrieval</span><h2>Design metadata first</h2><p>Filter an authorized subset, then search, rank, and generate only when useful.</p></article>
+<article class="card"><span class="tag">06 · Lifecycle</span><h2>Update with evidence</h2><p>Stage new state, switch safely, and retain the snapshot that justified an answer.</p></article>
+</div>
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
@@ -931,7 +970,7 @@
 </section>
 <section class="slide" id="document-or-pointer">
 <div class="frame">
-<p class="kicker">Message design</p>
+<p class="kicker">Message design<span class="updated-badge">[updated]</span></p>
 <h1>Heavy objects live in object storage; Kafka carries the change event</h1>
 <div class="duo" style="margin-top: 3vh;">
 <article class="card warn">
@@ -945,7 +984,7 @@
 <p>Store the file in S3. Publish bucket, object key, object version, checksum, and business metadata.</p>
 </article>
 </div>
-<div class="takeaway point"><strong>The pattern generalizes.</strong> PDF, image, audio, video, and model artifacts stay in object storage; the event says what changed and where it lives.</div>
+<div class="takeaway point"><strong>The classroom test:</strong> a pointer keeps retries small, avoids duplicating heavy storage inside Kafka, and lets each consumer fetch the exact object version with its own authorization. PDF, image, audio, video, and model artifacts follow the same pattern.</div>
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
@@ -975,6 +1014,23 @@
 <article class="card"><span class="tag">Delete</span><h2>Withdrawal</h2><p>A document or access grant is removed.</p></article>
 </div>
 <div class="takeaway caveat"><strong>Update behavior is a business contract.</strong> A policy may have one active base contract plus several active endorsements. Model the active document set explicitly; do not assume every new file replaces everything before it.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="ingestion-normalization">
+<div class="frame">
+<p class="kicker">Ingestion layer<span class="updated-badge">[updated]</span></p>
+<h1>Normalize the content; preserve the source</h1>
+<div class="rail rail-seq">
+<div class="rail-node n-s3"><b>Raw object</b><span>PDF, DOCX, text, scan, image</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Parse or OCR</b><span>Extract text, tables, and page boundaries</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Clean + normalize</b><span>Consistent text or Markdown; remove extraction noise</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Content + metadata</b><span>Source, location, date, size, pages, checksum</span></div>
+</div>
+<div class="takeaway caveat"><strong>Normalization is not deletion.</strong> Keep the immutable raw object and its exact identity so parsing can be audited or rerun when the extractor changes.</div>
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
@@ -1164,7 +1220,7 @@
 </section>
 <section class="slide" id="versioned-activation">
 <div class="frame">
-<p class="kicker">Safe update pattern</p>
+<p class="kicker">Safe update pattern<span class="updated-badge">[updated]</span></p>
 <h1>Stage new chunks, then commit the active document set</h1>
 <figure class="architecture-figure">
 <img
@@ -1173,7 +1229,20 @@
 />
 <figcaption>V1 stays readable until verified V2 becomes the authoritative active version.</figcaption>
 </figure>
-<div class="takeaway point"><strong>Do not assume a vector database can atomically switch many records.</strong> Keep authoritative active-document metadata in a transactional catalog or supported alias. REPLACE supersedes a document; AMEND may add an endorsement to the active set.</div>
+<div class="takeaway point"><strong>Staging is a user-visible state.</strong> Keep authoritative active-document metadata in a transactional catalog or supported alias. Until V2 is verified, V1 remains the answer source and the application may state that a newer document is still processing.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="update-trigger-and-snapshot">
+<div class="frame">
+<p class="kicker">Update lifecycle<span class="updated-badge">[updated]</span></p>
+<h1>Detect the change, expose the status, preserve the evidence</h1>
+<div class="trio" style="margin-top: 3vh;">
+<article class="card"><span class="tag">Trigger</span><h2>Identify a new source version</h2><p>An object version, checksum, effective date, or committed domain event starts idempotent processing. A filename alone is not enough.</p></article>
+<article class="card warn"><span class="tag">Stage</span><h2>Do not create an answer gap</h2><p>The prior active version remains readable while the new version is parsed and verified. Processing status belongs in authoritative metadata.</p></article>
+<article class="card good"><span class="tag">Snapshot</span><h2>Reconstruct what the system knew</h2><p>Record the active document set, retrieval evidence, model or rule version, and answer time for audit, dispute, and compliance review.</p></article>
+</div>
+<div class="takeaway point"><strong>Updates are harder than first ingestion.</strong> The system must be current without becoming temporarily empty, contradictory, or historically unexplainable.</div>
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
@@ -1212,22 +1281,67 @@
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
+<section class="slide" id="server-client-boundary">
+<div class="frame">
+<p class="kicker">Application boundary<span class="updated-badge">[updated]</span></p>
+<h1>The client presents the conversation; the server owns the work</h1>
+<div class="duo" style="margin-top: 3vh;">
+<article class="card purple"><span class="tag">Client</span><h2>Web, mobile, chatbot, or existing AI UI</h2><p>Collect the question, display the response, and manage interaction state. It does not decide authorization or read backend stores directly.</p></article>
+<article class="card good"><span class="tag">Server</span><h2>Identity, scope, retrieval, and tools</h2><p>Validate the caller, derive allowed policies, call databases or model services, and return bounded evidence through HTTP or an MCP tool.</p></article>
+</div>
+<div class="takeaway caveat"><strong>Repository layout is secondary.</strong> A small project may use one repository; a larger organization may separate ingestion, server, and client. The trust and ownership boundaries stay the same.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
 <section class="slide" id="read-path-overview">
 <div class="frame">
-<p class="kicker">Read path overview</p>
-<h1>The customer reaches the MCP server, not the database</h1>
+<p class="kicker">Read path overview<span class="updated-badge">[updated]</span></p>
+<h1>The customer reaches an application server, not the database</h1>
 <div class="rail rail-seq">
 <div class="rail-node n-client"><b>Customer</b><span>“What does my policy cover?”</span></div>
 <div class="rail-arrow">→</div>
-<div class="rail-node n-client"><b>AI client</b><span>Selects <code>search_policy</code></span></div>
+<div class="rail-node n-client"><b>Client</b><span>Web UI, mobile app, or AI client</span></div>
 <div class="rail-arrow">→</div>
-<div class="rail-node n-mcp"><b>MCP server</b><span>Authenticate, authorize, embed query</span></div>
+<div class="rail-node n-mcp"><b>Server boundary</b><span>Authenticate, authorize, select a tool</span></div>
 <div class="rail-arrow">→</div>
-<div class="rail-node n-vector"><b>Vector search</b><span>Filter authorized active versions</span></div>
+<div class="rail-node n-vector"><b>Serving stores</b><span>Filter active versions, then retrieve</span></div>
 <div class="rail-arrow">→</div>
 <div class="rail-node n-client"><b>Grounded answer</b><span>Answer + citations to retrieved chunks</span></div>
 </div>
-<div class="takeaway point"><strong>The MCP server is the application boundary.</strong> It may retrieve, filter, transform, or compute bounded results; it must not expose raw database access. Letting customers use external AI clients also creates an explicit data-egress decision.</div>
+<div class="takeaway point"><strong>MCP is one interface, not the architecture itself.</strong> A server may expose the same bounded capability through HTTP or MCP. In either case it must not expose raw database access, and external AI clients create an explicit data-egress decision.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="metadata-first-retrieval">
+<div class="frame">
+<p class="kicker">Retrieval design<span class="updated-badge">[updated]</span></p>
+<h1>Metadata narrows first; relevance ranks inside the allowed set</h1>
+<div class="rail rail-seq">
+<div class="rail-node n-client"><b>Validated identity</b><span>Caller, tenant, role</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-proc"><b>Structured filter</b><span>Policy, jurisdiction, product, active version, date</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Small authorized subset</b><span>Only eligible documents or chunks</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-vector"><b>Relevance search</b><span>Lexical, vector, or hybrid</span></div>
+<div class="rail-arrow">→</div>
+<div class="rail-node n-client"><b>Evidence set</b><span>Ranked, cited, bounded</span></div>
+</div>
+<div class="takeaway point"><strong>Metadata design is the durable core.</strong> It makes authorization, version selection, exact lookup, and audit possible whether the final relevance step uses RAG or not.</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="rag-pipeline-decisions">
+<div class="frame">
+<p class="kicker">If RAG is justified<span class="updated-badge">[updated]</span></p>
+<h1>Four measured choices turn documents into evidence</h1>
+<div class="quad" style="margin-top: 3vh;">
+<article class="card"><span class="tag">01 · Chunk</span><h2>Respect structure</h2><p>Prefer policy sections and clauses over arbitrary page counts; retain page and section metadata.</p></article>
+<article class="card"><span class="tag">02 · Embed</span><h2>Choose for the corpus</h2><p>Compare quality, vector size, languages, ecosystem, cost, latency, and commercial license.</p></article>
+<article class="card"><span class="tag">03 · Search</span><h2>Establish a baseline</h2><p>Evaluate lexical search such as BM25, vector search, and a hybrid against known questions.</p></article>
+<article class="card"><span class="tag">04 · Rerank</span><h2>Add only measured lift</h2><p>Reranking is optional. Keep it only when the relevance gain justifies extra latency and cost.</p></article>
+</div>
+<div class="takeaway caveat"><strong>Long context does not remove retrieval judgment.</strong> Compare a metadata-filtered direct-context path with RAG on answer support, latency, cost, and failure behavior.</div>
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
@@ -1431,8 +1545,8 @@
 </section>
 <section class="slide" id="end-to-end-synthesis">
 <div class="frame">
-<p class="kicker">End-to-end synthesis</p>
-<h1>Every component has one job</h1>
+<p class="kicker">End-to-end synthesis<span class="updated-badge">[updated]</span></p>
+<h1>Six responsibilities; one end-to-end contract</h1>
 <div class="rail rail-seq">
 <div class="rail-node n-s3"><b>S3</b><span>Store exact object versions; lock them when required</span></div>
 <div class="rail-arrow">→</div>
@@ -1446,20 +1560,21 @@
 <div class="rail-arrow">→</div>
 <div class="rail-node n-client"><b>AI client</b><span>Turn selected evidence into language</span></div>
 </div>
-<div class="takeaway point"><strong>Kafka tells the system what changed.</strong> Consumers apply that change to an authoritative document catalog and derived indexes. The serving layer exposes only authorized, current evidence.</div>
+<div class="takeaway point"><strong>Team boundaries may vary; system boundaries may not.</strong> A mature company may split storage, ingestion, backend, retrieval, frontend, and lifecycle operations across teams. A smaller company may combine them, while preserving the same contracts and ownership.</div>
 </div>
 <div class="crumb"></div><div class="pager"></div>
 </section>
 <section class="slide" id="lecture-8-summary">
 <div class="frame narrow">
-<p class="kicker">Lecture 8 synthesis</p>
-<h1>Five ideas to remember</h1>
+<p class="kicker">Lecture 8 synthesis<span class="updated-badge">[updated]</span></p>
+<h1>Six ideas from the classroom design</h1>
 <ol class="final-list">
 <li>Heavy objects belong in object storage; Kafka carries append-only change records under a defined retention policy.</li>
-<li>Kafka earns its seat through durable fan-out, buffering, replay, and keyed state—not through popularity.</li>
-<li>Consumers apply document semantics idempotently and commit the active document set safely.</li>
-<li>RAG is a retrieval pattern; MCP is an authorized capability interface.</li>
-<li>The chat reply is request–response; the retained background event path is where Kafka usually belongs.</li>
+<li>Kafka earns its seat through volume, durable fan-out, ordering, retry visibility, replay, and keyed state—not through popularity.</li>
+<li>Ingestion normalizes content while immutable source identity and metadata preserve traceability.</li>
+<li>Metadata filters the authorized, active subset before lexical or semantic relevance ranking.</li>
+<li>RAG is optional retrieval logic; MCP is an optional capability interface; neither replaces the application server.</li>
+<li>Updates stage, verify, activate, and preserve the evidence snapshot that explains an answer.</li>
 </ol>
 <div class="takeaway point"><strong>Final framing:</strong> Kafka retains change records. Domain consumers maintain current state and evidence. Serving layers expose bounded, authorized state to applications and AI.</div>
 <div class="links">
@@ -1470,6 +1585,41 @@
 <a href="https://modelcontextprotocol.io/specification/2026-07-28/server/tools" rel="noreferrer" target="_blank">MCP tools</a> ·
 <a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization" rel="noreferrer" target="_blank">MCP authorization</a> ·
 <a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/" rel="noreferrer" target="_blank">OWASP prompt injection</a>
+</div>
+</div>
+<div class="crumb"></div><div class="pager"></div>
+</section>
+<section class="slide" id="lecture-8-update-changelog">
+<div class="frame">
+<p class="kicker">Update changelog · August 3, 2026<span class="updated-badge">[updated]</span></p>
+<h1>What changed after the July 30 class</h1>
+<div class="quad" style="margin-top: 3vh;">
+<article class="card">
+<span class="tag">Course story</span>
+<h2>Recorded what was taught</h2>
+<p>Lecture 7B closes first, the project retrospective follows, and the insurance case ends the class. The tool-selection guide carries forward to Lecture 9.</p>
+</article>
+<article class="card good">
+<span class="tag">2023 projects</span>
+<h2>Added the classroom lessons</h2>
+<p>The retrospective now emphasizes source choice, scope control, completing the middle, and transferable reasoning over product syntax.</p>
+</article>
+<article class="card purple">
+<span class="tag">Insurance design</span>
+<h2>Added the whiteboard decisions</h2>
+<p>Business users, normalization, client/server ownership, metadata-first retrieval, optional RAG/MCP, staged updates, and audit snapshots are explicit.</p>
+</article>
+<article class="card warn">
+<span class="tag">Documentation</span>
+<h2>Made every revision visible</h2>
+<p>Every changed or added slide is marked <strong>[updated]</strong>, and the professor source package matches the student-facing handout.</p>
+</article>
+</div>
+<div class="takeaway point"><strong>The overall story did not change:</strong> Kafka plus Python remains the course foundation. The insurance case is an independent end-to-end industry example, not a Flink or ksqlDB lesson.</div>
+<div class="links">
+<a href="MSDS682-Lecture8-Three-Part-Index.html">Lecture 8 index</a> ·
+<a href="MSDS682-Lecture8-2023-Project-Retrospective.html">2023 project retrospective</a> ·
+<a href="MSDS682-Lecture8-Stream-Processing-Decision-Guide.html">Lecture 9 carry-forward</a>
 </div>
 </div>
 <div class="crumb"></div><div class="pager"></div>

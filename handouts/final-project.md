@@ -7,16 +7,29 @@ AI-assisted workflow.
 The goal is not to use the largest number of tools. The goal is to build one
 complete path that another person can understand, review, and verify.
 
+<aside class="handout-update-banner" aria-label="Updated final grading information">
+  <strong>UPDATED · AUGUST 8, 2026</strong>
+  <p><strong>New handouts:</strong> <a href="#/handouts/final-project-rubric">Written Report and Code Rubric</a> · <a href="#/handouts/final-presentation">Presentation Schedule and Rubrics</a></p>
+  <p><strong>Changed:</strong> both rubrics are 4 × 5 points; only the written package has up to +3 bonus. <strong>Unchanged:</strong> weights, deadlines, team rules, and submission requirements.</p>
+</aside>
+
 ## Milestones
 
 | Deliverable | Course weight | Deadline |
 |---|---:|---|
 | Project proposal | 10% | Tuesday, August 4, 2026 at 11:59 PM PDT |
 | Written report and code | 20% | Friday, August 14, 2026 at 11:59 PM PDT |
-| Presentation | 20% | Timing and format will be confirmed on Canvas |
+| Presentation | 20% | Thursday, August 13, 2026, 5:30–7:20 PM PDT |
 | **Final Project total** | **50%** | |
 
 Canvas is the official submission platform.
+
+### Optional extra-credit map
+
+| Area | Maximum extra credit | Authoritative rules |
+|---|---:|---|
+| Written report and code | **+3 points** | [Final Written Report and Code Rubric](#/handouts/final-project-rubric) |
+| **Maximum Final Project bonus** | **+3 points** | Bonus cannot replace missing base requirements. |
 
 Late policy for project deliverables:
 
@@ -237,6 +250,11 @@ dependency folders, and unrelated large files.
 
 ### Final package checklist
 
+The written report and code package is graded with the published
+[20-Point Final Written Report and Code Rubric](#/handouts/final-project-rubric).
+The rubric contains four 5-point categories and up to 3 optional bonus points.
+Bonus evidence cannot replace a missing base requirement.
+
 - [ ] The README gives setup, one minimum review path, expected output,
       validation, and cleanup.
 - [ ] The data source file documents source, owner, link, access, rights,
@@ -269,14 +287,6 @@ For a two-person project:
 
 ## Final presentation
 
-The presentation should explain:
-
-1. the problem and target user;
-2. the data and event contract;
-3. the streaming architecture;
-4. the minimum end-to-end result and review path;
-5. the useful output and evaluation evidence;
-6. the bounded AI element;
-7. limitations, failures, and next steps.
-
-Presentation timing and format will be confirmed on Canvas.
+The presentation is worth **20% of the course grade**. Use the single
+[Final Presentation Schedule and Rubrics](#/handouts/final-presentation) for timing, the
+20-point rubric, project order, and Q&A.

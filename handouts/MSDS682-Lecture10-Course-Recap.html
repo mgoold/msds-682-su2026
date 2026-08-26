@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSDS 682 · Lecture 10 · Review Session and Final Presentation</title>
+<style>
+:root{
+  --ink:#16181d; --muted:#626873; --paper:#f4f4f2; --panel:#ffffff; --line:#e4e5e1;
+  --blue:#3565f2; --blue-soft:#eef1fe;
+  --teal:#0e7f66; --teal-soft:#e7f3f0;
+  --amber:#8a5a06; --amber-soft:#fff3d9;
+  --red:#a33d3d;  --red-soft:#f9eaea;
+  --purple:#6f4fc3; --purple-soft:#f1edfb;
+  --shadow:0 8px 28px rgba(22,24,29,.05);
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+  --body:clamp(18px,1.35vw,24px);
+  --small:clamp(16px,1.15vw,20px);
+  --tiny:clamp(15px,1vw,18px);
+  --label:clamp(15px,1vw,18px);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{margin:0;overflow-x:hidden;color:var(--ink);background:var(--paper);
+  font-family:var(--sans);font-size:var(--body);line-height:1.45;
+  -webkit-font-smoothing:antialiased}
+.slide{position:relative;display:block;min-height:100vh;padding:12vh 5vw 8vh;
+  scroll-snap-align:start;scroll-snap-stop:always}
+.slide.title-slide{display:grid;place-items:center;padding:8vh 5vw}
+.wrap{width:100%;max-width:1280px;margin:0 auto}
+
+/* ── chrome ── */
+.num{position:fixed;right:2vw;bottom:2vh;z-index:40;font-family:var(--mono);
+  font-size:12px;color:var(--muted);background:rgba(244,244,242,.9);padding:5px 11px;
+  border:1px solid var(--line);border-radius:20px;backdrop-filter:blur(6px)}
+.hint{position:fixed;right:2vw;top:2vh;z-index:40;font-family:var(--mono);
+  font-size:13px;color:var(--muted);opacity:.72;animation:hintFade 3.2s ease forwards}
+@keyframes hintFade{0%,68%{opacity:.72}100%{opacity:0;visibility:hidden}}
+.slide[data-ref]::after{content:attr(data-ref);position:absolute;left:5vw;bottom:2.2vh;
+  font-family:var(--mono);font-size:var(--tiny);color:var(--muted);opacity:.8}
+
+/* ── type ── */
+h1{font-size:clamp(54px,5.2vw,84px);line-height:1.02;letter-spacing:-.028em;margin:0 0 22px;font-weight:800}
+h2{font-size:clamp(36px,3.2vw,50px);line-height:1.08;letter-spacing:-.02em;margin:0 0 24px;font-weight:750;white-space:nowrap}
+h3{font-size:clamp(21px,1.6vw,27px);margin:0 0 7px;font-weight:700;line-height:1.2}
+p{margin:0 0 12px;max-width:74ch}
+p.lead{font-size:clamp(18px,1.35vw,25px);line-height:1.4}
+.deck-meta{font-family:var(--mono);font-size:clamp(17px,1.2vw,22px);color:var(--muted);
+  letter-spacing:.02em;margin:8px 0 24px;max-width:none}
+.opening-title{font-size:clamp(46px,4.2vw,68px);white-space:nowrap}
+.title-scope{font-size:clamp(20px,1.65vw,28px);line-height:1.3;font-weight:680;color:var(--blue);
+  margin:0 0 9px;max-width:none}
+.pull{font-size:clamp(42px,4.4vw,68px);line-height:1.08;font-weight:780;letter-spacing:-.025em;max-width:24ch}
+.mono{font-family:var(--mono);font-size:var(--small)}
+.note{font-size:var(--small);color:var(--muted);max-width:76ch}
+ul{margin:0 0 12px;padding-left:1.1em;max-width:76ch}
+li{margin-bottom:6px} li::marker{color:var(--blue)}
+hr.rule{height:1px;background:var(--line);margin:20px 0;border:0}
+
+/* ── panels ── */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  padding:clamp(17px,1.45vw,24px);box-shadow:var(--shadow)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.mt14{margin-top:14px}.mt16{margin-top:16px}.m0{margin:0}
+
+/* ── tables ── */
+table{width:100%;border-collapse:collapse;font-size:clamp(15px,1.02vw,18px)}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:var(--label);letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;border-bottom:1.5px solid var(--ink)}
+tbody tr:last-child td{border-bottom:none}
+td.n{font-family:var(--mono);color:var(--blue);font-weight:700;width:34px}
+.tbl{background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  padding:clamp(8px,.9vw,16px);box-shadow:var(--shadow);overflow-x:auto}
+
+/* cohort roster */
+.roster-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.roster{background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  padding:8px 14px;box-shadow:var(--shadow)}
+.roster table{font-size:clamp(14px,.92vw,17px)}
+.roster td{padding:8px 7px;line-height:1.22}
+.roster .project{font-weight:720}
+.roster .students{display:block;color:var(--muted);font-size:.9em;margin-top:3px}
+.roster .format{width:76px;text-align:right;font-family:var(--mono);font-size:var(--label);
+  color:var(--blue);white-space:nowrap}
+
+/* cadence breaks and high-value evidence */
+.decision-break{display:grid;gap:4.5vh;margin-top:4vh}
+.decision-break .pull{max-width:25ch}
+.decision-words{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;
+  border-top:3px solid var(--blue);padding-top:22px}
+.decision-words span{font-size:clamp(19px,1.55vw,27px);font-weight:720;line-height:1.12}
+.decision-words b{font-family:var(--mono);font-size:var(--label);color:var(--blue);margin-right:8px}
+.score-context{font-family:var(--mono);font-size:var(--small);color:var(--muted);margin:2vh 0 3vh}
+.scoreboard{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch}
+.score{padding:26px 30px;border-top:7px solid var(--red);background:var(--panel);box-shadow:var(--shadow)}
+.score.good{border-color:var(--teal);background:var(--teal-soft)}
+.score .model{font-size:clamp(21px,1.6vw,27px);font-weight:720}
+.score .value{display:block;font-size:clamp(64px,7vw,108px);line-height:.98;font-weight:820;letter-spacing:-.05em;margin:10px 0}
+.score .unit{font-family:var(--mono);font-size:var(--small);color:var(--muted)}
+.score .story{display:block;margin-top:12px;font-size:var(--small);font-weight:680;line-height:1.3}
+.score-trace{margin:12px 0 0;font-family:var(--mono);font-size:var(--tiny);color:var(--muted);text-align:center}
+.diagram-crop{position:relative;height:min(62vh,540px);overflow:hidden;margin-top:4px}
+.diagram-crop img{display:block;width:100%;height:auto;transform:translateY(-15%)}
+.diagram-crop::after{content:'';position:absolute;left:0;right:0;bottom:0;height:18px;background:var(--paper)}
+.closing-title{max-width:20ch}
+
+/* ── callout ── */
+.callout{border-left:3px solid var(--blue);padding:1px 0 1px 16px;margin:16px 0;max-width:76ch}
+.c-red{border-color:var(--red)} .c-amber{border-color:var(--amber)}
+.c-teal{border-color:var(--teal)} .c-purple{border-color:var(--purple)}
+
+/* ═══ DIAGRAM COMPONENTS ═══ */
+
+/* horizontal pipeline */
+.pipe{display:grid;gap:30px;margin:24px 0}
+.pipe.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pipe.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.pipe .st{background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:17px 18px;box-shadow:var(--shadow);position:relative}
+.pipe .st::after{content:'›';position:absolute;right:-22px;top:50%;transform:translateY(-50%);
+  font-size:26px;color:var(--muted);line-height:1}
+.pipe .st:last-child::after{content:none}
+.pipe .st .lbl{font-family:var(--mono);font-size:var(--label);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.pipe .st strong{display:block;font-size:clamp(19px,1.4vw,24px);line-height:1.15}
+.pipe .st .q{font-size:var(--tiny);color:var(--muted);margin-top:6px;display:block}
+
+/* chain of chips */
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0}
+.chain.tight{margin:10px 0 0}
+.chain span{font-family:var(--mono);font-size:var(--small);background:var(--panel);
+  border:1px solid var(--line);border-radius:9px;padding:8px 12px;box-shadow:var(--shadow)}
+.chain span.hi{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
+.chain i{color:var(--muted);font-style:normal;font-family:var(--mono);font-size:15px}
+
+/* attendance prompt shared by slides 8 and 9 */
+.attendance-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:24px;align-items:start}
+.attendance-main{min-width:0}
+.attendance-card{padding:15px 16px 14px;border:1px solid #d6dffc;border-top:6px solid var(--blue);
+  border-radius:13px;background:var(--blue-soft);box-shadow:var(--shadow)}
+.attendance-label{font-family:var(--mono);font-size:var(--label);font-weight:700;letter-spacing:.08em;
+  color:var(--blue);text-transform:uppercase}
+.attendance-card h3{margin:5px 0 4px;font-size:clamp(20px,1.45vw,24px)}
+.attendance-card p{font-size:var(--tiny);line-height:1.3;color:var(--muted);margin-bottom:9px}
+.attendance-qr{display:block;width:min(100%,215px);aspect-ratio:1;margin:10px auto 8px;
+  border:6px solid var(--panel);border-radius:8px;background:var(--panel)}
+.attendance-qr img{display:block;width:100%;height:100%}
+.attendance-open{display:block;text-align:center;font-family:var(--mono);font-size:var(--tiny);
+  font-weight:700;color:var(--blue);text-decoration:none;margin-bottom:9px}
+.attendance-open:hover{text-decoration:underline}
+.attendance-points{display:grid;gap:4px;padding-top:8px;border-top:1px solid #ccd7fa}
+.attendance-points span{display:flex;justify-content:space-between;gap:10px;font-size:var(--tiny)}
+.attendance-points b{font-family:var(--mono);color:var(--ink)}
+.attendance-card .attendance-email{margin:8px 0 0;font-size:var(--label)}
+
+/* fixed project evidence path: arrows belong to the gaps, never to wrapping cards */
+.project-path{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:22px;margin:24px 0}
+.project-path .step{position:relative;display:grid;align-content:center;min-height:86px;padding:13px 12px;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:var(--shadow);
+  font-family:var(--mono);font-size:var(--small);text-align:center}
+.project-path .step.hi{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
+.project-path .step:not(:last-child)::after{content:'\2192';position:absolute;right:-19px;top:50%;
+  transform:translateY(-50%);color:var(--muted);font-size:17px}
+
+/* targeted vertical rhythm for sparse projector slides */
+.slide.roomy .wrap{display:flex;flex-direction:column;justify-content:space-between;min-height:70vh}
+.slide.roomy .wrap>h2{margin-bottom:5vh}
+.slide.roomy .partition-visual{gap:34px;margin:5vh 0}
+.slide.roomy .event{padding:20px 21px}
+.slide.roomy .panel{padding-top:27px;padding-bottom:27px}
+.slide.roomy .callout{margin-top:4vh}
+.slide.roomy .pipe{margin-top:5vh;margin-bottom:5vh}
+
+/* partition log */
+.logrow{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.logrow .pname{font-family:var(--mono);font-size:var(--tiny);color:var(--muted);width:76px;flex:none}
+.log{display:flex;gap:5px}
+.cell{width:clamp(34px,3vw,46px);height:clamp(34px,3vw,46px);display:grid;place-items:center;
+  border:1px solid var(--line);background:var(--panel);border-radius:8px;
+  font-family:var(--mono);font-size:var(--tiny);color:var(--muted)}
+.cell.hi{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
+.cell.ok{background:var(--teal-soft);border-color:#a8d3c6;color:var(--teal)}
+.cell.warn{background:var(--amber-soft);border-color:#e0c98a;color:var(--amber)}
+.cell.ghost{opacity:.3}
+.partition-visual{display:grid;gap:24px;margin:3vh 0}
+.partition-row{display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center}
+.partition-name{font-family:var(--mono);font-size:var(--label);font-weight:700}
+.event-log{display:flex;align-items:center;gap:12px}
+.event{position:relative;min-width:112px;padding:15px 18px;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);font-weight:700}
+.event small{display:block;font-family:var(--mono);font-size:var(--label);font-weight:500;color:var(--muted)}
+.event:not(:last-child)::after{content:'→';position:absolute;right:-23px;top:50%;transform:translateY(-50%);color:var(--muted)}
+
+/* swimlanes */
+.lane{display:grid;grid-template-columns:clamp(120px,14vw,190px) 1fr;gap:12px;align-items:center;margin-bottom:9px}
+.lane .who{font-family:var(--mono);font-size:var(--tiny);text-align:right;color:var(--muted)}
+.lane .bar{padding:11px 15px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
+  box-shadow:var(--shadow)}
+.lane .bar.alert{background:var(--red-soft);border-color:var(--red)}
+
+.fld{font-family:var(--mono);font-size:var(--tiny);padding:6px 9px;border-radius:6px;
+  background:var(--paper);margin-bottom:5px;border:1px solid var(--line)}
+
+/* vs block */
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch;margin:14px 0}
+.vs .mid{display:grid;place-items:center;font-family:var(--mono);font-size:var(--tiny);
+  color:var(--muted);padding:0 2px}
+@media (max-width:700px){.vs{grid-template-columns:1fr}.vs .mid{padding:4px 0}}
+
+/* ── tints ──
+   Declared last, and doubled, so they win over compound selectors such as
+   `.pipe .st` / `.owner .oh`. A tint always marks meaning (this box is yours,
+   this is the late record), so it must never be silently overridden. */
+.t-blue.t-blue{background:var(--blue-soft);border-color:#d6dffc}
+.t-teal.t-teal{background:var(--teal-soft);border-color:#cfe6df}
+.t-amber.t-amber{background:var(--amber-soft);border-color:#f0e0b8}
+.t-red.t-red{background:var(--red-soft);border-color:#eed6d6}
+.t-purple.t-purple{background:var(--purple-soft);border-color:#e0d8f5}
+.t-blue .note,.t-teal .note,.t-amber .note,.t-red .note,.t-purple .note{color:var(--ink)}
+
+/* ── effects ── */
+.slide .wrap>*{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.slide.in .wrap>*{opacity:1;transform:none}
+.slide.in .wrap>*:nth-child(1){transition-delay:.02s}
+.slide.in .wrap>*:nth-child(2){transition-delay:.09s}
+.slide.in .wrap>*:nth-child(3){transition-delay:.16s}
+.slide.in .wrap>*:nth-child(4){transition-delay:.23s}
+.slide.in .wrap>*:nth-child(5){transition-delay:.30s}
+.slide.in .wrap>*:nth-child(6){transition-delay:.37s}
+.slide.in .wrap>*:nth-child(n+7){transition-delay:.44s}
+
+@media (max-width:640px){
+  .slide{padding:9vh 6vw 8vh}
+  h2{white-space:normal}
+  .opening-title{white-space:normal}
+  .grid2,.grid3,.grid4,.roster-grid,.scoreboard{grid-template-columns:1fr}
+  .decision-words{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .project-path{grid-template-columns:1fr;gap:12px}
+  .project-path .step{min-height:58px}
+  .project-path .step:not(:last-child)::after{content:'\2193';right:auto;left:50%;top:auto;bottom:-15px;transform:translateX(-50%)}
+  .slide.roomy .wrap{display:block;min-height:0}
+  .attendance-layout{grid-template-columns:1fr}
+  .attendance-card{max-width:360px;margin:10px auto 0}
+  .pipe.cols-3,.pipe.cols-5{grid-template-columns:1fr}
+  .pipe .st{margin-bottom:22px}
+  .pipe .st::after{content:'⌄';right:50%;top:auto;bottom:-20px;transform:translateX(50%)}
+  table{font-size:15px} th,td{padding:7px 8px}
+  .lane{grid-template-columns:1fr}.lane .who{text-align:left}
+  .partition-row{grid-template-columns:1fr}.event-log{flex-wrap:wrap}
+  .event:not(:last-child)::after{display:none}
+  .diagram-crop{height:52vh}.diagram-crop img{width:180%;max-width:none;transform:translate(-22%,-5%)}
+}
+@media print{
+  @page{size:16in 9in;margin:0}
+  html{scroll-snap-type:none}
+  .slide{width:100vw;height:100vh;min-height:100vh;page-break-after:always;
+    padding:12vh 5vw 8vh;border:0;overflow:hidden}
+  .slide.title-slide{display:grid;padding:8vh 5vw}
+  body>.slide:first-of-type h1{font-size:3.8vw;white-space:nowrap}
+  .slide .wrap>*{opacity:1!important;transform:none!important}
+  .num,.hint{display:none} body{background:#fff}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .slide .wrap>*{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="num" id="num">01 / 20</div>
+<div class="hint">← → · Space to navigate</div>
+
+<!-- ═══ 1 ═══ -->
+<section class="slide title-slide"><div class="wrap">
+  <h1 class="opening-title">Review Session and Final Presentation</h1>
+  <p class="title-scope">Event · Order · Resume · Contract · State + Time · Output</p>
+  <p class="deck-meta">Lecture 10 · Jeremy Gu · University of San Francisco · Summer 2026</p>
+  <hr class="rule">
+</div></section>
+
+<!-- ═══ 2 ═══ -->
+<section class="slide" data-ref="L1–5 · Demo 00–05 · Assignment 1–2"><div class="wrap">
+  <h2>Concepts Became Evidence</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Course block</th><th>Lecture focus</th><th>Demo evidence</th><th>Assessment proof</th></tr></thead>
+    <tbody>
+      <tr><td><strong>L1</strong></td><td>Why streaming; environment</td><td><strong>Demo 00</strong><br>setup and first local run</td><td>Ready to run and inspect the course examples</td></tr>
+      <tr><td><strong>L2</strong></td><td>Topics, keys, partitions, producers, serialization</td><td><strong>Demo 01–02</strong><br>create, produce, compare</td><td><strong>Assignment 1</strong><br>real Confluent path, benchmark, secret-free evidence</td></tr>
+      <tr><td><strong>L3</strong></td><td>Groups, commits, resume, replay</td><td><strong>Demo 03</strong><br>bounded consumers and progress</td><td><strong>Assignment 2</strong><br>process before commit; resume; replay</td></tr>
+      <tr><td><strong>L4–5</strong></td><td>Pydantic, Avro, Registry, FastAPI</td><td><strong>Demo 04–05</strong><br>validate, publish, consume</td><td><strong>Assignment 2</strong><br>HTTP → Kafka; schema-aware consumption</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout"><p>Lectures explain. Demos make behavior visible. Assignments require reproducible proof.</p></div>
+</div></section>
+
+<!-- ═══ 3 ═══ -->
+<section class="slide" data-ref="L6–10 · Demo 06–09 · Final Project"><div class="wrap">
+  <h2>Demos Became Design Decisions</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Course block</th><th>Demo or case</th><th>Final-project decision</th></tr></thead>
+    <tbody>
+      <tr><td><strong>L6 · Integrate</strong></td><td><strong>Demo 06</strong><br>connector → processor → derived topic</td><td>Who moves data, who processes it, where resume and replay live</td></tr>
+      <tr><td><strong>L7 · Add state</strong></td><td><strong>Demo 07</strong><br>quote + delayed outcome → evaluation</td><td>Key, waiting boundary, retained state, closing metric</td></tr>
+      <tr><td><strong>L8 · Design</strong></td><td>2023 retrospective + independent insurance case</td><td>System boundary, review path, necessary tools</td></tr>
+      <tr><td><strong>L9 · Choose compute</strong></td><td><strong>Demo 09</strong><br>Python vs ksqlDB vs Flink SQL</td><td>Owner of state, time, recovery, lifecycle, cleanup</td></tr>
+      <tr><td><strong>L10 · Explain</strong></td><td>Course recap + project checklist</td><td>Useful result, evidence, limitation, lesson</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div></section>
+
+<!-- ═══ 4 ═══ -->
+<section class="slide" data-ref="Final Project cohort · 8 teams · 4 individual"><div class="wrap">
+  <h2>Twelve Projects, Twenty Students</h2>
+  <div class="roster-grid">
+    <div class="roster"><table><tbody>
+      <tr><td><span class="project">Muni Vehicle Activity and Feed-Health Monitor</span><span class="students">Chantelle Willette · Patrick Crouch</span></td><td class="format">Team</td></tr>
+      <tr><td><span class="project">Streaming Movie Recommendations</span><span class="students">Jack Dawson · Sarah Taylor</span></td><td class="format">Team</td></tr>
+      <tr><td><span class="project">Gate-Time Delay Risk</span><span class="students">Aidan Percy · Sebastian Steen</span></td><td class="format">Team</td></tr>
+      <tr><td><span class="project">Space Weather Radio-Risk Monitor</span><span class="students">Noam Fein · Niki Naderzad</span></td><td class="format">Team</td></tr>
+      <tr><td><span class="project">Real-Time Transit Reliability Lakehouse</span><span class="students">Borna Karimi · Aatish Lobo</span></td><td class="format">Team</td></tr>
+      <tr><td><span class="project">Artificial Streaming Anomaly Monitor</span><span class="students">P.J. Losiewicz · Tianyi Luo</span></td><td class="format">Team</td></tr>
+    </tbody></table></div>
+    <div class="roster"><table><tbody>
+      <tr><td><span class="project">Streaming Traffic Volume Monitor from Caltrans Live CCTV</span><span class="students">Tom Kovalcik · Chris Monzon</span></td><td class="format">Team</td></tr>
+      <tr><td><span class="project">Event-Time Correctness for Realtime Crypto Market Data</span><span class="students">Lokesh Muvva · Joshua He</span></td><td class="format">Team</td></tr>
+      <tr><td><span class="project">Bay Area Transit Delay Alerts Using Kafka</span><span class="students">Kaio Farkouh</span></td><td class="format">Individual</td></tr>
+      <tr><td><span class="project">Hotel Bookings</span><span class="students">Alexander Mohun</span></td><td class="format">Individual</td></tr>
+      <tr><td><span class="project">Real-Time Retail Sales Intelligence Pipeline</span><span class="students">William Spagnuolo</span></td><td class="format">Individual</td></tr>
+      <tr><td><span class="project">Pre-Departure Flight Delay-Risk Scoring on Kafka</span><span class="students">Lynn Tong</span></td><td class="format">Individual</td></tr>
+    </tbody></table></div>
+  </div>
+</div></section>
+
+<!-- ═══ 5 ═══ -->
+<section class="slide" data-ref="Course synthesis"><div class="wrap">
+  <h2>Six Questions Define the Design</h2>
+  <div class="decision-break">
+    <p class="pull">If one answer is missing, the design is incomplete.</p>
+    <div class="decision-words">
+      <span><b>1</b>Event + key</span><span><b>2</b>Order</span><span><b>3</b>Resume</span>
+      <span><b>4</b>Contract</span><span><b>5</b>State + time</span><span><b>6</b>Output</span>
+    </div>
+  </div>
+</div></section>
+
+<!-- ═══ 6 ═══ -->
+<section class="slide" data-ref="L2 · Demo 02 · Assignment 1"><div class="wrap">
+  <h2>What is the event and its key?</h2>
+  <div class="pipe cols-3">
+    <div class="st t-blue"><div class="lbl">Event</div><strong>One business fact</strong><span class="q">trip requested · fare quoted · trip completed</span></div>
+    <div class="st t-amber"><div class="lbl">Key</div><strong>What must stay together</strong><span class="q">trip_id for one trip’s ordered history</span></div>
+    <div class="st t-teal"><div class="lbl">Partition</div><strong>The ordered shard</strong><span class="q">same key → same partition</span></div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h3>Good key</h3><p class="note">Preserves the business relationship the processor needs.</p></div>
+    <div class="panel t-amber"><h3>Risky key</h3><p class="note">Sends too much traffic to one hot partition.</p></div>
+  </div>
+</div></section>
+
+<!-- ═══ 7 ═══ -->
+<section class="slide roomy" data-ref="L2 · Demo 01–02"><div class="wrap">
+  <h2>Where is order guaranteed?</h2>
+  <div class="partition-visual">
+    <div class="partition-row">
+      <span class="partition-name">Partition 0</span>
+      <div class="event-log"><span class="event">request<small>offset 0</small></span><span class="event">quote<small>offset 1</small></span><span class="event">outcome<small>offset 2</small></span></div>
+    </div>
+    <div class="partition-row">
+      <span class="partition-name">Partition 1</span>
+      <div class="event-log"><span class="event">payment<small>offset 0</small></span><span class="event">refund<small>offset 1</small></span></div>
+    </div>
+  </div>
+  <div class="callout c-teal">
+    <p><strong>Read each row left to right.</strong> Kafka orders records within a partition; it does not define whether “outcome” happened before “refund.”</p>
+  </div>
+</div></section>
+
+<!-- ═══ 8 ═══ -->
+<section class="slide" data-ref="L3 · Demo 03 · Assignment 2"><div class="wrap">
+  <h2>Where does processing resume?</h2>
+  <div class="attendance-layout">
+    <div class="attendance-main">
+      <div class="panel">
+        <div class="logrow"><span class="pname">partition</span><div class="log">
+          <div class="cell ok">0</div><div class="cell ok">1</div><div class="cell ok">2</div>
+          <div class="cell warn">3</div><div class="cell warn">4</div><div class="cell hi">5</div><div class="cell ghost">6</div>
+        </div></div>
+        <div class="chain tight">
+          <span>committed offset = 3</span><i>&rarr;</i><span>restart reads 3 again</span><i>&rarr;</i><span>position = 5</span>
+        </div>
+      </div>
+      <div class="grid2 mt14">
+        <div class="panel t-blue"><h3>Same group ID</h3><p class="note">Shares partitions and committed progress.</p></div>
+        <div class="panel"><h3>Different group ID</h3><p class="note">Reads independently and can replay retained history.</p></div>
+      </div>
+      <div class="callout"><p><strong>Process first. Commit second.</strong> The committed offset defines restart behavior.</p></div>
+    </div>
+    <aside class="attendance-card" data-attendance-card aria-label="MSDS 682 attendance check"></aside>
+  </div>
+</div></section>
+
+<!-- ═══ 9 ═══ -->
+<section class="slide" data-ref="L4–5 · Demo 04–05 · Assignment 2"><div class="wrap">
+  <h2>Which boundary enforces the contract?</h2>
+  <div class="attendance-layout">
+    <div class="attendance-main">
+      <div class="pipe cols-3">
+        <div class="st t-blue"><div class="lbl">HTTP boundary</div><strong>FastAPI</strong><span class="q">request shape and response status</span></div>
+        <div class="st"><div class="lbl">Application boundary</div><strong>Pydantic</strong><span class="q">validated Python objects</span></div>
+        <div class="st t-purple"><div class="lbl">Wire boundary</div><strong>Registry-aware serializer</strong><span class="q">Avro bytes compatible between apps</span></div>
+      </div>
+      <div class="chain">
+        <span>validated object</span><i>&rarr;</i><span>serialize</span><i>&rarr;</i>
+        <span class="hi">Kafka bytes</span><i>&rarr;</i><span>deserialize</span><i>&rarr;</i><span>validated object</span>
+      </div>
+      <div class="callout c-purple"><p>“Data contract” is incomplete until you name the boundary and the component enforcing it.</p></div>
+    </div>
+    <aside class="attendance-card" data-attendance-card aria-label="MSDS 682 attendance check"></aside>
+  </div>
+</div></section>
+
+<!-- ═══ 10 ═══ -->
+<section class="slide" data-ref="L6–7 · Demo 06–07"><div class="wrap">
+  <h2>What state and time must be retained?</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Stateless</h3>
+      <p class="note">This record is enough.</p>
+      <div class="fld">filter · map</div>
+    </div>
+    <div class="panel t-red">
+      <h3>Stateful</h3>
+      <p class="note">The answer needs another record or prior result.</p>
+      <div class="fld">join · aggregate</div>
+    </div>
+  </div>
+  <div class="grid4 mt14">
+    <div class="panel"><h3>Match</h3><p class="note">Which key?</p></div>
+    <div class="panel"><h3>Wait</h3><p class="note">Which window?</p></div>
+    <div class="panel"><h3>Recover</h3><p class="note">Which checkpoint?</p></div>
+    <div class="panel"><h3>Fail</h3><p class="note">Late, missing, duplicate?</p></div>
+  </div>
+  <div class="callout c-red"><p>Production state needs a retention boundary and a recovery path.</p></div>
+</div></section>
+
+<!-- ═══ 11 ═══ -->
+<section class="slide" data-ref="L1 · L5 · L8 · Final Project"><div class="wrap">
+  <h2>Who reads the output, and how fresh must it be?</h2>
+  <div class="pipe cols-3">
+    <div class="st"><div class="lbl">Compute</div><strong>Consumer or processor</strong></div>
+    <div class="st t-blue"><div class="lbl">Output</div><strong>Derived topic</strong><span class="q">result + metadata, not a duplicated large file</span></div>
+    <div class="st t-teal"><div class="lbl">Reader</div><strong>API · dashboard · model</strong></div>
+  </div>
+  <div class="vs">
+    <div class="panel t-amber"><h3>Needs seconds</h3><p class="note">Freshness is part of the product → streaming.</p></div>
+    <div class="mid">vs</div>
+    <div class="panel"><h3>Needs later</h3><p class="note">A scheduled answer is enough → batch may be simpler.</p></div>
+  </div>
+  <div class="callout c-teal"><p>Start with the reader and freshness requirement, then choose the pipeline.</p></div>
+</div></section>
+
+<!-- ═══ 12 ═══ -->
+<section class="slide" data-ref="L7 · Demo 07"><div class="wrap">
+  <h2>ridge-v2 stayed closest to the 20% target</h2>
+  <p class="score-context">8 quotes + 4 delayed outcomes → 8 joined evaluations · lower is better</p>
+  <div class="scoreboard">
+    <div class="score"><span class="model">rule-v1</span><strong class="value">23.76</strong><span class="unit">pp average gap to target</span><span class="story">−3.8% average markup · 2 of 4 trips below cost</span></div>
+    <div class="score good"><span class="model">ridge-v2</span><strong class="value">3.70</strong><span class="unit">pp average gap to target</span><span class="story">+20.6% average markup · close to the 20% target</span></div>
+  </div>
+  <p class="score-trace">run_id=model-compare · deterministic fixture · seed offset 65 · four trips</p>
+  <div class="callout c-teal"><p>The comparison uses per-trip absolute error, so overpricing and underpricing cannot cancel each other out.</p></div>
+</div></section>
+
+<!-- ═══ 14 ═══ -->
+<section class="slide" data-ref="L9 · Demo 09"><div class="wrap">
+  <h2>Demo 09 Changed Compute Ownership</h2>
+  <div class="diagram-crop">
+    <img src="diagrams/02-demo07-one-contract-three-owners.svg" alt="Demo 07 inputs flow through Python, ksqlDB, and Flink SQL to one independent verifier">
+  </div>
+</div></section>
+
+<!-- ═══ 13 ═══ -->
+<section class="slide" data-ref="L9 · Demo 09"><div class="wrap">
+  <h2>Same Concepts, Different Boundaries</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Question</th><th>ksqlDB</th><th>Flink SQL</th></tr></thead>
+    <tbody>
+      <tr><td><strong>System boundary</strong></td><td>Kafka-native SQL runtime</td><td>General stateful engine; Kafka is one source</td></tr>
+      <tr><td><strong>Continuous work</strong></td><td>Persistent query / application</td><td>Streaming statement / job</td></tr>
+      <tr><td><strong>Table model</strong></td><td>Topic-backed STREAM or TABLE</td><td>Logical dynamic table</td></tr>
+      <tr><td><strong>Recovery</strong></td><td>Kafka-backed state and replay</td><td>Checkpoint and savepoint</td></tr>
+      <tr><td><strong>Lifecycle</strong></td><td>Observe and remove the application</td><td>Observe and stop the statement</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout c-purple"><p>Both express continuous SQL. The runtime, data boundary, and recovery model differ.</p></div>
+</div></section>
+
+<!-- ═══ 15 ═══ -->
+<section class="slide roomy" data-ref="L9 · Demo 09"><div class="wrap">
+  <h2>Continuous Jobs Need Cleanup</h2>
+  <div class="panel t-red">
+    <div class="lane"><span class="who">statement</span><div class="bar mono">SELECT … FROM trips → runs continuously</div></div>
+    <div class="lane m0"><span class="who">browser tab closed</span><div class="bar alert mono">still running · still billing</div></div>
+  </div>
+  <div class="callout c-red">
+    <p>Stop Flink statements. Remove temporary ksqlDB resources. Confirm the compute pool returns to <strong>0 CFU</strong>.</p>
+  </div>
+  <p class="note">Do not delete shared Demo 07 topics.</p>
+</div></section>
+
+<!-- ═══ 16 ═══ -->
+<section class="slide" data-ref="L1 · L8 · Final Project"><div class="wrap">
+  <h2>Use Kafka Only When Needed</h2>
+  <div class="panel t-blue">
+    <div class="chain m0">
+      <span class="hi">buffer a burst?</span><span class="hi">serve many readers?</span><span class="hi">replay history?</span>
+      <i>&rarr;</i><span>no to all three</span><i>&rarr;</i><span>choose the simpler system</span>
+    </div>
+  </div>
+  <div class="vs mt16">
+    <div class="panel"><h3>Object storage</h3><p class="note">Cheap storage for files and large payloads.</p></div>
+    <div class="mid">vs</div>
+    <div class="panel t-amber"><h3>Kafka</h3><p class="note">A distributed event log for ordering, retention, replay, and fan-out.</p></div>
+  </div>
+  <div class="callout"><p>Choose Kafka from the requirement, not from the trend.</p></div>
+</div></section>
+
+<!-- ═══ 17 ═══ -->
+<section class="slide" data-ref="L6–10 · Final Project"><div class="wrap">
+  <h2>Produce One Reviewable Result</h2>
+  <div class="project-path">
+    <span class="step">source or replay</span><span class="step">validated event</span>
+    <span class="step hi">Kafka</span><span class="step">consumer or processor</span>
+    <span class="step">useful output</span><span class="step">validation or evaluation</span>
+  </div>
+  <div class="grid4">
+    <div class="panel"><h3>Problem</h3><p class="note">One user and one useful result.</p></div>
+    <div class="panel"><h3>Contract</h3><p class="note">Visible schema, key, and ownership.</p></div>
+    <div class="panel"><h3>Evidence</h3><p class="note">Tests, metrics, or an evaluation harness.</p></div>
+    <div class="panel"><h3>Review path</h3><p class="note">One command or complete cloud access.</p></div>
+  </div>
+  <div class="callout c-teal"><p>The goal is not more tools. The goal is one result another person can verify.</p></div>
+</div></section>
+
+<!-- ═══ 18 ═══ -->
+<section class="slide" data-ref="Final Project checklist"><div class="wrap">
+  <h2>Answer These Six Questions</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th></th><th>Question</th><th>Your one-sentence answer</th></tr></thead>
+    <tbody>
+      <tr><td class="n">1</td><td>What is the event and its key?</td><td class="mono">“I key by ___ because ___.”</td></tr>
+      <tr><td class="n">2</td><td>Where is order guaranteed?</td><td class="mono">“Inside ___ partition(s).”</td></tr>
+      <tr><td class="n">3</td><td>Where does processing resume?</td><td class="mono">“After ___ succeeds, I commit ___.”</td></tr>
+      <tr><td class="n">4</td><td>Which boundary enforces the contract?</td><td class="mono">“___ validates ___.”</td></tr>
+      <tr><td class="n">5</td><td>What state and time must be retained?</td><td class="mono">“I retain ___ for ___.”</td></tr>
+      <tr><td class="n">6</td><td>Who reads the output, and how fresh must it be?</td><td class="mono">“___ needs it within ___.”</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout c-amber"><p>An unanswered row is a project-design gap.</p></div>
+</div></section>
+
+<!-- ═══ 19 ═══ -->
+<section class="slide roomy" data-ref="Lecture 11 · Final presentation"><div class="wrap">
+  <h2>Explain It in Five Moves</h2>
+  <div class="pipe cols-5">
+    <div class="st"><div class="lbl">1</div><strong>Problem</strong><span class="q">one sentence</span></div>
+    <div class="st"><div class="lbl">2</div><strong>Architecture</strong><span class="q">one diagram</span></div>
+    <div class="st t-blue"><div class="lbl">3</div><strong>Choices</strong><span class="q">key · time · compute owner</span></div>
+    <div class="st"><div class="lbl">4</div><strong>Result</strong><span class="q">one useful number or artifact</span></div>
+    <div class="st t-teal"><div class="lbl">5</div><strong>Lesson</strong><span class="q">what broke; what changes next</span></div>
+  </div>
+  <div class="callout c-teal"><p>Explain the system through its choices, evidence, and limitations.</p></div>
+</div></section>
+
+<!-- ═══ 20 ═══ -->
+<section class="slide title-slide" data-ref="MSDS 682 · University of San Francisco · Summer 2026"><div class="wrap">
+  <h1 class="closing-title">Decisions Outlast Tools</h1>
+  <div class="chain">
+    <span>event</span><span>order</span><span>resume</span><span>contract</span><span>state + time</span><span>output</span>
+  </div>
+  <hr class="rule">
+</div></section>
+
+<template id="attendance-card-template">
+  <div class="attendance-label">Attendance check</div>
+  <h3>MSDS 682 · 8/6</h3>
+  <p>Complete this during class. Responses outside the attendance window may not count.</p>
+  <a class="attendance-qr" href="https://forms.gle/CmEPwY3HGv4vxYjm7" target="_blank" rel="noopener" aria-label="Open the MSDS 682 attendance form">
+    <img src="assets/lecture10-attendance-2026-08-06.svg" alt="QR code for the MSDS 682 attendance form">
+  </a>
+  <a class="attendance-open" href="https://forms.gle/CmEPwY3HGv4vxYjm7" target="_blank" rel="noopener">Scan or open the form</a>
+  <div class="attendance-points" aria-label="Attendance points">
+    <span>Lecture 10 <b>2 pts</b></span>
+    <span>Lecture 11 <b>2 pts</b></span>
+    <span>Lecture 12 <b>4 pts</b></span>
+  </div>
+  <p class="attendance-email">Your email is collected automatically.</p>
+</template>
+
+<script>
+(function(){
+  var attendanceTemplate = document.getElementById('attendance-card-template');
+  document.querySelectorAll('[data-attendance-card]').forEach(function(card){
+    card.appendChild(attendanceTemplate.content.cloneNode(true));
+  });
+
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var label  = document.getElementById('num');
+  var total  = slides.length;
+  var pad = function(n){ return (n<10?'0':'')+n; };
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        if(e.intersectionRatio > .5){
+          label.textContent = pad(slides.indexOf(e.target)+1)+' / '+pad(total);
+        }
+      }
+    });
+  },{threshold:[.25,.6]});
+  slides.forEach(function(s){ io.observe(s); });
+  if(slides[0]) slides[0].classList.add('in');
+
+  function current(){
+    var mid = window.innerHeight/2, best = 0, bestD = Infinity;
+    slides.forEach(function(s,i){
+      var r = s.getBoundingClientRect();
+      var d = Math.abs((r.top+r.bottom)/2 - mid);
+      if(d < bestD){ bestD = d; best = i; }
+    });
+    return best;
+  }
+  function go(i){
+    i = Math.max(0, Math.min(total-1, i));
+    slides[i].scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  document.addEventListener('keydown', function(e){
+    if(['ArrowRight','ArrowDown','PageDown',' '].indexOf(e.key)>-1){ e.preventDefault(); go(current()+1); }
+    if(['ArrowLeft','ArrowUp','PageUp'].indexOf(e.key)>-1){ e.preventDefault(); go(current()-1); }
+    if(e.key==='Home'){ e.preventDefault(); go(0); }
+    if(e.key==='End'){ e.preventDefault(); go(total-1); }
+  });
+})();
+</script>
+</body>
+</html>

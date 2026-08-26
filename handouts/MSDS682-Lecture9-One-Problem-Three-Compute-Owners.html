@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="MSDS 682 Lecture 9: use Demo 07 to compare a Python consumer, ksqlDB, and Flink SQL as three owners of the same stateful join and model-evaluation contract."
+  />
+  <title>MSDS 682 · Lecture 9 · One Problem, Three Compute Owners</title>
+  <link rel="stylesheet" href="lecture9-compute-owners.css" />
+</head>
+<body data-deck="Lecture 9 · Compute owners">
+<div class="progress" aria-hidden="true"></div>
+
+<section class="slide hero" id="lecture-9-title">
+  <div class="frame">
+    <p class="kicker">MSDS 682 · <b>Lecture 9</b></p>
+    <h1>One problem.<br />Three compute owners.</h1>
+    <p class="sub">
+      Keep Demo 07’s data and business contract fixed. Compare how Python,
+      ksqlDB, and Flink SQL own the same delayed join and model evaluation.
+    </p>
+    <div class="hero-meta">
+      <span class="pill">Demo 07 stays unchanged</span>
+      <span class="pill">Demo 09A · ksqlDB · planned</span>
+      <span class="pill">Demo 09B · Flink SQL · planned</span>
+    </div>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="review-course-arc">
+  <div class="frame">
+    <p class="kicker">Review 1 of 4 · Lectures 6 to 8</p>
+    <h1>The course moved from reliable processing to choosing its owner</h1>
+    <div class="owner-path">
+      <article class="owner-node python">
+        <span class="tag">Lecture 6</span>
+        <strong>Process reliably</strong>
+        <p>Consume, validate, compute, publish, acknowledge, then commit.</p>
+      </article>
+      <div class="owner-arrow">→</div>
+      <article class="owner-node ksql">
+        <span class="tag">Lecture 7</span>
+        <strong>Add state and time</strong>
+        <p>Join quotes with delayed outcomes and evaluate both pricing versions.</p>
+      </article>
+      <div class="owner-arrow">→</div>
+      <article class="owner-node flink">
+        <span class="tag">Lecture 8 → 9</span>
+        <strong>Choose the owner</strong>
+        <p>Start from the operation, state, time, recovery, and operating contract.</p>
+      </article>
+    </div>
+    <div class="takeaway">
+      <strong>Lecture 9 does not introduce a new business problem.</strong>
+      It runs a controlled architecture comparison on a problem we already understand.
+    </div>
+    <p class="source-line">Course sources: <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec6-kafka-connect-stream-processing" target="_blank" rel="noreferrer">Lecture 6</a> · <a href="https://wgu9.github.io/msds-682-su2026/#/handouts/lec7b-stateful-stream-processing" target="_blank" rel="noreferrer">Lecture 7B</a> · Lecture 8 three-part index</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="review-lecture-6">
+  <div class="frame">
+    <p class="kicker">Review 2 of 4 · Lecture 6</p>
+    <h1>Reliability starts at the output boundary</h1>
+    <div class="rail">
+      <div class="rail-node"><b>Consume</b><span>Read one retained input record</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node state"><b>Validate + compute</b><span>Reject bad input; derive a new fact</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node output"><b>Publish + ack</b><span>Wait for Kafka to confirm the output</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node compute"><b>Commit</b><span>Advance input progress only now</span></div>
+    </div>
+    <div class="duo">
+      <article class="card blue">
+        <span class="tag">One record is enough</span>
+        <h2>Stateless transformation</h2>
+        <p>Filter or map can decide from the current record alone.</p>
+      </article>
+      <article class="card purple">
+        <span class="tag">Prior records are required</span>
+        <h2>Stateful processing</h2>
+        <p>A join must remember unmatched records; recovery now includes state.</p>
+      </article>
+    </div>
+    <div class="takeaway amber">
+      <strong>At-least-once remains visible:</strong> if output succeeds and commit fails, replay can produce a duplicate. Stable identity and idempotency still matter.
+    </div>
+    <p class="source-line">Course-verified: Lecture 6 safe-processing boundary, delivery semantics, and stateless/stateful distinction.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="review-demo-07-result">
+  <div class="frame">
+    <p class="kicker">Review 3 of 4 · Lecture 7B result</p>
+    <h1>The goal is 20% markup, not the highest markup</h1>
+    <p class="sub">Rank each model by the mean of each trip’s absolute distance from the 20% target.</p>
+    <div class="metric-pair">
+      <article class="metric bad">
+        <span class="name">rule-v1</span>
+        <span class="value">23.76 pp</span>
+        <p>Average gap to target. Average markup was −3.8%; two of four trips were priced below cost.</p>
+      </article>
+      <article class="metric best">
+        <span class="name">ridge-v2</span>
+        <span class="value">3.70 pp</span>
+        <p>Average gap to target. Average markup was +20.6%; this run recommends ridge-v2.</p>
+      </article>
+    </div>
+    <div class="takeaway">
+      <strong>Primary metric:</strong>
+      <code>AVG(ABS(realized_markup_pct − target_markup_pct))</code>.
+      The absolute value is applied per trip before averaging.
+    </div>
+    <p class="source-line">Course-verified snapshot: <code>run_id=model-compare</code>, deterministic fixture, seed offset 65, four trips. This is a classroom ranking, not a production A/B test.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="review-lecture-8-boundary">
+  <div class="frame">
+    <p class="kicker">Review 4 of 4 · Lecture 8</p>
+    <h1>Lecture 8 separated three teaching jobs</h1>
+    <div class="trio">
+      <article class="card blue">
+        <span class="tag">Project design</span>
+        <h2>Learn from 2023 systems</h2>
+        <p>Scope one closed loop: source, Kafka, processor/state, output, and evidence.</p>
+      </article>
+      <article class="card green">
+        <span class="tag">Industry case</span>
+        <h2>Insurance stayed independent</h2>
+        <p>S3, Kafka events, versioned knowledge, authorized RAG, and MCP form a different end-to-end case.</p>
+      </article>
+      <article class="card amber">
+        <span class="tag">Carried forward</span>
+        <h2>Who should run stateful logic?</h2>
+        <p>The short compute-owner comparison was prepared, but it was not taught on July 30.</p>
+      </article>
+    </div>
+    <div class="takeaway red">
+      <strong>Boundary:</strong> the insurance case has no business or implementation dependency on ksqlDB or Flink SQL. Lecture 9 returns to Demo 07 for the tool comparison.
+    </div>
+    <p class="source-line">Course-verified: Lecture 8 transcript/board review and the Lecture 8 three-part index.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="current-status">
+  <div class="frame">
+    <p class="kicker">Current status · August 3, 2026</p>
+    <h1>The baseline is complete; the two SQL translations are planned</h1>
+    <div class="status-board">
+      <ul class="status-list">
+        <li><span class="status-label">Verified</span><span><strong>Demo 07A–07F</strong> already produces and compares the complete bounded run.</span></li>
+        <li><span class="status-label planned">Planned</span><span><strong>Demo 09A</strong> will replace only the join/evaluation/aggregation owner with ksqlDB.</span></li>
+        <li><span class="status-label planned">Planned</span><span><strong>Demo 09B</strong> will replace the same owner with Flink SQL.</span></li>
+        <li><span class="status-label verify">Recheck</span><span><strong>Cloud readiness before class:</strong> the planning snapshot reports a default Flink pool, no ksqlDB cluster, and a Kafka cluster-scoped credential still needed for live execution.</span></li>
+      </ul>
+      <article class="card amber">
+        <span class="tag">Truth boundary</span>
+        <h2>Do not present planned SQL as a completed demo</h2>
+        <p>The slides show the intended statement shape and acceptance contract. Demo implementation, live schema inspection, and cloud execution still require verification.</p>
+        <div class="truth-key">
+          <span class="verified">course-verified</span>
+          <span class="planned">planned demo</span>
+          <span class="platform">platform-documented</span>
+        </div>
+      </article>
+    </div>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="controlled-owner-experiment">
+  <div class="frame diagram-frame">
+    <figure class="diagram-stage">
+      <img src="diagrams/02-demo07-one-contract-three-owners.svg" alt="Demo 07 provides one data and schema source. Python, ksqlDB, and Flink SQL each filter one run, join by trip, evaluate, aggregate, and feed one Python verifier." />
+    </figure>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="stream-table-shared-foundation">
+  <div class="frame diagram-frame">
+    <!-- Visual 04: the shared concept is explained once here, then referenced later. -->
+    <figure class="diagram-stage">
+      <img src="diagrams/04-stream-table-duality-demo07.svg" alt="Append-only Demo 07 events form a stream of changes; replaying those changes yields current keyed table state. Python, ksqlDB, and Flink differ in which runtime owns that memory." />
+    </figure>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="kafka-stream-processing-two-runtimes">
+  <div class="frame diagram-frame">
+    <figure class="diagram-stage">
+      <img src="diagrams/01-kafka-stream-processing-two-sql-runtimes.svg" alt="Events enter Kafka topics, then either ksqlDB or Flink SQL owns filtering, mapping, joining, windowing, aggregation, state, and time before producing derived data." />
+    </figure>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="stream-processing-spine-to-sql">
+  <div class="frame diagram-frame">
+    <figure class="diagram-stage">
+      <img src="diagrams/03-key-time-state-recovery-comparison.svg" alt="A side-by-side comparison of how ksqlDB and Flink SQL own key routing, event time, state, recovery, and continuous-job lifecycle." />
+    </figure>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="same-idea-different-vocabulary">
+  <div class="frame diagram-frame">
+    <!-- Visual 05: offsets, state, and recovery copies are intentionally separated. -->
+    <figure class="diagram-stage">
+      <img src="diagrams/05-offset-state-checkpoint.svg" alt="Kafka offset is the next input position, runtime state holds unmatched rows and aggregates, and a checkpoint or changelog is the durable recovery copy." />
+    </figure>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="similar-words-different-semantics">
+  <div class="frame">
+    <p class="kicker">P0 comparison · Keep only the semantic traps</p>
+    <h1>Four look-alikes are not interchangeable</h1>
+    <table class="compact">
+      <thead>
+        <tr><th>Question</th><th>ksqlDB</th><th>Flink SQL</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>What is a table?</strong></td><td>A keyed table backed by a Kafka topic</td><td>A logical dynamic table; Cloud maps Kafka topics to tables</td></tr>
+        <tr><td><strong>What is a change?</strong></td><td>A Kafka record updates the keyed result</td><td>An internal row kind: <code>+I / -U / +U / -D</code></td></tr>
+        <tr><td><strong>How does <code>GROUP BY</code> update?</strong></td><td>Materialized keyed/upsert result</td><td>Updating table; may upsert or retract, depending on key and sink</td></tr>
+        <tr><td><strong>How is a join time-bounded?</strong></td><td><code>WITHIN</code> plus grace</td><td>Equality key plus rowtime bounds and watermarks</td></tr>
+      </tbody>
+    </table>
+    <div class="takeaway red"><strong>Do not overstate retractions:</strong> <code>-U</code> appears only when the changelog must retract an old value. An upsert-capable keyed sink may use <code>+U</code> without <code>-U</code>.</div>
+    <p class="source-line">Official concepts: <a href="https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/create-table.html" target="_blank" rel="noreferrer">ksqlDB topic-backed tables</a> · <a href="https://docs.confluent.io/cloud/current/flink/concepts/dynamic-tables.html" target="_blank" rel="noreferrer">Flink dynamic tables and changelog modes</a>.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide divider" id="ksqldb-what-it-is">
+  <div class="frame">
+    <p class="kicker">ksqlDB · 1 of 6 · Three core concepts</p>
+    <h1>Three concepts unlock ksqlDB</h1>
+    <p class="sub">A Kafka-native streaming SQL database and runtime built on Kafka Streams.</p>
+    <div class="concept-lane" aria-label="ksqlDB concept workflow">
+      <div class="concept-step ksql"><span>01 · Model</span><strong>Kafka topic → <code>STREAM</code> or <code>TABLE</code></strong><small>History or current keyed value</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step ksql"><span>02 · Deploy</span><strong>SQL → persistent query</strong><small>ksqlDB generates a running Kafka Streams topology</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step ksql"><span>03 · Read</span><strong>Push changes or pull current state</strong><small><code>EMIT CHANGES</code> subscribes; pull reads now</small></div>
+    </div>
+    <div class="takeaway"><strong>Runtime nuance:</strong> ksqlDB has an engine/server runtime, but its physical query plan is a Kafka Streams application. It is not the same kind of general engine as Flink.</div>
+    <p class="source-line">Official sources: <a href="https://docs.confluent.io/platform/current/ksqldb/concepts/overview.html" target="_blank" rel="noreferrer">stream/table concepts</a> · <a href="https://docs.confluent.io/platform/current/ksqldb/concepts/queries.html" target="_blank" rel="noreferrer">query types</a> · <a href="https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/how-it-works.html" target="_blank" rel="noreferrer">engine, server, and generated Kafka Streams application</a>.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="ksqldb-demo07-map">
+  <div class="frame">
+    <p class="kicker">ksqlDB · 2 of 6 · Planned Demo 09A</p>
+    <h1>Reuse Demo 07 topics; replace only the evaluator</h1>
+    <div class="rail">
+      <div class="rail-node"><b>Fare quotes stream</b><span><code>msds682.demo07.ml-fare-quotes-avro.v1</code></span></div>
+      <div class="rail-arrow">+</div>
+      <div class="rail-node"><b>Trip outcomes stream</b><span><code>msds682.demo07.ml-trip-outcomes-avro.v1</code></span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node state"><b>ksqlDB join</b><span>Filter run, re-key, window, evaluate</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node output"><b>09A evaluation topic</b><span><code>msds682.demo09.ksqldb-pricing-evaluations-avro.v1</code></span></div>
+    </div>
+    <ul class="constraint-list">
+      <li><strong>Do not copy 07A–07D</strong><span>Training, requests, two quote processors, outcomes, and schemas remain the unique data source.</span></li>
+      <li><strong>Filter before the join</strong><span>Create run-specific derived streams so old retained records cannot cross into today’s comparison.</span></li>
+      <li><strong>Join on value <code>trip_id</code></strong><span>The business key is present in both Avro values; repartition the filtered streams by that field.</span></li>
+    </ul>
+    <div class="takeaway green"><strong>Expected behavior:</strong> the SQL translation should produce the same eight evaluation facts, not a different experiment.</div>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="ksqldb-join-contract">
+  <div class="frame">
+    <p class="kicker">ksqlDB · 3 of 6 · Platform constraint</p>
+    <h1>A stream-stream join needs one key and an explicit time window</h1>
+    <div class="concept-lane" aria-label="ksqlDB stream-stream join workflow">
+      <div class="concept-step ksql"><span>01 · Isolate</span><strong>Filter one <code>run_id</code></strong><small>Exclude retained records from other runs</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step ksql"><span>02 · Route</span><strong>Re-key by <code>trip_id</code></strong><small>Co-partition both streams</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step ksql"><span>03 · Wait</span><strong><code>WITHIN 1 HOUR</code></strong><small>Grace defines late-arrival policy</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step ksql"><span>04 · Emit</span><strong>One evaluation per match</strong><small>Records beyond the bound are ineligible</small></div>
+    </div>
+    <div class="takeaway amber"><strong>Lecture 7 vocabulary returns:</strong> key answers “what matches”; <code>WITHIN</code> and grace answer “how long state waits.”</div>
+    <p class="source-line">Official source: <a href="https://docs.confluent.io/platform/current/ksqldb/developer-guide/joins/join-streams-and-tables.html" target="_blank" rel="noreferrer">ksqlDB joins, windows, grace, and co-partitioning</a>.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="ksqldb-sql-shape">
+  <div class="frame">
+    <p class="kicker">ksqlDB · 4 of 6 · Planned SQL shape</p>
+    <h1>Filter one run, then repartition by the join key</h1>
+    <pre class="sql-block" aria-label="Planned ksqlDB run isolation and repartitioning"><code><span class="comment">-- In the Confluent Cloud UI, source streams point at:</span>
+<span class="comment">-- msds682.demo07.ml-fare-quotes-avro.v1</span>
+<span class="comment">-- msds682.demo07.ml-trip-outcomes-avro.v1</span>
+<span class="kw">CREATE STREAM</span> quotes_run <span class="kw">AS</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> fare_quotes
+<span class="kw">WHERE</span> run_id = <span class="str">'model-compare'</span>
+<span class="kw">PARTITION BY</span> trip_id
+<span class="kw">EMIT CHANGES</span>;
+
+<span class="kw">CREATE STREAM</span> outcomes_run <span class="kw">AS</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> trip_outcomes
+<span class="kw">WHERE</span> run_id = <span class="str">'model-compare'</span>
+<span class="kw">PARTITION BY</span> trip_id
+<span class="kw">EMIT CHANGES</span>;</code></pre>
+    <div class="takeaway red"><strong>Planned, not yet validated live:</strong> inspect the inferred field names and schemas in the actual ksqlDB cluster before treating this skeleton as executable.</div>
+    <div class="truth-key"><span class="planned">planned Demo 09A</span><span class="verified">existing Demo 07 topics</span><span class="platform">documented query pattern</span></div>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="ksqldb-evaluate-aggregate">
+  <div class="frame">
+    <p class="kicker">ksqlDB · 5 of 6 · Planned SQL shape</p>
+    <h1>The SQL should expose the same evaluation formula</h1>
+    <pre class="sql-block" aria-label="Planned ksqlDB join, evaluation, and aggregation"><code><span class="comment">-- Sink topic: msds682.demo09.ksqldb-pricing-evaluations-avro.v1</span>
+<span class="kw">CREATE STREAM</span> evaluations_09a <span class="kw">AS</span>
+<span class="kw">SELECT</span> q.run_id, q.trip_id, q.quote_id, q.model_version,
+       100.0 * (q.fare_cents - o.actual_cost_cents)
+             / o.actual_cost_cents <span class="kw">AS</span> realized_markup_pct,
+       <span class="fn">ABS</span>(100.0 * (q.fare_cents - o.actual_cost_cents)
+             / o.actual_cost_cents - q.target_markup_pct)
+             <span class="kw">AS</span> absolute_markup_error_pp
+<span class="kw">FROM</span> quotes_run q
+<span class="kw">JOIN</span> outcomes_run o <span class="kw">WITHIN</span> 1 <span class="kw">HOUR</span>
+  <span class="kw">ON</span> q.trip_id = o.trip_id
+<span class="kw">EMIT CHANGES</span>;
+
+<span class="kw">SELECT</span> model_version, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> n,
+       <span class="fn">AVG</span>(absolute_markup_error_pp) <span class="kw">AS</span> mae_pp
+<span class="kw">FROM</span> evaluations_09a
+<span class="kw">GROUP BY</span> model_version <span class="kw">EMIT CHANGES</span>;</code></pre>
+    <div class="takeaway green"><strong>Acceptance is not redefined here:</strong> stop after both model counts reach <code>4</code>, then require the shared Python verifier to match the Lecture 7B baseline.</div>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="ksqldb-operate">
+  <div class="frame">
+    <p class="kicker">ksqlDB · 6 of 6 · Operating boundary</p>
+    <h1>A persistent query needs an explicit classroom lifecycle</h1>
+    <div class="rail">
+      <div class="rail-node"><b>Start</b><span>Provision the hosted cluster; open the Cloud SQL editor</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node state"><b>Run</b><span>Python produces Demo 07 data; the Cloud UI runs SQL</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node compute"><b>Verify</b><span>8 rows; 4 + 4; same MAE</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node output"><b>Delete</b><span>Remove the classroom cluster after evidence</span></div>
+    </div>
+    <div class="duo">
+      <article class="card amber">
+        <span class="tag">Cost</span>
+        <h2>Minimum 4 CSUs, billed per hour</h2>
+        <p>A tiny input does not make the provisioned cluster free. Show cleanup as part of correctness.</p>
+      </article>
+      <article class="card purple">
+        <span class="tag">Course fit</span>
+        <h2>Concise SQL, heavier lifecycle</h2>
+        <p>The expression is small; provisioning, credentials, persistent queries, and cleanup are the operational lesson.</p>
+      </article>
+    </div>
+    <div class="takeaway red"><strong>Do not leave it running:</strong> the demo ends only after evidence is saved and the temporary ksqlDB resource is removed.</div>
+    <p class="source-line">Official source: <a href="https://docs.confluent.io/cloud/current/ksqldb/overview.html" target="_blank" rel="noreferrer">Confluent Cloud ksqlDB pricing and cluster limits</a>. Recheck console pricing before class.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide divider" id="flink-what-it-is">
+  <div class="frame">
+    <p class="kicker">Flink SQL · 1 of 6 · Four core concepts</p>
+    <h1>A query turns one changing table into another</h1>
+    <p class="sub">Flink SQL is the relational interface to Apache Flink’s distributed stateful engine.</p>
+    <div class="concept-lane" aria-label="Flink dynamic-table workflow">
+      <div class="concept-step flink"><span>01 · Input</span><strong>Kafka events</strong><small>Append-only inputs arrive as inserts</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step flink"><span>02 · View</span><strong>Dynamic table</strong><small>The logical table changes over time</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step flink"><span>03 · Query</span><strong>Continuous <code>GROUP BY</code></strong><small>The runtime maintains state</small></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-step flink"><span>04 · Result</span><strong>Updating dynamic table</strong><small>The result changes as facts arrive</small></div>
+    </div>
+    <div class="changelog-strip" aria-label="Flink internal changelog row kinds">
+      <span><b>+I</b> insert</span><span><b>-U</b> retract old</span><span><b>+U</b> update new</span><span><b>-D</b> delete</span>
+      <strong>Possible row kinds, not fields added to every Kafka event</strong>
+    </div>
+    <div class="takeaway"><strong>Two orthogonal owners remain:</strong> watermarks advance event time; checkpoints recover managed state. SQL does not remove either responsibility.</div>
+    <p class="source-line">Official sources: <a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/concepts/dynamic_tables/" target="_blank" rel="noreferrer">dynamic tables and changelogs</a> · <a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/time/" target="_blank" rel="noreferrer">event time and watermarks</a> · <a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/ops/state/checkpoints_vs_savepoints/" target="_blank" rel="noreferrer">checkpoints versus savepoints</a>.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="flink-cloud-map">
+  <div class="frame">
+    <p class="kicker">Flink SQL · 2 of 6 · Confluent Cloud mapping</p>
+    <h1>In Confluent Cloud, Kafka topics already appear as Flink tables</h1>
+    <div class="rail">
+      <div class="rail-node"><b>Environment</b><span>Flink catalog</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node"><b>Kafka cluster</b><span>Flink database</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node state"><b>Kafka topic</b><span>Dynamic table</span></div>
+      <div class="rail-arrow">+</div>
+      <div class="rail-node compute"><b>Schema Registry</b><span>Key/value field types</span></div>
+    </div>
+    <ul class="constraint-list">
+      <li><strong>Value schema is reusable</strong><span>Demo 07 already registers Avro value schemas for quotes and outcomes.</span></li>
+      <li><strong>Current key is raw bytes</strong><span>The existing producer does not register a Schema Registry key schema, so the planned join uses <code>trip_id</code> from the Avro value.</span></li>
+      <li><strong>Inspect before querying</strong><span>Confirm inferred table names, column names, data types, changelog mode, and <code>$rowtime</code> in the live workspace.</span></li>
+    </ul>
+    <div class="takeaway green"><strong>No duplicate source DDL by default:</strong> first inspect the inferred tables. Add explicit DDL only if the verified schema requires it.</div>
+    <p class="source-line">Official sources: <a href="https://docs.confluent.io/cloud/current/flink/concepts/dynamic-tables.html" target="_blank" rel="noreferrer">tables and topics</a> · <a href="https://docs.confluent.io/cloud/current/flink/concepts/comparison-with-apache-flink.html" target="_blank" rel="noreferrer">managed table inference</a>.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="flink-time-state">
+  <div class="frame diagram-frame">
+    <!-- Visual 06 fixes the common category error: an interval join is not a window type. -->
+    <figure class="diagram-stage">
+      <img src="diagrams/06-window-vs-interval-join.svg" alt="Window aggregation groups rows into time buckets. An interval join matches keyed rows from two streams within time bounds. ksqlDB has tumbling, hopping, and session windows; Flink also has cumulate windows." />
+    </figure>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="flink-sql-shape">
+  <div class="frame">
+    <p class="kicker">Flink SQL · 4 of 6 · Planned Demo 09B</p>
+    <h1>Filter one run, then use an interval join</h1>
+    <pre class="sql-block" aria-label="Planned Flink SQL interval join"><code><span class="kw">WITH</span> quotes_run <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="str">`msds682.demo07.ml-fare-quotes-avro.v1`</span>
+  <span class="kw">WHERE</span> run_id = <span class="str">'model-compare'</span>
+), outcomes_run <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="str">`msds682.demo07.ml-trip-outcomes-avro.v1`</span>
+  <span class="kw">WHERE</span> run_id = <span class="str">'model-compare'</span>
+)
+<span class="kw">SELECT</span> q.run_id, q.trip_id, q.quote_id, q.model_version,
+       100.0 * (q.fare_cents - o.actual_cost_cents)
+             / o.actual_cost_cents <span class="kw">AS</span> realized_markup_pct
+<span class="kw">FROM</span> quotes_run q
+<span class="kw">JOIN</span> outcomes_run o
+  <span class="kw">ON</span> q.trip_id = o.trip_id
+ <span class="kw">AND</span> q.$rowtime <span class="kw">BETWEEN</span> o.$rowtime - <span class="kw">INTERVAL</span> <span class="str">'1'</span> <span class="kw">HOUR</span>
+                    <span class="kw">AND</span> o.$rowtime + <span class="kw">INTERVAL</span> <span class="str">'1'</span> <span class="kw">HOUR</span>;</code></pre>
+    <div class="takeaway red"><strong>Planned, not copy-paste ready:</strong> confirm the exact inferred identifiers, field casing, and watermarks in the Cloud UI, then write the result to <code>msds682.demo09.flinksql-pricing-evaluations-avro.v1</code>.</div>
+    <div class="truth-key"><span class="planned">planned Demo 09B</span><span class="verified">same run + trip contract</span><span class="platform">documented interval-join pattern</span></div>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="flink-evaluate-aggregate">
+  <div class="frame">
+    <p class="kicker">Flink SQL · 5 of 6 · Result semantics</p>
+    <h1>The evaluation stream is append-only; the model summary keeps updating</h1>
+    <div class="duo">
+      <article class="card red">
+        <span class="tag">Eight immutable facts</span>
+        <h2>Evaluation rows</h2>
+        <p>One quote plus one outcome produces one realized markup and one absolute gap.</p>
+      </article>
+      <article class="card purple">
+        <span class="tag">Two changing rows</span>
+        <h2>Grouped model summary</h2>
+        <p><code>GROUP BY model_version</code> updates count and MAE as evaluations arrive.</p>
+      </article>
+    </div>
+    <pre class="sql-block" aria-label="Planned Flink SQL model summary"><code><span class="kw">SELECT</span> model_version,
+       <span class="fn">COUNT</span>(*) <span class="kw">AS</span> evaluation_count,
+       <span class="fn">AVG</span>(<span class="fn">ABS</span>(realized_markup_pct - target_markup_pct)) <span class="kw">AS</span> mae_pp
+<span class="kw">FROM</span> evaluations_09b
+<span class="kw">GROUP BY</span> model_version;</code></pre>
+    <div class="takeaway amber"><strong>Acceptance is not redefined here:</strong> stop after both counts reach <code>4</code>, then require the shared Python verifier to match the Lecture 7B baseline.</div>
+    <p class="source-line">Official source: <a href="https://developer.confluent.io/courses/flink-sql/flink-sql-runtime/" target="_blank" rel="noreferrer">Flink SQL runtime: stateful aggregation and updating streams</a>.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="flink-operate">
+  <div class="frame">
+    <p class="kicker">Flink SQL · 6 of 6 · Operating boundary</p>
+    <h1>Stop continuous statements; an idle compute pool scales to zero</h1>
+    <div class="rail">
+      <div class="rail-node"><b>Inspect</b><span>Use the Cloud UI for catalog, inferred tables, and schemas</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node state"><b>Run</b><span>Python produces data; Cloud UI submits SQL statements</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node compute"><b>Verify</b><span>Same eight rows and same ranking</span></div>
+      <div class="rail-arrow">→</div>
+      <div class="rail-node output"><b>Stop</b><span>Terminate the classroom statements</span></div>
+    </div>
+    <div class="duo">
+      <article class="card green">
+        <span class="tag">Runtime</span>
+        <h2>Compute pools are elastic</h2>
+        <p>Statements share a regional pool. With no running statements, the pool scales down to zero.</p>
+      </article>
+      <article class="card amber">
+        <span class="tag">Billing</span>
+        <h2>Usage is measured in CFU-minutes</h2>
+        <p>A continuous statement keeps using runtime. Stop it when the classroom evidence is complete.</p>
+      </article>
+    </div>
+    <div class="takeaway red"><strong>Cleanup remains part of the demo:</strong> “query submitted” is not done. Done means evidence verified and continuous statements stopped.</div>
+    <p class="source-line">Official sources: <a href="https://docs.confluent.io/cloud/current/flink/concepts/compute-pools.html" target="_blank" rel="noreferrer">compute pools</a> · <a href="https://docs.confluent.io/cloud/current/flink/concepts/flink-billing.html" target="_blank" rel="noreferrer">Flink billing</a>.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="three-owner-comparison">
+  <div class="frame">
+    <p class="kicker">Synthesis · Make a requirement-driven choice</p>
+    <h1>Choose from constraints, not feature count</h1>
+    <table class="compact">
+      <thead>
+        <tr><th>Requirement</th><th>ksqlDB is the simpler fit when…</th><th>Flink SQL is the stronger fit when…</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Data boundary</strong></td><td>The sources and sinks are Kafka topics</td><td>The job must cross Kafka, databases, or lake systems</td></tr>
+        <tr><td><strong>Time contract</strong></td><td>Windows and <code>WITHIN</code> express the requirement</td><td>Watermarks and richer event-time control are central</td></tr>
+        <tr><td><strong>Operating model</strong></td><td>A dedicated Kafka-native SQL application fits the team</td><td>A general engine and shared compute pool fit the platform</td></tr>
+        <tr><td><strong>Proof</strong></td><td>It passes the same independent verifier</td><td>It passes the same independent verifier</td></tr>
+      </tbody>
+    </table>
+    <div class="takeaway green">
+      <strong>No universal winner:</strong> write the data, time, recovery, team, and lifecycle contract first. Syntax length is not the decision rule.
+    </div>
+    <div class="truth-key"><span class="platform">both remain documented products</span><span class="verified">same Demo 07 contract</span><span class="planned">09A + 09B still planned</span></div>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<section class="slide" id="lecture-9-10-close">
+  <div class="frame narrow">
+    <p class="kicker">Lecture 9 close · Lecture 10 continues the same case</p>
+    <h1>Keep one problem until all three owners agree</h1>
+    <div class="lesson-bridge" aria-label="Lecture 9 to Lecture 10 workflow">
+      <article><span>Lecture 9</span><strong>Explain → Translate → Predict</strong><small>Move the known Demo 07 contract to two SQL owners.</small></article>
+      <div class="owner-arrow">→</div>
+      <article><span>Lecture 10</span><strong>Run → Verify → Choose</strong><small>Accept only outputs that pass the shared verifier.</small></article>
+    </div>
+    <div class="takeaway">
+      <strong>Exit ticket:</strong> “For this delayed join, I would choose ___ because the required state, time, recovery, and operating contract are ___.”
+    </div>
+    <p class="source-line">Built August 3, 2026 from the verified Lecture 6–8 course pages, Demo 07 contracts, the supplied Flink SQL transcript, and current Confluent documentation. Recheck live cloud state before teaching.</p>
+  </div>
+  <div class="crumb"></div><div class="pager"></div>
+</section>
+
+<!-- Behavior SSOT: this shared script owns paging, keyboard navigation, hash updates,
+     and the single IntersectionObserver. Lecture 9 interaction polish stays in CSS. -->
+<script src="lecture8-three-part.js"></script>
+</body>
+</html>
