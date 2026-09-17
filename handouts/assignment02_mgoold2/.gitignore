@@ -9,3 +9,6 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .DS_Store
+
+# Downloaded assignment prompt, not a submission deliverable.
+MSDS682_Assignment 2_Readme.pdf
