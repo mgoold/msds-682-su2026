@@ -72,7 +72,33 @@ def create_app(publisher_factory: PublisherFactory) -> FastAPI:
         # 2. await the lifespan publisher;
         # 3. convert PublishError to the provided HTTP 503 boundary; and
         # 4. return TripAcceptedResponse from the receipt.
-        raise NotImplementedError("Implement the FastAPI publish boundary")
+        
+        event = request_to_event(payload)
+        publisher: AsyncTripPublisher = request.app.state.publisher
+        try:
+            # ================================================================
+            # IMPORTANT NOTE
+            # Await publisher acceptance before returning 202. In Cloud mode,
+            # acceptance means the broker delivery future has completed.
+            # ================================================================
+            receipt = await publisher.publish(event)
+        except PublishError as exc:
+            # Keep internal broker and credential details out of the HTTP body.
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The event publisher is temporarily unavailable.",
+            ) from exc
+        
+        return TripAcceptedResponse(
+            status="accepted",
+            request_id = payload.request_id,
+            trip_id=event.trip_id,
+            topic=receipt.topic,
+            delivery=receipt.delivery,
+
+        )
+
+        # raise NotImplementedError("Implement the FastAPI publish boundary")
         # ===================== CODE ENDS HERE =====================
 
     return app

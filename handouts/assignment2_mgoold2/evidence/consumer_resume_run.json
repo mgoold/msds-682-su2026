@@ -1,0 +1,174 @@
+{
+  "assignment": "assignment02",
+  "auto_offset_reset": "earliest",
+  "commit_requests": 4,
+  "commit_results": [
+    [
+      {
+        "offset": 6,
+        "partition": 2,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      }
+    ],
+    [
+      {
+        "offset": 1,
+        "partition": 1,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      }
+    ],
+    [
+      {
+        "offset": 2,
+        "partition": 1,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      }
+    ],
+    [
+      {
+        "offset": 3,
+        "partition": 1,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      }
+    ]
+  ],
+  "commit_rule": "deserialize Avro -> validate TripEventV1 -> write result -> synchronous consumer offset commit",
+  "enable_auto_commit": false,
+  "enable_auto_offset_store": false,
+  "force_beginning": false,
+  "group_id": "msds682.assignment02.mgoold2.base.v1.assignment2",
+  "group_protocol": "classic",
+  "kafka_connection": {
+    "bootstrap_host": "pkc-619z3.us-east1.gcp.confluent.cloud",
+    "client_id": "msds682-assignment2-resume",
+    "has_password": true,
+    "has_username": true,
+    "sasl_mechanisms": "PLAIN",
+    "security_protocol": "SASL_SSL"
+  },
+  "partition_assignments": [
+    [
+      {
+        "offset": -1001,
+        "partition": 0,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      },
+      {
+        "offset": -1001,
+        "partition": 1,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      },
+      {
+        "offset": -1001,
+        "partition": 2,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      }
+    ]
+  ],
+  "partition_revocations": [
+    [
+      {
+        "offset": -1001,
+        "partition": 0,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      },
+      {
+        "offset": -1001,
+        "partition": 1,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      },
+      {
+        "offset": -1001,
+        "partition": 2,
+        "topic": "msds682.assignment02.trip-events-api-avro.v1"
+      }
+    ]
+  ],
+  "phase": "resume",
+  "processed": 4,
+  "records": [
+    {
+      "event": {
+        "event_time": "2026-07-23T17:08:28Z",
+        "event_type": "trip_requested",
+        "rider_id": "rider_508",
+        "run_id": "assignment2",
+        "sequence_number": 8,
+        "trip_id": "trip_6348",
+        "zone": "west"
+      },
+      "key": "trip_6348",
+      "offset": 5,
+      "partition": 2,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "event": {
+        "event_time": "2026-07-23T17:07:33Z",
+        "event_type": "trip_requested",
+        "rider_id": "rider_503",
+        "run_id": "assignment2",
+        "sequence_number": 3,
+        "trip_id": "trip_6343",
+        "zone": "north"
+      },
+      "key": "trip_6343",
+      "offset": 0,
+      "partition": 1,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "event": {
+        "event_time": "2026-07-23T17:08:17Z",
+        "event_type": "trip_requested",
+        "rider_id": "rider_507",
+        "run_id": "assignment2",
+        "sequence_number": 7,
+        "trip_id": "trip_6347",
+        "zone": "south"
+      },
+      "key": "trip_6347",
+      "offset": 1,
+      "partition": 1,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "event": {
+        "event_time": "2026-07-23T17:09:01Z",
+        "event_type": "trip_requested",
+        "rider_id": "rider_511",
+        "run_id": "assignment2",
+        "sequence_number": 11,
+        "trip_id": "trip_6351",
+        "zone": "west"
+      },
+      "key": "trip_6351",
+      "offset": 2,
+      "partition": 1,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    }
+  ],
+  "requested_max_messages": 4,
+  "result_file": "results/processed_events.jsonl",
+  "run_id": "assignment2",
+  "schema_registry": {
+    "has_registry_credentials": true,
+    "registry_host": "psrc-1o8pr0d.us-east1.gcp.confluent.cloud",
+    "registry_scheme": "https"
+  },
+  "sequence_numbers": [
+    8,
+    3,
+    7,
+    11
+  ],
+  "skipped_records_from_other_runs": 0,
+  "stop_reason": "max_messages",
+  "topic": "msds682.assignment02.trip-events-api-avro.v1",
+  "trip_ids": [
+    "trip_6348",
+    "trip_6343",
+    "trip_6347",
+    "trip_6351"
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "assignment": "assignment02",
+  "broker_acknowledged": 12,
+  "delivery_receipts": [
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6340",
+      "offset": 0,
+      "partition": 2,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6341",
+      "offset": 1,
+      "partition": 2,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6342",
+      "offset": 2,
+      "partition": 2,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6343",
+      "offset": 0,
+      "partition": 1,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6344",
+      "offset": 3,
+      "partition": 2,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6345",
+      "offset": 4,
+      "partition": 2,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6346",
+      "offset": 0,
+      "partition": 0,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6347",
+      "offset": 1,
+      "partition": 1,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6348",
+      "offset": 5,
+      "partition": 2,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6349",
+      "offset": 1,
+      "partition": 0,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6350",
+      "offset": 2,
+      "partition": 0,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    },
+    {
+      "delivery": "broker_acknowledged",
+      "key": "trip_6351",
+      "offset": 2,
+      "partition": 1,
+      "topic": "msds682.assignment02.trip-events-api-avro.v1"
+    }
+  ],
+  "http_202": 12,
+  "kafka_connection": {
+    "bootstrap_host": "pkc-619z3.us-east1.gcp.confluent.cloud",
+    "client_id": "msds682-assignment2-api",
+    "has_password": true,
+    "has_username": true,
+    "sasl_mechanisms": "PLAIN",
+    "security_protocol": "SASL_SSL"
+  },
+  "phase": "api_seed",
+  "prior_assignment_data_required": false,
+  "requested": 12,
+  "run_id": "assignment2",
+  "schema_registry": {
+    "has_registry_credentials": true,
+    "registry_host": "psrc-1o8pr0d.us-east1.gcp.confluent.cloud",
+    "registry_scheme": "https"
+  },
+  "schema_subject": "msds682.assignment02.trip-events-api-avro.v1-value",
+  "sequence_numbers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "topic": "msds682.assignment02.trip-events-api-avro.v1",
+  "topic_status": "created",
+  "trip_ids": [
+    "trip_6340",
+    "trip_6341",
+    "trip_6342",
+    "trip_6343",
+    "trip_6344",
+    "trip_6345",
+    "trip_6346",
+    "trip_6347",
+    "trip_6348",
+    "trip_6349",
+    "trip_6350",
+    "trip_6351"
+  ]
+}

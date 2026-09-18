@@ -44,7 +44,14 @@ class AssignmentTracker:
         # TODO: in force_beginning mode, set every assigned partition offset to
         # OFFSET_BEGINNING and call consumer.assign(partitions). Always record
         # the resulting partition rows in self.assigned.
-        raise NotImplementedError("Implement explicit replay assignment")
+
+        if self.force_beginning:
+            for partition in partitions:
+                partition.offset = OFFSET_BEGINNING
+            consumer.assign(partitions)
+        rows = partition_rows(partitions)
+        self.assigned.append(rows)
+
         # ===================== CODE ENDS HERE =====================
 
     def on_revoke(self, _consumer: Any, partitions: Any) -> None:
@@ -59,11 +66,39 @@ def message_to_record(message: Any, deserializer: Any) -> dict[str, Any]:
     # ==================== CODE START HERE ====================
     # TODO:
     # 1. require a nonempty message value;
+    raw_value = message.value()
+    if not raw_value:
+        raise ValueError("Kafka message value is missing")
+
     # 2. deserialize it with a VALUE SerializationContext;
+    context = SerializationContext(message.topic(), MessageField.VALUE)
+    event = deserializer(raw_value, context)
+
     # 3. require/validate TripEventV1;
+    if not isinstance(event, TripEventV1):
+        raise TypeError("Expected AvroDeserializer to return TripEventV1")
+
+    message_key = message.key()
+
+    # Check if message key exists
+    if not message_key:
+        raise ValueError("Kafka message key is missing")
+
     # 4. decode the UTF-8 key and ensure it equals event.trip_id; and
+    message_key_str = message_key.decode("utf-8")
+    if message_key_str != event.trip_id:
+        raise ValueError(f"{message_key_str} is not equal to event.trip_id")
+
     # 5. return topic/partition/offset/key plus JSON-safe event data.
-    raise NotImplementedError("Implement schema-aware message validation")
+
+    return {
+        "topic": message.topic(),
+        "partition": message.partition(),
+        "offset": message.offset(),
+        "key": message_key_str,
+        "event": event.model_dump(mode="json"),
+    }
+
     # ===================== CODE ENDS HERE =====================
 
 
@@ -136,5 +171,64 @@ def consume_bounded(
     # result or any partition-level commit error, confirm offset+1, collect
     # successful commit evidence, and stop on max_messages, idle_timeout, or
     # run_timeout.
-    raise NotImplementedError("Implement the bounded process-before-commit loop")
+
+    started = time.monotonic()
+    last_message_at = started
+    records: list[dict[str, Any]] = []
+    commit_results: list[list[dict[str, int | str]]] = []
+    skipped_other_runs = 0
+    stop_reason = "max_messages"
+
+    while len(records) < max_messages:
+        now = time.monotonic()
+        if now - started >= run_timeout:
+            stop_reason = "run_timeout"
+            break
+        if now - last_message_at >= idle_timeout:
+            stop_reason = "idle_timeout"
+            break
+
+        message = consumer.poll(poll_timeout)
+        if message is None:
+            continue
+        if message.error():
+            if message.error().code() == KafkaError._PARTITION_EOF:
+                continue
+            raise KafkaException(message.error())
+
+        # Validate/process first. Manual commits happen only after this succeeds.
+        record = message_to_record(message, deserializer)
+        if run_id != record["event"]["run_id"]:
+            skipped_other_runs += 1
+            last_message_at = time.monotonic()
+            continue
+        record_writer(record)
+        records.append(record)
+        last_message_at = time.monotonic()        
+
+        print(
+            f"Consumed {record['topic']}[{record['partition']}] "
+            f"offset={record['offset']} key={record['key']}"
+        )
+
+        committed = consumer.commit(message=message, asynchronous=False)
+        if not committed:
+            raise ValueError("Kafka returned no commit result.")
+        for committed_partition in committed:
+            if committed_partition.error is not None:
+                raise KafkaException(committed_partition.error)
+            if committed_partition.offset != message.offset() + 1:
+                raise ValueError(
+                    f"committed_partition.offset {committed_partition.offset} "
+                    f"!= message.offset + 1 {message.offset() + 1}"
+                )
+        commit_results.append(partition_rows(committed))
+
+    return ConsumeResult(
+        records=records,
+        stop_reason=stop_reason,
+        commit_results=commit_results,
+        skipped_other_runs=skipped_other_runs,
+    )
+
     # ===================== CODE ENDS HERE =====================

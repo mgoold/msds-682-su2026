@@ -74,7 +74,6 @@ class TripAcceptedResponse(BaseModel):
     """HTTP 202 response after broker acknowledgement."""
 
     model_config = ConfigDict(extra="forbid")
-
     status: Literal["accepted"]
     request_id: str
     trip_id: str
@@ -91,7 +90,18 @@ def request_to_event(request: CreateTripRequest) -> TripEventV1:
 
     # ==================== CODE START HERE ====================
     # TODO: map every required request field into one strict TripEventV1.
-    raise NotImplementedError("Implement request_to_event")
+    
+    trip_id = request.request_id.replace("request_", "trip_", 1)
+    return TripEventV1(
+        trip_id=trip_id,
+        event_type="trip_requested",
+        rider_id=request.rider_id,
+        event_time=request.requested_at,
+        zone=request.zone,
+        run_id = request.run_id,
+        sequence_number = request.sequence_number
+    )
+    
     # ===================== CODE ENDS HERE =====================
 
 
@@ -108,7 +118,16 @@ def event_to_avro_dict(event: TripEventV1, _ctx: Any = None) -> dict[str, Any]:
 
     # ==================== CODE START HERE ====================
     # TODO: return every field required by schemas/trip_event_v1.avsc.
-    raise NotImplementedError("Implement event_to_avro_dict")
+    return {
+        "trip_id": event.trip_id,
+        "event_type": event.event_type,
+        "rider_id": event.rider_id,
+        "event_time": event.event_time,
+        "zone": event.zone,
+        "run_id": event.run_id,
+        "sequence_number": event.sequence_number
+    }
+
     # ===================== CODE ENDS HERE =====================
 
 
@@ -117,7 +136,8 @@ def avro_dict_to_event(data: dict[str, Any], _ctx: Any = None) -> TripEventV1:
 
     # ==================== CODE START HERE ====================
     # TODO: validate the decoded dictionary with TripEventV1.
-    raise NotImplementedError("Implement avro_dict_to_event")
+    return TripEventV1.model_validate(data)
+
     # ===================== CODE ENDS HERE =====================
 
 

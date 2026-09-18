@@ -33,7 +33,6 @@ PHASE_MESSAGE_COUNTS: dict[Phase, int] = {
     "replay": 12,
 }
 
-
 @dataclass(frozen=True)
 class PhaseSettings:
     """Resolved group, output, and replay behavior for one CLI phase."""
@@ -60,7 +59,37 @@ def settings_for_phase(
     # - resume: same base run group, processed_events.jsonl, append mode;
     # - replay: separate replay group, replayed_events.jsonl, write mode, and
     #   force_beginning=True.
-    raise NotImplementedError("Implement phase settings")
+
+    if phase == 'first':
+
+        return PhaseSettings(
+            group_id=group_id_for_run(base_group,run_id,replay=False),
+            force_beginning=False,
+            output_path=results_dir / 'processed_events.jsonl',
+            output_mode='w',
+            report_filename='consumer_first_run.json',
+        )
+
+    elif phase == 'resume':
+
+        return PhaseSettings(
+            group_id=group_id_for_run(base_group,run_id,replay=False),
+            force_beginning=False,
+            output_path=results_dir / 'processed_events.jsonl',
+            output_mode='a',
+            report_filename='consumer_resume_run.json',
+        )
+
+    else:
+
+        return PhaseSettings(
+            group_id=group_id_for_run(base_group,run_id,replay=True),
+            force_beginning=True,
+            output_path=results_dir / 'replayed_events.jsonl',
+            output_mode='w',
+            report_filename='consumer_replay_run.json',
+        )
+    
     # ===================== CODE ENDS HERE =====================
 
 
