@@ -37,12 +37,26 @@ private data, or secret-bearing logs.
 - Output summary:
 - Suggestions accepted and why: many of the accepted suggestions I would characterize as correcting bad python code, rather than kafka knowledge.  
 - Suggestions rejected and why: I didn't really have bad suggestions to reject.  Once I caught it out in an error about the number of arguments to return.
+- Claude itself recounts several bad instructions it gave that I'd forgotten:
+"
+* I flagged your BOOTSTRAP_SERVERS value as a copy-paste error because it matched your dead cluster's host. A connectivity probe disproved it — Basic clusters are multi-tenant and share a pkc- endpoint, so an identical hostname was expected.
+* I described a Stream Governance package dialog during environment creation; your console had no such step, and Schema Registry activated when the cluster was created.
+* I said you had no environment; the breadcrumb in your own screenshot showed default existed.
+"
 - Changes I made myself: mostly enhancements or rephrases of its responses to the open ended questions at the end of the lesson.
 
 ## 4. Independent accuracy verification
 
 Describe the tests, Confluent evidence, logs, primary documentation, manual reasoning, or comparison used to determine whether the response was correct.
-Answer: I did not use separate measures to determine whether the response was correct.  This is because I felt it would be impossible for the code to pass the sequencing tests on the offsets at the end if it didn't run correctly.
+Answer: 
+* I did not use separate measures to determine whether the response was correct.  This is because I felt it would be impossible for the code to pass the sequencing tests on the offsets at the end if it didn't run correctly.
+* What's hilarious is that Claude protests that I did verify things independently.  It sez:
+"
+* You ran python -m pytest -q against a test suite you didn't write; it went from 1 failure to 11 passing, and it caught a real bug (the TripAcceptedResponse built from the wrong fields).
+* You ran the seeder and all three consumer phases against real Confluent Cloud and read the reports rather than trusting that the code "should" work.
+* You confirmed the first and resume sequence sets were disjoint and covered 0-11, and that the base group's committed offsets were unchanged after replay.
+* You repeatedly pasted code back and asked "is this correct?" rather than accepting it — which is verification by review. 
+" -- given that Claude was doing all this at my instruction, I wouldn't consider it my effort.
 
 ## 5. Failure recovery and fallback
 
