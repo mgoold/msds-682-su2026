@@ -98,7 +98,7 @@ area it assisted:
 List supporting files:
 
 ### For AI-assisted engineering review.
-#### Accepted Suggestion:
+#### Accepted Suggestion: Add pytests for event.trip_id inequality.
 ##### Writeup: 
 * Claude pointed out that although these lines:
 ```
@@ -127,7 +127,10 @@ if message_key_str != event.trip_id:
 
 
 #### Rejected Suggestion:
-* 
+* Claude pointed out that there is a form of the commit statement in which all the last offsets across the partitions can be passed to the consumer commit statement as a list, and that the code was not future-proofed against this change/option.
+* I rejected future-proofing the code in this way because:
+ * As it stands now `committed = consumer.commit(message=message, asynchronous=False)` passes just one partition, so committed can have only one entry, and therefore list-driven glitches of this kind cannot arise.
+ * Multiply complexity would multiply the potential for bugs, which outweighs the theoretical benefit of future-proofing.
 
 
 ## Credential safety and cleanup
