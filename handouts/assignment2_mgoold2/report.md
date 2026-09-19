@@ -118,8 +118,6 @@ if message_key_str != event.trip_id:
 
 ##### Related files:
 
-- [`extra_credit/AI_REVIEW.md`](extra_credit/AI_REVIEW.md) — the review, with the
-  accepted and rejected suggestions and the reasoning behind each
 - [`tests/test_review_guards.py`](tests/test_review_guards.py) — four
   credential-free tests covering the key-verification and run-ID guards
 - [`extra_credit/mutation_check.py`](extra_credit/mutation_check.py) — harness
