@@ -1,0 +1,198 @@
+{
+  "artifact": "xc_two_member_consumer_group",
+  "assignment": "assignment02",
+  "base_and_replay_groups_untouched": true,
+  "combined_processed": 12,
+  "combined_sequence_numbers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "concurrent_shared_partitions": [],
+  "covers_intended_run": true,
+  "errors": [],
+  "graded_group_ids": {
+    "base": "msds682.assignment02.mgoold2.base.v1.assignment2",
+    "replay": "msds682.assignment02.mgoold2.base.v1.assignment2.replay"
+  },
+  "graded_group_offsets_after": {
+    "base": {
+      "0": 3,
+      "1": 3,
+      "2": 6
+    },
+    "replay": {
+      "0": 3,
+      "1": 3,
+      "2": 6
+    }
+  },
+  "graded_group_offsets_before": {
+    "base": {
+      "0": 3,
+      "1": 3,
+      "2": 6
+    },
+    "replay": {
+      "0": 3,
+      "1": 3,
+      "2": 6
+    }
+  },
+  "group_id": "msds682.assignment02.mgoold2.base.v1.assignment2.xc-two-members",
+  "group_protocol": "classic",
+  "kafka_connection": {
+    "bootstrap_host": "pkc-619z3.us-east1.gcp.confluent.cloud",
+    "client_id": "msds682-assignment2-xc-two-members",
+    "has_password": true,
+    "has_username": true,
+    "sasl_mechanisms": "PLAIN",
+    "security_protocol": "SASL_SSL"
+  },
+  "members": [
+    {
+      "events": [
+        {
+          "at": 1.5836,
+          "event": "assign",
+          "partitions": [
+            {
+              "offset": -2,
+              "partition": 0,
+              "topic": "msds682.assignment02.trip-events-api-avro.v1"
+            },
+            {
+              "offset": -2,
+              "partition": 1,
+              "topic": "msds682.assignment02.trip-events-api-avro.v1"
+            }
+          ]
+        },
+        {
+          "at": 3.011,
+          "event": "revoke",
+          "partitions": [
+            {
+              "offset": -1001,
+              "partition": 0,
+              "topic": "msds682.assignment02.trip-events-api-avro.v1"
+            },
+            {
+              "offset": -1001,
+              "partition": 1,
+              "topic": "msds682.assignment02.trip-events-api-avro.v1"
+            }
+          ]
+        }
+      ],
+      "member": "member-1",
+      "partitions_read": [
+        0,
+        1
+      ],
+      "processed": 6,
+      "sequence_numbers": [
+        6,
+        9,
+        10,
+        3,
+        7,
+        11
+      ],
+      "stop_reason": "run_covered",
+      "trip_ids": [
+        "trip_6346",
+        "trip_6349",
+        "trip_6350",
+        "trip_6343",
+        "trip_6347",
+        "trip_6351"
+      ]
+    },
+    {
+      "events": [
+        {
+          "at": 1.5871,
+          "event": "assign",
+          "partitions": [
+            {
+              "offset": -2,
+              "partition": 2,
+              "topic": "msds682.assignment02.trip-events-api-avro.v1"
+            }
+          ]
+        },
+        {
+          "at": 3.011,
+          "event": "revoke",
+          "partitions": [
+            {
+              "offset": -1001,
+              "partition": 2,
+              "topic": "msds682.assignment02.trip-events-api-avro.v1"
+            }
+          ]
+        }
+      ],
+      "member": "member-2",
+      "partitions_read": [
+        2
+      ],
+      "processed": 6,
+      "sequence_numbers": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        8
+      ],
+      "stop_reason": "run_covered",
+      "trip_ids": [
+        "trip_6340",
+        "trip_6341",
+        "trip_6342",
+        "trip_6344",
+        "trip_6345",
+        "trip_6348"
+      ]
+    }
+  ],
+  "no_partition_shared_concurrently": true,
+  "partition_ownership_windows": [
+    {
+      "from": 1.5836,
+      "member": "member-1",
+      "partition": 0,
+      "to": 3.011
+    },
+    {
+      "from": 1.5836,
+      "member": "member-1",
+      "partition": 1,
+      "to": 3.011
+    },
+    {
+      "from": 1.5871,
+      "member": "member-2",
+      "partition": 2,
+      "to": 3.011
+    }
+  ],
+  "run_id": "assignment2",
+  "schema_registry": {
+    "has_registry_credentials": true,
+    "registry_host": "psrc-1o8pr0d.us-east1.gcp.confluent.cloud",
+    "registry_scheme": "https"
+  },
+  "topic": "msds682.assignment02.trip-events-api-avro.v1"
+}
