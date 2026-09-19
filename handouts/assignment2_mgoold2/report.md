@@ -130,7 +130,22 @@ if message_key_str != event.trip_id:
 * Claude pointed out that there is a form of the commit statement in which all the last offsets across the partitions can be passed to the consumer commit statement as a list, and that the code was not future-proofed against this change/option.
 * I rejected future-proofing the code in this way because:
  * As it stands now `committed = consumer.commit(message=message, asynchronous=False)` passes just one partition, so committed can have only one entry, and therefore list-driven glitches of this kind cannot arise.
- * Multiply complexity would multiply the potential for bugs, which outweighs the theoretical benefit of future-proofing.
+ * Here is an example that this is true:
+    ```
+Evidence (one run, same consumer, same assignment):
+
+    ASSIGNED partitions: [0, 1, 2] (3 total)
+
+    commit(message=...)  while holding 3 partitions
+      -> returned 1 entry: [(1, 2)]
+
+    commit()  (no message=) while holding 3 partitions
+      -> returned 3 entries: [(0, -1001), (1, 3), (2, -1001)]
+    ```
+
+    * The consumer held three partitions in both calls. The message= form returned one entry; the no-argument form returned three. The return size   therefore follows which partitions were committed, not which are assigned. Since run_consumer.py only ever calls the message= form, `committed` can hold only one entry, and the multi-entry hazard can't happen in this code as it stands now.
+    * An interesting thing about `[(0, -1001), (1, 3), (2, -1001)]` : it turns out that -1001 is kafka's marker to mean "nothing to commit here", which I didn't know.  This gives evidence that in the potential list, the current code would only generate one item to commit at a time anyhow.
+ * Additionally, multiplying complexity would multiply the potential for bugs, which outweighs the theoretical benefit of future-proofing.
 
 
 ## Credential safety and cleanup
