@@ -12,10 +12,10 @@
 
 | Phase | Expected | Observed | Evidence file |
 |---|---:|---:|---|
-| API seed | 12 acknowledged |  | `evidence/api_seed_report.json` |
-| First consumer run | 8 processed and committed |  | `evidence/consumer_first_run.json` |
-| Same-group resume | 4 new records processed and committed |  | `evidence/consumer_resume_run.json` |
-| Separate-group replay | 12 replayed |  | `evidence/consumer_replay_run.json` |
+| API seed | 12 acknowledged | 12 | `evidence/api_seed_report.json` |
+| First consumer run | 8 processed and committed | 8 | `evidence/consumer_first_run.json` |
+| Same-group resume | 4 new records processed and committed | 4 | `evidence/consumer_resume_run.json` |
+| Separate-group replay | 12 replayed | 12 | `evidence/consumer_replay_run.json` |
 
 Confirm that the first and resume sequence-number sets are disjoint and their
 union is 0 through 11:
@@ -72,7 +72,7 @@ Answer:
 * a producer acknowledgement is nothing but a signal that from the producer noting that the broker acknowledged that it has accepted and persisted a record.
 * a consumer offset commit is the integer value of the offset per (group, topic, partition) triplet noting the next message that should be processed.
 
-5. Why must deserialization and Pydantic validation happen before commit?
+4. Why must deserialization and Pydantic validation happen before commit?
 Answer: this is kind of the bookend to the initial question.  You mustn't commit until  deserialization and Pydantic validation succeed because once you commit, you'll never be able to have the broker redo the same commit.  The broker will commit any time you tell it to, even if deserialization and Pydantic validation failed, so you have to be sure and get it right before you ask for the commit.
 
 ## AI assistance status
@@ -81,12 +81,12 @@ Did you use AI assistance for any submitted code, debugging, analysis, writing,
 or testing?
 
 - [ ] No
-- [YES] Yes; `AI_USAGE.md` is included.
+- [x] Yes; `AI_USAGE.md` is included.
 
 If Yes, confirm that `AI_USAGE.md` lists every tool/model and every submitted
 area it assisted:
 
-- [YES] Confirmed
+- [x] Confirmed
 
 ## Extra credit claimed
 
