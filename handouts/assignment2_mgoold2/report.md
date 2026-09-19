@@ -91,11 +91,37 @@ area it assisted:
 ## Extra credit claimed
 
 - [ ] None
-- [ ] Two-member consumer group
+- [x] Two-member consumer group
 - [ ] Native asyncio consumer extension
 - [x] AI-assisted engineering review
 
 List supporting files:
+
+### For Two-member consumer group:
+#### Evidence:
+* Based on the description given in the rubric, Claude implemented this and output the following evidence:
+```
+member-1: partitions [0, 1]  processed 6  seqs [3, 6, 7, 9, 10, 11]  stop=run_covered
+member-2: partitions [2]     processed 6  seqs [0, 1, 2, 4, 5, 8]    stop=run_covered
+
+combined sequence numbers        : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+covers_intended_run              : True
+no_partition_shared_concurrently : True
+
+partition 0: member-1 from 1.5836s to 3.011s
+partition 1: member-1 from 1.5836s to 3.011s
+partition 2: member-2 from 1.5871s to 3.011s
+```
+The interpretation this is as follows:
+* two different threads assigned to members 1 & 2, respectively, operated over the same time interval from 1.5836s to 3.011s.  They each three stop conditions — idle timeout, run timeout, and "the run is covered."
+* they used a new group `assignment2.xc-two-members`, which was distinct from the base an replay groups.
+* no-overlap: the script timestamps every assign and revoke on a shared clock, reconstructs ownership windows, and checks every pair for time overlap. The overlap list came back empty.
+* you can see that the sequence numbers 0 through 11 occur exactly once, with no duplicates.
+
+### Related Files:
+* extra_credit/two_member_group.py
+( evidence/xc_two_member_group.json
+
 
 ### For AI-assisted engineering review.
 #### Accepted Suggestion: Add pytests for event.trip_id inequality.
