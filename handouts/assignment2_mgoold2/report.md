@@ -149,6 +149,9 @@ Evidence (one run, same consumer, same assignment):
 * An interesting thing about `[(0, -1001), (1, 3), (2, -1001)]` : it turns out that -1001 is kafka's marker to mean "nothing to commit here", and it is used to pad per-partition entries the list where there is nothing to commit.  I didn't know that.  If my code ever used the the list, it would receive two meaningless -1001 values and your check would raise on both, reporting a failure that didn't happen. --So the potential risk is real, but unlikely enough to not warrant action now.
  * Additionally, multiplying complexity would multiply the potential for bugs, which outweighs the theoretical benefit of future-proofing.
 
+##### Stop condition and non-AI fallback: 
+ * this decision rests on a measurement of one client version (confluent-kafka 2.15.0), not on a guarantee. The stop condition is the existing offset check itself — if it ever raises about a partition the run did not commit, that is the signal the return shape has changed and this rejection no longer holds. The failure is loud rather than silent, which is the safe direction: a wrong commit is never quietly accepted. The fallback is not to ask an AI what changed, but to re-run the probe above against the upgraded client and read the library's release notes.
+
 
 ## Credential safety and cleanup
 
