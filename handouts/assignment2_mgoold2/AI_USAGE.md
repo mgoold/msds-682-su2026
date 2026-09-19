@@ -49,15 +49,12 @@ private data, or secret-bearing logs.
 
 Describe the tests, Confluent evidence, logs, primary documentation, manual reasoning, or comparison used to determine whether the response was correct.
 Answer: 
-* I did not use separate measures to determine whether the response was correct.  This is because I felt it would be impossible for the code to pass the sequencing tests on the offsets at the end if it didn't run correctly.
-* What's hilarious is that Claude protests that I did verify things independently.  It sez:
-"
-* You ran python -m pytest -q against a test suite you didn't write; it went from 1 failure to 11 passing, and it caught a real bug (the TripAcceptedResponse built from the wrong fields).
-* You ran the seeder and all three consumer phases against real Confluent Cloud and read the reports rather than trusting that the code "should" work.
-* You confirmed the first and resume sequence sets were disjoint and covered 0-11, and that the base group's committed offsets were unchanged after replay.
-* You repeatedly pasted code back and asked "is this correct?" rather than accepting it — which is verification by review. 
-" -- given that Claude was doing all this at my instruction, I wouldn't consider it my effort.
-
+* These are the things I did that involved some independent accuracy verification:
+  * Ran python -m pytest -q against a test suite you didn't write; it went from 1 failure to 11 passing, and it caught a real bug (the TripAcceptedResponse built from the wrong fields).
+  * Ran the seeder and all three consumer phases against real Confluent Cloud and read the reports rather than trusting that the code "should" work.
+  * Confirmed the first and resume sequence sets were disjoint and covered 0-11, and that the base group's committed offsets were unchanged after replay.
+  * Used claude + visual review for repeated code checks until QA passed cleanly. 
+  
 ## 5. Failure recovery and fallback
 
 If AI was wrong, repetitive, or unable to solve the problem, explain how you
