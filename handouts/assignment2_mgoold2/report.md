@@ -106,7 +106,7 @@ message_key_str = message_key.decode("utf-8")
 if message_key_str != event.trip_id:
     raise ValueError(f"{message_key_str} is not equal to event.trip_id")
 ```
-... raise when `message_key_str != event.trip_id` , there are no actual corresponding pytests to flag this inequality, so it is a good idea to add such tests.  It added 4 pytests and ran them in an ablation suite.  Here are the results of running those tests, running each of the 4 conditions (the right hand column) one at a time.  The main thing to notice is that the center column "Provided suite" of 11 original tests pass at every step, meaning that there was nothing in the original pytest suite to catch these errors until now.  Good catch, claude; you may have cake and pie. 
+... raise when `message_key_str != event.trip_id` , there are no actual corresponding pytests to flag this inequality, so it is a good idea to add such tests.  It added 4 pytests and ran them in an ablation suite.  Here are the results of running those tests, running each of the 3 mutations (in the right hand column) one at a time.  The main thing to notice is that the center column "Provided suite" of 11 original tests pass at every step, meaning that there was nothing in the original pytest suite to catch these errors until now.  Good catch, claude; you may have cake and pie. 
 
 | State | Provided suite | New review guards |
 |---|---|---|
@@ -127,9 +127,11 @@ if message_key_str != event.trip_id:
 
 
 #### Rejected Suggestion:
-* Claude pointed out that there is a form of the commit statement in which all the last offsets across the partitions can be passed to the consumer commit statement as a list, and that the code was not future-proofed against this change/option.
+* Claude pointed out that `consumer.commit(...)` returns a **list** of `TopicPartition` objects, and that my loop assumes that list holds exactly one
+  entry — the receipt for the message I just committed. There is a second form of the call, `commit()` with no `message=` argument, which commits every assigned partition and returns one entry per partition. Under that form my loop would be checking partitions it never committed, so the code is not future-proofed against ever switching to it.
 * I rejected future-proofing the code in this way because:
- * As it stands now `committed = consumer.commit(message=message, asynchronous=False)` passes just one partition, so committed can have only one entry, and therefore list-driven glitches of this kind cannot arise.
+ * `run_consumer.py` only ever calls `consumer.commit(message=message, asynchronous=False)`.That form commits only the message's own partition, so the returned list holds exactly one entry — the one the check is meant to examine. The multi-entry hazard cannot arise in this code as it stands.
+
  * Here is an example that this is true:
     ```
 Evidence (one run, same consumer, same assignment):
@@ -143,8 +145,8 @@ Evidence (one run, same consumer, same assignment):
       -> returned 3 entries: [(0, -1001), (1, 3), (2, -1001)]
     ```
 
-    * The consumer held three partitions in both calls. The message= form returned one entry; the no-argument form returned three. The return size   therefore follows which partitions were committed, not which are assigned. Since run_consumer.py only ever calls the message= form, `committed` can hold only one entry, and the multi-entry hazard can't happen in this code as it stands now.
-    * An interesting thing about `[(0, -1001), (1, 3), (2, -1001)]` : it turns out that -1001 is kafka's marker to mean "nothing to commit here", which I didn't know.  This gives evidence that in the potential list, the current code would only generate one item to commit at a time anyhow.
+* The consumer held three partitions in both calls. The message= form returned one entry; the no-argument form returned three. The return size   therefore follows which partitions were committed, not which are assigned. Since run_consumer.py only ever calls the message= form, `committed` can hold only one entry, and the multi-entry hazard can't happen in this code as it stands now.
+* An interesting thing about `[(0, -1001), (1, 3), (2, -1001)]` : it turns out that -1001 is kafka's marker to mean "nothing to commit here", and it is used to pad per-partition entries the list where there is nothing to commit.  I didn't know that.  If my code ever used the the list, it would receive two meaningless -1001 values and your check would raise on both, reporting a failure that didn't happen. --So the potential risk is real, but unlikely enough to not warrant action now.
  * Additionally, multiplying complexity would multiply the potential for bugs, which outweighs the theoretical benefit of future-proofing.
 
 
