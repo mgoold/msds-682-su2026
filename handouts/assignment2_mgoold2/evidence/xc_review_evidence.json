@@ -1,0 +1,108 @@
+{
+  "after_restore": {
+    "provided_suite": {
+      "all_passed": true,
+      "exit_code": 0,
+      "failed": 0,
+      "passed": 11
+    },
+    "review_suite": {
+      "all_passed": true,
+      "exit_code": 0,
+      "failed": 0,
+      "passed": 4
+    }
+  },
+  "artifact": "xc_ai_review_mutation_check",
+  "assignment": "assignment02",
+  "baseline": {
+    "provided_suite": {
+      "all_passed": true,
+      "exit_code": 0,
+      "failed": 0,
+      "passed": 11
+    },
+    "review_suite": {
+      "all_passed": true,
+      "exit_code": 0,
+      "failed": 0,
+      "passed": 4
+    }
+  },
+  "generated_at": "2026-09-19T18:41:12+00:00",
+  "guards_detected_by_review_suite": [
+    "key_matches_payload",
+    "key_present",
+    "run_id_filter"
+  ],
+  "guards_undetected_by_provided_suite": [
+    "key_matches_payload",
+    "key_present",
+    "run_id_filter"
+  ],
+  "mutations": [
+    {
+      "description": "Kafka key must equal the decoded event's trip_id",
+      "detected_by_provided_suite": false,
+      "detected_by_review_suite": true,
+      "disabled_condition": "if message_key_str != event.trip_id:",
+      "guard": "key_matches_payload",
+      "provided_suite": {
+        "all_passed": true,
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 11
+      },
+      "review_suite": {
+        "all_passed": false,
+        "exit_code": 1,
+        "failed": 1,
+        "passed": 3
+      }
+    },
+    {
+      "description": "Kafka message key must be present and nonempty",
+      "detected_by_provided_suite": false,
+      "detected_by_review_suite": true,
+      "disabled_condition": "if not message_key:",
+      "guard": "key_present",
+      "provided_suite": {
+        "all_passed": true,
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 11
+      },
+      "review_suite": {
+        "all_passed": false,
+        "exit_code": 1,
+        "failed": 1,
+        "passed": 3
+      }
+    },
+    {
+      "description": "records from another run are skipped, not processed",
+      "detected_by_provided_suite": false,
+      "detected_by_review_suite": true,
+      "disabled_condition": "if run_id != record[\"event\"][\"run_id\"]:",
+      "guard": "run_id_filter",
+      "provided_suite": {
+        "all_passed": true,
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 11
+      },
+      "review_suite": {
+        "all_passed": false,
+        "exit_code": 1,
+        "failed": 1,
+        "passed": 3
+      }
+    }
+  ],
+  "provided_suite": "tests/test_consumer_application.py",
+  "purpose": "Show which consumer guards the provided test suite can detect the removal of, and which are covered only by the review suite.",
+  "requires_credentials": false,
+  "review_suite": "tests/test_review_guards.py",
+  "source_restored": true,
+  "target_file": "src/consumer_runtime.py"
+}
