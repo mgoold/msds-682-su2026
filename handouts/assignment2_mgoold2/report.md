@@ -116,6 +116,18 @@ if message_key_str != event.trip_id:
 | run_id filter disabled | **11 passed** | 1 failed, 3 passed |
 | Restored | 11 passed | 4 passed |
 
+##### Related files:
+
+- [`extra_credit/AI_REVIEW.md`](extra_credit/AI_REVIEW.md) — the review, with the
+  accepted and rejected suggestions and the reasoning behind each
+- [`tests/test_review_guards.py`](tests/test_review_guards.py) — four
+  credential-free tests covering the key-verification and run-ID guards
+- [`extra_credit/mutation_check.py`](extra_credit/mutation_check.py) — harness
+  that disables one guard at a time and records which suite detects it
+- [`evidence/xc_review_evidence.json`](evidence/xc_review_evidence.json) —
+  generated results; reproduce with `python extra_credit/mutation_check.py`
+
+
 #### Rejected Suggestion:
 * 
 
