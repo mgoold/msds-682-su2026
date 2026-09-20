@@ -38,8 +38,7 @@ private data, or secret-bearing logs.
 
 * Output summary:
  * Suggestions accepted and why: many of the accepted suggestions I would characterize as correcting bad python code, rather than kafka knowledge.  
- *  Suggestions rejected and why: I didn't really have bad suggestions to reject.  Once I caught it out in an error about the number of arguments to return.
- * Claude itself recounts several bad instructions it gave that I'd forgotten:
+ * Suggestions rejected and why: Claude itself recounts several bad instructions it gave that I'd forgotten:
 "
  * I flagged your BOOTSTRAP_SERVERS value as a copy-paste error because it matched your dead cluster's host. A connectivity probe disproved it — Basic clusters are multi-tenant and share a pkc- endpoint, so an identical hostname was expected.
  * I described a Stream Governance package dialog during environment creation; your console had no such step, and Schema Registry activated when the cluster was created.
@@ -71,7 +70,8 @@ If no failure occurred, state:
 Answer: I didn't really stop trusting the model overall despite the above listed difficulties.  Elsewhere on a much larger repo for a class project, I have used structural and other remedies when Claude's self-contradiction became a constant hassle.  The fall back I have used is to continue to try and optimize how I used Claude:
 * I have added Claude.md files in sub directories
 * I've used using hooks and skills as warranted.
-It's an ongoing struggle.
+* Really, all my "non-AI fall-backs" to Claude right now are logical ones, in which I say to the model "you've contradicted yourself here", and then try and inscribe measures like those I've just listed into the the repo content and Claudes prompts to stop it happening again.  It's an ongoing struggle.
+* Additionally, I am checking the real output, and metrics on the real output, to see if things are actually improving direction-ally in the way they're meant to.
 
 ## 6. Responsibility statement
 
