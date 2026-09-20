@@ -11,6 +11,7 @@ List every AI tool/model used, even when you rejected its output.
 |---|---|---|
 | Claude Opus 5 | Explanation, debugging. | All the code blocks. |
 | Claude Opus 5 | Explanation of concepts, validating my understanding. | All the follow-up questions. |
+| Claude Opus 5 | Explanation of concepts, validating and creating code, QA | All extra credit questions. |
 
 If you used AI for multiple substantially different tasks, repeat Sections 1
 through 5 for each task or add clearly labeled entries under each section.
