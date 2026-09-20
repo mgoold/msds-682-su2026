@@ -95,8 +95,6 @@ area it assisted:
 - [x] Native asyncio consumer extension
 - [x] AI-assisted engineering review
 
-List supporting files:
-
 ### For Two-member consumer group:
 #### Evidence:
 * Based on the description given in the rubric, Claude implemented this and output the following evidence:
@@ -121,6 +119,36 @@ The interpretation this is as follows:
 ### Related Files:
 * extra_credit/two_member_group.py
 * evidence/xc_two_member_group.json
+
+### For Native asyncio consumer extension
+
+#### Evidence
+* Claude provided the following evidence of its work:
+```
+client               : confluent_kafka.aio.AIOConsumer
+deserializer         : confluent_kafka.schema_registry.avro.AsyncAvroDeserializer
+processed            : 12   stop_reason: max_messages
+sequence numbers     : [0…11]
+assignment ready in  : 1.7621 s
+assignments (offsets): [[-2, -2, -2]]
+cleanup              : {'unsubscribe': 'ok', 'close': 'ok'}  -> clean: True
+
+sync identities  : 12      async identities : 12
+identical        : True    missing: []   extra: []
+
+graded before/after : {'base': {0:3, 1:3, 2:6}, 'replay': {0:3, 1:3, 2:6}}  -> untouched
+```
+#### Requested Criteria
+
+* **Real assignment readiness.** The receive budget doesn't open when the consumer starts — it opens the first time assignment_ready is set, which took 1.76 seconds here. That number is published in the report. Without this, a slow group join on a cold cluster would silently eat the time budget and the run would look like it found no data.
+
+* **Finite poll and time limits.** Four separate bounds, all recorded in a bounds block: a 12-message cap, a 45-second assignment timeout, a 45-second post-assignment receive deadline, and a 1-second poll timeout. It stopped on max_messages, so none of the timeouts had to fire.
+
+* **Schema-aware validation.** AsyncAvroDeserializer wired with your own avro_dict_to_event, so Block 3 runs inside the async path exactly as it does in the synchronous one. Then isinstance against TripEventV1, and the UTF-8 key compared to event.trip_id.
+
+* **Correct cleanup.** unsubscribe and close are each awaited under their own timeout, with results recorded rather than swallowed. A cleanup failure is captured but never replaces the error that actually stopped the run.
+
+* **Equivalence.** The 12 identities it accepted are identical to the 12 in results/processed_events.jsonl from your first and resume runs — nothing missing, nothing extra. Identity is run_id:sequence:trip_id, deliberately excluding partition and offset, since those legitimately differ between a two-phase synchronous read and a single async pass.
 
 
 ### For AI-assisted engineering review.
