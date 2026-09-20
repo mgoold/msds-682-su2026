@@ -92,7 +92,7 @@ area it assisted:
 
 - [ ] None
 - [x] Two-member consumer group
-- [ ] Native asyncio consumer extension
+- [x] Native asyncio consumer extension
 - [x] AI-assisted engineering review
 
 List supporting files:
@@ -120,7 +120,7 @@ The interpretation this is as follows:
 
 ### Related Files:
 * extra_credit/two_member_group.py
-( evidence/xc_two_member_group.json
+* evidence/xc_two_member_group.json
 
 
 ### For AI-assisted engineering review.
