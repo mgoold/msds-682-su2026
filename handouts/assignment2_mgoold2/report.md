@@ -144,12 +144,17 @@ graded before/after : {'base': {0:3, 1:3, 2:6}, 'replay': {0:3, 1:3, 2:6}}  -> u
 
 * **Finite poll and time limits.** Four separate bounds, all recorded in a bounds block: a 12-message cap, a 45-second assignment timeout, a 45-second post-assignment receive deadline, and a 1-second poll timeout. It stopped on max_messages, so none of the timeouts had to fire.
 
-* **Schema-aware validation.** AsyncAvroDeserializer wired with your own avro_dict_to_event, so Block 3 runs inside the async path exactly as it does in the synchronous one. Then isinstance against TripEventV1, and the UTF-8 key compared to event.trip_id.
+* **Schema-aware validation.** AsyncAvroDeserializer wired with my own avro_dict_to_event, so Block 3 runs inside the async path exactly as it does in the synchronous one. Then isinstance against TripEventV1, and the UTF-8 key compared to event.trip_id.
 
 * **Correct cleanup.** unsubscribe and close are each awaited under their own timeout, with results recorded rather than swallowed. A cleanup failure is captured but never replaces the error that actually stopped the run.
 
-* **Equivalence.** The 12 identities it accepted are identical to the 12 in results/processed_events.jsonl from your first and resume runs — nothing missing, nothing extra. Identity is run_id:sequence:trip_id, deliberately excluding partition and offset, since those legitimately differ between a two-phase synchronous read and a single async pass.
+* **Equivalence.** The 12 identities it accepted are identical to the 12 in results/processed_events.jsonl from the first and resume runs — nothing missing, nothing extra. Identity is run_id:sequence:trip_id, deliberately excluding partition and offset, since those legitimately differ between a two-phase synchronous read and a single async pass.
 
+#### Related Files
+* [`extra_credit/async_consumer.py`](extra_credit/async_consumer.py) — the bounded
+  AIOConsumer pass, with assignment readiness, the four limits, and bounded cleanup
+* [`evidence/xc_async_consumer.json`](evidence/xc_async_consumer.json) — generated
+  evidence including the identity equivalence comparison
 
 ### For AI-assisted engineering review.
 #### Accepted Suggestion: Add pytests for event.trip_id inequality.
