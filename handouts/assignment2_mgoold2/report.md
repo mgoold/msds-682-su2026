@@ -214,9 +214,9 @@ Evidence (one run, same consumer, same assignment):
 
 ## Credential safety and cleanup
 
-- [ ] `.env` and credentials are excluded.
-- [ ] Evidence contains no secrets.
-- [ ] Unused Confluent resources and keys were deleted; any retained resource
+- [x] `.env` and credentials are excluded.
+- [x] Evidence contains no secrets.
+- [x] Unused Confluent resources and keys were deleted; any retained resource
       is still needed for the course and is being monitored.
 
-Brief cleanup note:
+Brief cleanup note: all of the listed cleanup items are completed.
