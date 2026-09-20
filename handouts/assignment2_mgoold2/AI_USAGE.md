@@ -9,6 +9,7 @@ List every AI tool/model used, even when you rejected its output.
 
 | Tool/model | Purpose | Submitted file or section affected |
 |---|---|---|
+| Claude Sonnet 5 | upstream-sync check, reading the assignment PDF, and the initial walkthrough that mapped all eight code blocks to their Demo 03/04/05 references.  | All the code blocks. |
 | Claude Opus 5 | Explanation, debugging. | All the code blocks. |
 | Claude Opus 5 | Explanation of concepts, validating my understanding. | All the follow-up questions. |
 | Claude Opus 5 | Explanation of concepts, validating and creating code, QA | All extra credit questions. |
@@ -35,14 +36,14 @@ private data, or secret-bearing logs.
 
 ## 3. Output and engineering judgment
 
-- Output summary:
-- Suggestions accepted and why: many of the accepted suggestions I would characterize as correcting bad python code, rather than kafka knowledge.  
-- Suggestions rejected and why: I didn't really have bad suggestions to reject.  Once I caught it out in an error about the number of arguments to return.
-- Claude itself recounts several bad instructions it gave that I'd forgotten:
+* Output summary:
+ * Suggestions accepted and why: many of the accepted suggestions I would characterize as correcting bad python code, rather than kafka knowledge.  
+ *  Suggestions rejected and why: I didn't really have bad suggestions to reject.  Once I caught it out in an error about the number of arguments to return.
+ * Claude itself recounts several bad instructions it gave that I'd forgotten:
 "
-* I flagged your BOOTSTRAP_SERVERS value as a copy-paste error because it matched your dead cluster's host. A connectivity probe disproved it — Basic clusters are multi-tenant and share a pkc- endpoint, so an identical hostname was expected.
-* I described a Stream Governance package dialog during environment creation; your console had no such step, and Schema Registry activated when the cluster was created.
-* I said you had no environment; the breadcrumb in your own screenshot showed default existed.
+ * I flagged your BOOTSTRAP_SERVERS value as a copy-paste error because it matched your dead cluster's host. A connectivity probe disproved it — Basic clusters are multi-tenant and share a pkc- endpoint, so an identical hostname was expected.
+ * I described a Stream Governance package dialog during environment creation; your console had no such step, and Schema Registry activated when the cluster was created.
+ * I said you had no environment; the breadcrumb in your own screenshot showed default existed.
 "
 - Changes I made myself: mostly enhancements or rephrases of its responses to the open ended questions at the end of the lesson.
 
@@ -50,8 +51,8 @@ private data, or secret-bearing logs.
 
 Describe the tests, Confluent evidence, logs, primary documentation, manual reasoning, or comparison used to determine whether the response was correct.
 Answer: 
-* These are the things I did that involved some independent accuracy verification:
-  * Ran python -m pytest -q against a test suite you didn't write; it went from 1 failure to 11 passing, and it caught a real bug (the TripAcceptedResponse built from the wrong fields).
+* These are the things claude did that involved some independent accuracy verification on my part:
+  * Ran python -m pytest -q against a test suite I didn't write; it went from 1 failure to 11 passing, and it caught a real bug (the TripAcceptedResponse built from the wrong fields).
   * Ran the seeder and all three consumer phases against real Confluent Cloud and read the reports rather than trusting that the code "should" work.
   * Confirmed the first and resume sequence sets were disjoint and covered 0-11, and that the base group's committed offsets were unchanged after replay.
   * Used claude + visual review for repeated code checks until QA passed cleanly. 
@@ -67,7 +68,7 @@ If no failure occurred, state:
 - warning signs that would make you stop trusting the current answer, and
 - the non-AI fallback you would use.
 
-Answer: I do have this problem, but not on this project.  For the much larger repo for the class project, having Claude contradict its earlier findings is a constant hassle.  The fall back I have used is to continue to try and optimize how I used Claude:
+Answer: I didn't really stop trusting the model overall despite the above listed difficulties.  Elsewhere on a much larger repo for a class project, I have used structural and other remedies when Claude's self-contradiction became a constant hassle.  The fall back I have used is to continue to try and optimize how I used Claude:
 * I have added Claude.md files in sub directories
 * I've used using hooks and skills as warranted.
 It's an ongoing struggle.
